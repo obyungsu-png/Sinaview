@@ -17,6 +17,7 @@ const AutoSection = lazy(() => import('./AutoSection').then(m => ({ default: m.A
 const NewsSection = lazy(() => import('./NewsSection').then(m => ({ default: m.NewsSection })));
 const UsedMarketSection = lazy(() => import('./UsedMarketSection').then(m => ({ default: m.UsedMarketSection })));
 const SecuritiesSection = lazy(() => import('./SecuritiesSection').then(m => ({ default: m.SecuritiesSection })));
+const RealEstateSection = lazy(() => import('./RealEstateSection').then(m => ({ default: m.RealEstateSection })));
 const WeatherAdWidget = lazy(() => import('./WeatherAdWidget').then(m => ({ default: m.WeatherAdWidget })));
 const RegionalNewsWidget = lazy(() => import('./RegionalNewsWidget').then(m => ({ default: m.RegionalNewsWidget })));
 const WeatherWidget = lazy(() => import('./WeatherWidget').then(m => ({ default: m.WeatherWidget })));
@@ -324,6 +325,13 @@ export function Portal() {
                       <SecuritiesSection category="증권" onMoreClick={handleGoToSecuritiesPage} />
                     </div>
                   </div>
+                  <div id="realestate-section">
+                    <RealEstateSection
+                      category="부동산"
+                      onMoreClick={handleGoToRealEstatePage}
+                      userCity={currentUser?.city || '베이징'}
+                    />
+                  </div>
                 </Suspense>
               )}
             </div>
@@ -458,6 +466,13 @@ export function Portal() {
             <>
               <Suspense fallback={<LoadingSpinner />}>
                 <UsedMarketSection category="중고시장" onMoreClick={handleGoToUsedMarketPage} userRegion={currentUser?.region} />
+              </Suspense>
+              <Suspense fallback={<LoadingSpinner />}>
+                <RealEstateSection
+                  category="부동산"
+                  onMoreClick={handleGoToRealEstatePage}
+                  userCity={currentUser?.city || '베이징'}
+                />
               </Suspense>
               <Suspense fallback={<LoadingSpinner />}>
                 <VisaDocumentSection 

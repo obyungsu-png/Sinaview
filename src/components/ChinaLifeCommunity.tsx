@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Post {
   id: number;
@@ -30,6 +30,14 @@ interface ChinaLifeCommunityProps {
 
 export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCommunityProps) {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [activeCategory, setActiveCategory] = useState('전체');
+  const [naverCafeUrl, setNaverCafeUrl] = useState(() => {
+    return localStorage.getItem('naverCafeUrl') || '';
+  });
+  const [isNaverTabOpen, setIsNaverTabOpen] = useState(false);
+  const [naverCafeInput, setNaverCafeInput] = useState('');
   const [comments, setComments] = useState<Comment[]>([
     {
       id: 1,
@@ -293,6 +301,55 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
   const handlePostClick = (post: Post) => {
     setSelectedPost(post);
   };
+
+  const handleSearch = () => {
+    setSearchTerm(searchInput);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch();
+  };
+
+  const handleCategoryClick = (category: string) => {
+    setActiveCategory(category);
+    setSearchTerm('');
+    setSearchInput('');
+  };
+
+  const handleNaverCafeSave = () => {
+    let url = naverCafeInput.trim();
+    if (url && !url.startsWith('http')) url = 'https://' + url;
+    setNaverCafeUrl(url);
+    localStorage.setItem('naverCafeUrl', url);
+    setIsNaverTabOpen(false);
+    setNaverCafeInput('');
+  };
+
+  const categoryFilterMap: Record<string, (post: Post) => boolean> = {
+    '전체': () => true,
+    '공지사항': (p) => p.badgeType === 'notice',
+    '신입 가이드': (p) => p.title.includes('가이드') || p.title.includes('1년차') || p.title.includes('꼭 알'),
+    '주거·부동산': (p) => p.title.includes('아파트') || p.title.includes('월세') || p.title.includes('부동산') || p.title.includes('집'),
+    '음식·맛집': (p) => p.title.includes('맛집') || p.title.includes('음식') || p.title.includes('재료') || p.title.includes('요리'),
+    '쇼핑·배달': (p) => p.title.includes('타오바오') || p.title.includes('쇼핑') || p.title.includes('배달') || p.title.includes('택배') || p.title.includes('구매'),
+    '교통·이동': (p) => p.title.includes('교통') || p.title.includes('이동') || p.title.includes('택시'),
+    '비자·거류증': (p) => p.title.includes('비자') || p.title.includes('거류'),
+    '은행·금융': (p) => p.title.includes('은행') || p.title.includes('금융') || p.title.includes('결제'),
+    '통신·인터넷': (p) => p.title.includes('전화') || p.title.includes('VPN') || p.title.includes('통신') || p.title.includes('인터넷') || p.title.includes('앱'),
+    '베이징/상하이': (p) => p.title.includes('베이징') || p.title.includes('상하이'),
+    '광저우/심천': (p) => p.title.includes('광저우') || p.title.includes('심천'),
+    '기타 지역': (p) => !p.title.includes('베이징') && !p.title.includes('상하이') && !p.title.includes('광저우'),
+  };
+
+  const filteredPosts = posts.filter(post => {
+    const matchesSearch = searchTerm === '' ||
+      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.content || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.author.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = activeCategory === '전체' || 
+      (categoryFilterMap[activeCategory] ? categoryFilterMap[activeCategory](post) : true);
+    return matchesSearch && matchesCategory;
+  });
 
   const handleAddComment = () => {
     if (newComment.trim() && currentUser) {
@@ -932,28 +989,113 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
               <span><i className="fa-solid fa-users"></i> 2,850명</span>
               <span><i className="fa-solid fa-comment"></i> 5,240개</span>
             </div>
+            {/* 네이버 카페 연결 탭 */}
+            <div style={{marginTop: '14px', borderTop: '1px solid #f0f0f0', paddingTop: '12px'}}>
+              {naverCafeUrl ? (
+                <div>
+                  <a
+                    href={naverCafeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      background: 'linear-gradient(135deg, #03c75a, #00a843)',
+                      color: 'white', padding: '8px 12px', borderRadius: '6px',
+                      fontSize: '12px', fontWeight: '600', textDecoration: 'none',
+                      transition: 'all 0.2s', width: '100%'
+                    }}
+                  >
+                    <i className="fa-solid fa-square-n" style={{fontSize:'14px'}}></i>
+                    네이버 카페 바로가기
+                  </a>
+                  <button
+                    onClick={() => { setNaverCafeInput(naverCafeUrl); setIsNaverTabOpen(true); }}
+                    style={{
+                      marginTop: '6px', width: '100%', background: 'none',
+                      border: '1px solid #ddd', borderRadius: '4px', padding: '4px',
+                      fontSize: '11px', color: '#999', cursor: 'pointer'
+                    }}
+                  >
+                    ✏️ URL 변경
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsNaverTabOpen(true)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    background: '#f8f9fa', border: '1px dashed #03c75a',
+                    color: '#03c75a', padding: '8px 12px', borderRadius: '6px',
+                    fontSize: '12px', fontWeight: '600', width: '100%', cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <i className="fa-solid fa-link" style={{fontSize:'12px'}}></i>
+                  네이버 카페 연결하기
+                </button>
+              )}
+            </div>
+            {/* 네이버 카페 URL 입력 팝업 */}
+            {isNaverTabOpen && (
+              <div style={{
+                marginTop: '10px', background: '#f0fff4', border: '1px solid #03c75a',
+                borderRadius: '8px', padding: '12px'
+              }}>
+                <div style={{fontSize: '12px', fontWeight: '600', color: '#333', marginBottom: '8px'}}>
+                  네이버 카페 URL 입력
+                </div>
+                <input
+                  type="text"
+                  value={naverCafeInput}
+                  onChange={e => setNaverCafeInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleNaverCafeSave()}
+                  placeholder="https://cafe.naver.com/..."
+                  style={{
+                    width: '100%', padding: '6px 8px', border: '1px solid #ddd',
+                    borderRadius: '4px', fontSize: '11px', marginBottom: '8px'
+                  }}
+                />
+                <div style={{display: 'flex', gap: '6px'}}>
+                  <button
+                    onClick={handleNaverCafeSave}
+                    style={{
+                      flex: 1, background: '#03c75a', color: 'white', border: 'none',
+                      borderRadius: '4px', padding: '6px', fontSize: '11px',
+                      fontWeight: '600', cursor: 'pointer'
+                    }}
+                  >저장</button>
+                  <button
+                    onClick={() => { setIsNaverTabOpen(false); setNaverCafeInput(''); }}
+                    style={{
+                      flex: 1, background: '#f8f9fa', color: '#666', border: '1px solid #ddd',
+                      borderRadius: '4px', padding: '6px', fontSize: '11px', cursor: 'pointer'
+                    }}
+                  >취소</button>
+                </div>
+              </div>
+            )}
           </div>
 
           <ul className="menu-list">
             <li className="title">★ 필독 게시판</li>
-            <li><i className="fa-solid fa-bullhorn"></i> 공지사항</li>
-            <li><i className="fa-regular fa-file-lines"></i> 신입 가이드</li>
+            <li onClick={() => handleCategoryClick('공지사항')} style={activeCategory === '공지사항' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}><i className="fa-solid fa-bullhorn"></i> 공지사항</li>
+            <li onClick={() => handleCategoryClick('신입 가이드')} style={activeCategory === '신입 가이드' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}><i className="fa-regular fa-file-lines"></i> 신입 가이드</li>
             
             <li className="title">생활 정보</li>
-            <li>주거·부동산</li>
-            <li>음식·맛집</li>
-            <li>쇼핑·배달</li>
-            <li>교통·이동</li>
+            <li onClick={() => handleCategoryClick('주거·부동산')} style={activeCategory === '주거·부동산' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>주거·부동산</li>
+            <li onClick={() => handleCategoryClick('음식·맛집')} style={activeCategory === '음식·맛집' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>음식·맛집</li>
+            <li onClick={() => handleCategoryClick('쇼핑·배달')} style={activeCategory === '쇼핑·배달' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>쇼핑·배달</li>
+            <li onClick={() => handleCategoryClick('교통·이동')} style={activeCategory === '교통·이동' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>교통·이동</li>
             
             <li className="title">행정·비자</li>
-            <li>비자·거류증</li>
-            <li>은행·금융</li>
-            <li>통신·인터넷</li>
+            <li onClick={() => handleCategoryClick('비자·거류증')} style={activeCategory === '비자·거류증' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>비자·거류증</li>
+            <li onClick={() => handleCategoryClick('은행·금융')} style={activeCategory === '은행·금융' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>은행·금융</li>
+            <li onClick={() => handleCategoryClick('통신·인터넷')} style={activeCategory === '통신·인터넷' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>통신·인터넷</li>
             
             <li className="title">지역별</li>
-            <li>베이징/상하이</li>
-            <li>광저우/심천</li>
-            <li>기타 지역</li>
+            <li onClick={() => handleCategoryClick('베이징/상하이')} style={activeCategory === '베이징/상하이' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>베이징/상하이</li>
+            <li onClick={() => handleCategoryClick('광저우/심천')} style={activeCategory === '광저우/심천' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>광저우/심천</li>
+            <li onClick={() => handleCategoryClick('기타 지역')} style={activeCategory === '기타 지역' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>기타 지역</li>
           </ul>
         </aside>
 
@@ -962,13 +1104,67 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
           {!selectedPost ? (
             <>
               <div className="board-header">
-                <h2>중국 생활 정보 게시판</h2>
+                <h2>
+                  {activeCategory === '전체' ? '중국 생활 정보 게시판' : activeCategory}
+                </h2>
                 <button className="btn-analyze">통계 보기</button>
+              </div>
+
+              {/* 검색바 */}
+              <div style={{
+                display: 'flex', gap: '8px', marginBottom: '16px',
+                padding: '12px 0', borderBottom: '1px solid #f0f0f0'
+              }}>
+                <div style={{position: 'relative', flex: 1}}>
+                  <input
+                    type="text"
+                    value={searchInput}
+                    onChange={e => setSearchInput(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                    placeholder="제목, 내용, 작성자로 검색..."
+                    style={{
+                      width: '100%', padding: '8px 36px 8px 12px',
+                      border: '1px solid #ddd', borderRadius: '6px',
+                      fontSize: '13px', outline: 'none',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={e => (e.target.style.borderColor = '#667eea')}
+                    onBlur={e => (e.target.style.borderColor = '#ddd')}
+                  />
+                  {searchInput && (
+                    <button
+                      onClick={() => { setSearchInput(''); setSearchTerm(''); }}
+                      style={{
+                        position: 'absolute', right: '8px', top: '50%',
+                        transform: 'translateY(-50%)', background: 'none',
+                        border: 'none', color: '#999', cursor: 'pointer', fontSize: '14px'
+                      }}
+                    >×</button>
+                  )}
+                </div>
+                <button
+                  onClick={handleSearch}
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white', border: 'none', borderRadius: '6px',
+                    padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+                    cursor: 'pointer', whiteSpace: 'nowrap'
+                  }}
+                >
+                  <i className="fa-solid fa-magnifying-glass" style={{marginRight: '5px'}}></i>
+                  검색
+                </button>
               </div>
 
               <div className="toolbar">
                 <div className="tool-left">
-                  <span style={{fontSize: '12px', color: '#888'}}>전체 <strong style={{color: '#667eea'}}>1,052</strong>개</span>
+                  <span style={{fontSize: '12px', color: '#888'}}>
+                    {searchTerm ? (
+                      <>검색결과 <strong style={{color: '#667eea'}}>{filteredPosts.length}</strong>개 / 전체 <strong style={{color: '#667eea'}}>1,052</strong>개</>
+                    ) : (
+                      <>전체 <strong style={{color: '#667eea'}}>1,052</strong>개</>
+                    )}
+                  </span>
                   <span><input type="checkbox" /> 공지 제외</span>
                 </div>
                 <div className="tool-right">
@@ -1004,7 +1200,14 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                   </tr>
                 </thead>
                 <tbody>
-                  {posts.map((post) => (
+                  {filteredPosts.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '14px'}}>
+                        <i className="fa-solid fa-magnifying-glass" style={{fontSize: '24px', marginBottom: '10px', display: 'block'}}></i>
+                        {searchTerm ? `"${searchTerm}"에 해당하는 게시글이 없습니다.` : '게시글이 없습니다.'}
+                      </td>
+                    </tr>
+                  ) : filteredPosts.map((post) => (
                     <tr key={post.id} style={post.badgeType === 'important' ? {backgroundColor: '#fafafa'} : {}}>
                       <td><input type="checkbox" /></td>
                       <td>
@@ -1040,7 +1243,18 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                   <input type="checkbox" /> 전체선택
                   <button style={{marginLeft:'10px'}}>선택삭제</button>
                 </div>
-                <button className="btn-write-blue"><i className="fa-solid fa-pen"></i> 글쓰기</button>
+                {currentUser ? (
+                  <button className="btn-write-blue"><i className="fa-solid fa-pen"></i> 글쓰기</button>
+                ) : (
+                  <button
+                    className="btn-write-blue"
+                    style={{opacity: 0.5, cursor: 'not-allowed', background: '#aaa'}}
+                    title="로그인 후 이용 가능합니다"
+                    onClick={() => alert('글쓰기는 로그인 후 이용 가능합니다.')}
+                  >
+                    <i className="fa-solid fa-lock" style={{marginRight:'5px'}}></i> 글쓰기
+                  </button>
+                )}
               </div>
             </>
           ) : (

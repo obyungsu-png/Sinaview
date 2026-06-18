@@ -46,7 +46,7 @@ export function Header({ onCategorySelect, onShoppingSelect, onYellowPagesSelect
     { keyword: '뉴스', aliases: ['중국소식', '중국뉴스', '뉴스', 'news', '소식', '시사'], section: 'news', mobileSection: 'news-mobile', page: 'news', icon: '📰', category: '중국소식' },
     { keyword: '중고시장', aliases: ['중고', '중고거래', '벼룩시장', '물건팔기', '중고물품', 'used market'], section: 'used-market', mobileSection: 'used-market-mobile', page: 'usedmarket', icon: '🏪', category: '중고시장' },
     { keyword: '증권', aliases: ['주식', '펀드', '투자', '상하이증시', '선전증시', 'stock', '증시', '코스피'], section: 'securities', mobileSection: 'securities-mobile', page: 'securities', icon: '📈', category: '중국 증권' },
-    { keyword: '부동산', aliases: ['집', '아파트', '임대', '매매', '월세', 'real estate', '렌트'], section: null, mobileSection: null, page: 'realestate', icon: '🏠', category: '부동산' },
+    { keyword: '부동산', aliases: ['집', '아파트', '임대', '매매', '월세', 'real estate', '렌트'], section: 'realestate-section', mobileSection: 'realestate-section', page: 'realestate', icon: '🏠', category: '부동산' },
     { keyword: 'HSK', aliases: ['중국어시험', '한어수평고시', 'hsk', '중국어능력시험', 'HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'], section: null, mobileSection: null, page: 'hsk', icon: '🇨🇳', category: '학습 센터' },
     { keyword: '블로그', aliases: ['카페', '커뮤니티', 'blog', '글쓰기'], section: null, mobileSection: null, page: 'blog', icon: '✍️', category: '블로그' },
     { keyword: '게시판', aliases: ['커뮤니티', '생활정보', '차이나라이프', '중국생활'], section: null, mobileSection: null, page: 'chinalife', icon: '💬', category: '게시판' },
@@ -397,6 +397,12 @@ export function Header({ onCategorySelect, onShoppingSelect, onYellowPagesSelect
               중국 증권
             </button>
             <button 
+              onClick={() => scrollToSection('realestate-section', 'realestate-section')}
+              className="hover:text-green-600 whitespace-nowrap"
+            >
+              부동산
+            </button>
+            <button 
               onClick={() => onNavigate?.('chinalife')}
               className="hover:text-green-600 whitespace-nowrap"
             >
@@ -412,14 +418,20 @@ export function Header({ onCategorySelect, onShoppingSelect, onYellowPagesSelect
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 bg-white shadow-xl">
-                {/* HSK - 내부 페이지 */}
+                {/* HSK - 외부 링크 */}
                 <DropdownMenuItem 
-                  onClick={() => onNavigate?.('hsk')}
+                  onClick={() => {
+                    const hskUrl = localStorage.getItem('hskLinkUrl') || 'https://www.hsk.org.cn';
+                    window.open(hskUrl, '_blank');
+                  }}
                   className="cursor-pointer hover:bg-yellow-50 py-3 px-4"
                 >
-                  <div>
-                    <div className="font-semibold text-gray-800">HSK</div>
-                    <div className="text-xs text-gray-500">중국어 능력 시험</div>
+                  <div className="flex items-center justify-between w-full">
+                    <div>
+                      <div className="font-semibold text-gray-800">HSK</div>
+                      <div className="text-xs text-gray-500">중국어 능력 시험</div>
+                    </div>
+                    <span className="text-gray-400 text-xs">🔗</span>
                   </div>
                 </DropdownMenuItem>
                 

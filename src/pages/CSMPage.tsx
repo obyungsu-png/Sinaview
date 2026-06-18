@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Plus, Edit, Trash2, Upload, Save, Eye, FileText, Image as ImageIcon, File, X, Check, History, Download, Scale, ShieldCheck, Camera, Paperclip, RefreshCw, MessageSquare } from 'lucide-react@0.487.0';
+import { ArrowLeft, Plus, Edit, Trash2, Upload, Save, Eye, FileText, Image as ImageIcon, File, X, Check, History, Download, Scale, ShieldCheck, Camera, Paperclip, RefreshCw, MessageSquare, Pin, Bell } from 'lucide-react@0.487.0';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -40,10 +40,111 @@ interface ContentItem {
   tags?: string[];
 }
 
+interface CommunityPost {
+  id: string;
+  badge: '필독' | '공지';
+  badgeType: 'important' | 'notice';
+  title: string;
+  content: string;
+  author: string;
+  authorBadge: 'S' | 'M';
+  status: 'active' | 'draft';
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function CSMPage({ onBack }: CSMPageProps) {
   const [selectedTab, setSelectedTab] = useState('legal');
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 커뮤니티 게시물 (필독/공지) 관리 상태
+
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(() => {
+    try {
+      const saved = localStorage.getItem('csm_community_posts');
+      return saved ? JSON.parse(saved) : [
+        { id: 'cp1', badge: '필독', badgeType: 'important', title: '🚨 2025년 중국 생활 필수 앱 총정리 (최신판)', content: '안녕하세요, 중국생활 커뮤니티입니다. 2025년 필수 앱을 정리했습니다.', author: '중국생활관리자', authorBadge: 'S', status: 'active', order: 1, createdAt: '2025.12.24', updatedAt: '2025.12.24' },
+        { id: 'cp2', badge: '필독', badgeType: 'important', title: '📅 2025년 중국 공휴일 & 연휴 일정 정리', content: '2025년 중국 법정 공휴일 및 연휴 일정을 안내드립니다.', author: '중국생활관리자', authorBadge: 'S', status: 'active', order: 2, createdAt: '2025.12.23', updatedAt: '2025.12.23' },
+        { id: 'cp3', badge: '공지', badgeType: 'notice', title: '중국 택배 수령 방법 총정리 (스마트함, 집앞배달)', content: '중국 택배 수령 방법을 안내드립니다.', author: '매니저', authorBadge: 'M', status: 'active', order: 3, createdAt: '2025.12.20', updatedAt: '2025.12.20' },
+        { id: 'cp4', badge: '공지', badgeType: 'notice', title: '중국 병원 이용 방법 & 한국어 가능 병원 리스트', content: '중국에서 병원 이용하는 방법을 안내드립니다.', author: '매니저', authorBadge: 'M', status: 'active', order: 4, createdAt: '2025.12.18', updatedAt: '2025.12.18' },
+      ];
+    } catch { return []; }
+  });
+  const [isCpCreateOpen, setIsCpCreateOpen] = useState(false);
+  const [editingCp, setEditingCp] = useState<CommunityPost | null>(null);
+  const [cpForm, setCpForm] = useState({
+    badge: '공지' as '필독' | '공지',
+    title: '',
+    content: '',
+    author: '매니저',
+    authorBadge: 'M' as 'S' | 'M',
+    status: 'active' as 'active' | 'draft',
+  });
+
+  const saveCommunityPosts = (posts: CommunityPost[]) => {
+    localStorage.setItem('csm_community_posts', JSON.stringify(posts));
+    setCommunityPosts(posts);
+  };
+
+  const handleCpCreate = () => {
+    const newPost: CommunityPost = {
+      id: Date.now().toString(),
+      badge: cpForm.badge,
+      badgeType: cpForm.badge === '필독' ? 'important' : 'notice',
+      title: cpForm.title,
+      content: cpForm.content,
+      author: cpForm.author,
+      authorBadge: cpForm.authorBadge,
+      status: cpForm.status,
+      order: communityPosts.length + 1,
+      createdAt: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace('.', ''),
+      updatedAt: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace('.', ''),
+    };
+    saveCommunityPosts([...communityPosts, newPost]);
+    setIsCpCreateOpen(false);
+    setCpForm({ badge: '공지', title: '', content: '', author: '매니저', authorBadge: 'M', status: 'active' });
+  };
+
+  const handleCpUpdate = () => {
+    if (!editingCp) return;
+    const updated = communityPosts.map(p => p.id === editingCp.id ? {
+      ...editingCp,
+      badge: cpForm.badge,
+      badgeType: cpForm.badge === '필독' ? 'important' as const : 'notice' as const,
+      title: cpForm.title,
+      content: cpForm.content,
+      author: cpForm.author,
+      authorBadge: cpForm.authorBadge,
+      status: cpForm.status,
+      updatedAt: new Date().toLocaleDateString('ko-KR'),
+    } : p);
+    saveCommunityPosts(updated);
+    setEditingCp(null);
+  };
+
+  const handleCpDelete = (id: string) => {
+    if (confirm('이 게시물을 삭제하시겠습니까?')) {
+      saveCommunityPosts(communityPosts.filter(p => p.id !== id));
+    }
+  };
+
+  const handleCpMoveUp = (id: string) => {
+    const idx = communityPosts.findIndex(p => p.id === id);
+    if (idx <= 0) return;
+    const newPosts = [...communityPosts];
+    [newPosts[idx - 1], newPosts[idx]] = [newPosts[idx], newPosts[idx - 1]];
+    saveCommunityPosts(newPosts.map((p, i) => ({ ...p, order: i + 1 })));
+  };
+
+  const handleCpMoveDown = (id: string) => {
+    const idx = communityPosts.findIndex(p => p.id === id);
+    if (idx >= communityPosts.length - 1) return;
+    const newPosts = [...communityPosts];
+    [newPosts[idx], newPosts[idx + 1]] = [newPosts[idx + 1], newPosts[idx]];
+    saveCommunityPosts(newPosts.map((p, i) => ({ ...p, order: i + 1 })));
+  };
 
   const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-c6687586`;
 
@@ -294,7 +395,7 @@ export function CSMPage({ onBack }: CSMPageProps) {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 bg-white">
+          <TabsList className="grid w-full grid-cols-3 bg-white">
             <TabsTrigger value="legal" className="flex items-center space-x-2">
               <Scale className="w-4 h-4" />
               <span>법적 고지 & 정책</span>
@@ -302,6 +403,10 @@ export function CSMPage({ onBack }: CSMPageProps) {
             <TabsTrigger value="content" className="flex items-center space-x-2">
               <FileText className="w-4 h-4" />
               <span>일반 콘텐츠</span>
+            </TabsTrigger>
+            <TabsTrigger value="community" className="flex items-center space-x-2">
+              <Pin className="w-4 h-4" />
+              <span>필독 & 공지 관리</span>
             </TabsTrigger>
           </TabsList>
 
@@ -426,7 +531,241 @@ export function CSMPage({ onBack }: CSMPageProps) {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* 필독 & 공지 관리 탭 */}
+          <TabsContent value="community" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Pin className="w-5 h-5 text-purple-600" />
+                    <span>필독 & 공지 게시물 관리</span>
+                  </CardTitle>
+                  <Button
+                    onClick={() => {
+                      setCpForm({ badge: '공지', title: '', content: '', author: '매니저', authorBadge: 'M', status: 'active' });
+                      setIsCpCreateOpen(true);
+                      setEditingCp(null);
+                    }}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    새 게시물 작성
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  커뮤니티 게시판 상단에 고정 표시되는 필독/공지 게시물을 관리합니다. 순서를 변경할 수 있습니다.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {communityPosts.map((post, idx) => (
+                    <div
+                      key={post.id}
+                      className={`border rounded-lg p-4 flex items-start gap-3 ${post.status === 'draft' ? 'opacity-60 bg-gray-50' : 'bg-white'}`}
+                    >
+                      {/* 순서 조절 */}
+                      <div className="flex flex-col gap-1 mt-1">
+                        <button
+                          onClick={() => handleCpMoveUp(post.id)}
+                          disabled={idx === 0}
+                          className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs leading-none"
+                          title="위로"
+                        >▲</button>
+                        <span className="text-xs text-gray-400 text-center">{idx + 1}</span>
+                        <button
+                          onClick={() => handleCpMoveDown(post.id)}
+                          disabled={idx === communityPosts.length - 1}
+                          className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs leading-none"
+                          title="아래로"
+                        >▼</button>
+                      </div>
+
+                      {/* 뱃지 */}
+                      <div className="mt-1">
+                        <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${
+                          post.badgeType === 'important'
+                            ? 'bg-red-50 text-red-500 border border-red-200'
+                            : 'bg-blue-50 text-blue-500 border border-blue-200'
+                        }`}>
+                          {post.badge}
+                        </span>
+                      </div>
+
+                      {/* 내용 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-800 truncate">{post.title}</div>
+                        <div className="text-xs text-gray-500 mt-1 line-clamp-1">{post.content}</div>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                          <span>작성자: <strong>{post.author}</strong> [{post.authorBadge}]</span>
+                          <span>작성일: {post.createdAt}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-xs ${
+                            post.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {post.status === 'active' ? '활성' : '초안'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 액션 버튼 */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingCp(post);
+                            setCpForm({
+                              badge: post.badge,
+                              title: post.title,
+                              content: post.content,
+                              author: post.author,
+                              authorBadge: post.authorBadge,
+                              status: post.status,
+                            });
+                            setIsCpCreateOpen(true);
+                          }}
+                        >
+                          <Edit className="w-3 h-3 mr-1" />
+                          수정
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const updated = communityPosts.map(p =>
+                              p.id === post.id
+                                ? { ...p, status: (p.status === 'active' ? 'draft' : 'active') as 'active' | 'draft' }
+                                : p
+                            );
+                            saveCommunityPosts(updated);
+                          }}
+                          className={post.status === 'active' ? 'text-orange-600 border-orange-300' : 'text-green-600 border-green-300'}
+                        >
+                          {post.status === 'active' ? '숨김' : '공개'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-500 border-red-300 hover:bg-red-50"
+                          onClick={() => handleCpDelete(post.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {communityPosts.length === 0 && (
+                    <div className="text-center py-12 text-gray-400">
+                      <Pin className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <p>등록된 필독/공지 게시물이 없습니다.</p>
+                      <p className="text-sm mt-1">새 게시물을 작성해 주세요.</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
+        {/* 커뮤니티 게시물 작성/수정 다이얼로그 */}
+        <Dialog open={isCpCreateOpen} onOpenChange={(open) => { setIsCpCreateOpen(open); if (!open) setEditingCp(null); }}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Pin className="w-5 h-5 text-purple-600" />
+                {editingCp ? '게시물 수정' : '새 필독/공지 게시물 작성'}
+              </DialogTitle>
+              <DialogDescription>
+                커뮤니티 게시판 상단에 고정 표시될 필독 또는 공지 게시물을 {editingCp ? '수정' : '작성'}합니다.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>게시물 유형 *</Label>
+                  <select
+                    value={cpForm.badge}
+                    onChange={e => setCpForm(p => ({ ...p, badge: e.target.value as '필독' | '공지' }))}
+                    className="w-full border rounded px-3 py-2 mt-1"
+                  >
+                    <option value="필독">🚨 필독</option>
+                    <option value="공지">📢 공지</option>
+                  </select>
+                </div>
+                <div>
+                  <Label>상태</Label>
+                  <select
+                    value={cpForm.status}
+                    onChange={e => setCpForm(p => ({ ...p, status: e.target.value as 'active' | 'draft' }))}
+                    className="w-full border rounded px-3 py-2 mt-1"
+                  >
+                    <option value="active">활성 (공개)</option>
+                    <option value="draft">초안 (숨김)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <Label>제목 *</Label>
+                <Input
+                  value={cpForm.title}
+                  onChange={e => setCpForm(p => ({ ...p, title: e.target.value }))}
+                  placeholder="게시물 제목을 입력하세요"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label>내용 *</Label>
+                <textarea
+                  value={cpForm.content}
+                  onChange={e => setCpForm(p => ({ ...p, content: e.target.value }))}
+                  placeholder="게시물 내용을 입력하세요..."
+                  rows={10}
+                  className="w-full border rounded px-3 py-2 mt-1 text-sm font-mono resize-y"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>작성자 이름</Label>
+                  <Input
+                    value={cpForm.author}
+                    onChange={e => setCpForm(p => ({ ...p, author: e.target.value }))}
+                    placeholder="작성자 이름"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>작성자 등급</Label>
+                  <select
+                    value={cpForm.authorBadge}
+                    onChange={e => setCpForm(p => ({ ...p, authorBadge: e.target.value as 'S' | 'M' }))}
+                    className="w-full border rounded px-3 py-2 mt-1"
+                  >
+                    <option value="S">S (스태프/운영자)</option>
+                    <option value="M">M (매니저)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <Button variant="outline" onClick={() => { setIsCpCreateOpen(false); setEditingCp(null); }}>
+                  취소
+                </Button>
+                <Button
+                  onClick={editingCp ? handleCpUpdate : handleCpCreate}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  disabled={!cpForm.title.trim() || !cpForm.content.trim()}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {editingCp ? '수정 완료' : '게시물 생성'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Create Modal */}
