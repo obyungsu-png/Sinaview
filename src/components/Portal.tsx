@@ -17,12 +17,11 @@ const AutoSection = lazy(() => import('./AutoSection').then(m => ({ default: m.A
 const NewsSection = lazy(() => import('./NewsSection').then(m => ({ default: m.NewsSection })));
 const UsedMarketSection = lazy(() => import('./UsedMarketSection').then(m => ({ default: m.UsedMarketSection })));
 const SecuritiesSection = lazy(() => import('./SecuritiesSection').then(m => ({ default: m.SecuritiesSection })));
-const RealEstateSection = lazy(() => import('./RealEstateSection').then(m => ({ default: m.RealEstateSection })));
 const WeatherAdWidget = lazy(() => import('./WeatherAdWidget').then(m => ({ default: m.WeatherAdWidget })));
 const RegionalNewsWidget = lazy(() => import('./RegionalNewsWidget').then(m => ({ default: m.RegionalNewsWidget })));
 const WeatherWidget = lazy(() => import('./WeatherWidget').then(m => ({ default: m.WeatherWidget })));
 const StockWidget = lazy(() => import('./StockWidget').then(m => ({ default: m.StockWidget })));
-const RealEstateWidget = lazy(() => import('./RealEstateWidget').then(m => ({ default: m.RealEstateWidget })));
+const HospitalWidget = lazy(() => import('./HospitalWidget').then(m => ({ default: m.HospitalWidget })));
 const CalendarWidget = lazy(() => import('./CalendarWidget').then(m => ({ default: m.CalendarWidget })));
 const ChinaAutoAdWidget = lazy(() => import('./ChinaAutoAdWidget').then(m => ({ default: m.ChinaAutoAdWidget })));
 const ChinaSecuritiesAdWidget = lazy(() => import('./ChinaSecuritiesAdWidget').then(m => ({ default: m.ChinaSecuritiesAdWidget })));
@@ -325,13 +324,6 @@ export function Portal() {
                       <SecuritiesSection category="증권" onMoreClick={handleGoToSecuritiesPage} />
                     </div>
                   </div>
-                  <div id="realestate-section">
-                    <RealEstateSection
-                      category="부동산"
-                      onMoreClick={handleGoToRealEstatePage}
-                      userCity={currentUser?.city || '베이징'}
-                    />
-                  </div>
                 </Suspense>
               )}
             </div>
@@ -364,10 +356,7 @@ export function Portal() {
               )}
               {visibleSections >= 5 && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <RealEstateWidget 
-                    onMoreClick={handleGoToRealEstatePage} 
-                    userCity={currentUser?.city || '베이징'} 
-                  />
+                  <HospitalWidget userCity={currentUser?.city || '베이징'} />
                 </Suspense>
               )}
               {visibleSections >= 6 && showCalendar && (
@@ -468,13 +457,6 @@ export function Portal() {
                 <UsedMarketSection category="중고시장" onMoreClick={handleGoToUsedMarketPage} userRegion={currentUser?.region} />
               </Suspense>
               <Suspense fallback={<LoadingSpinner />}>
-                <RealEstateSection
-                  category="부동산"
-                  onMoreClick={handleGoToRealEstatePage}
-                  userCity={currentUser?.city || '베이징'}
-                />
-              </Suspense>
-              <Suspense fallback={<LoadingSpinner />}>
                 <VisaDocumentSection 
                   category="비자/서류" 
                   onMoreClick={handleGoToVisaDocumentPage}
@@ -506,10 +488,7 @@ export function Portal() {
         {visibleSections >= 7 && (
           <div className="mt-8 lg:hidden">
             <Suspense fallback={<LoadingSpinner />}>
-              <RealEstateWidget 
-                onMoreClick={handleGoToRealEstatePage} 
-                userCity={currentUser?.city || '베이징'} 
-              />
+              <HospitalWidget userCity={currentUser?.city || '베이징'} />
             </Suspense>
           </div>
         )}
