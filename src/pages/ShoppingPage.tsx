@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Search, Filter, Star, ShoppingCart, Heart } from 'lucide-react';
+import { ArrowLeft, Search, Star } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -23,87 +23,104 @@ export function ShoppingPage({ onBack, initialCategory = '전체' }: ShoppingPag
   const products = [
     {
       id: 1,
-      name: "스마트폰 케이스 실리콘 투명",
-      price: 15000,
-      originalPrice: 25000,
-      discount: 40,
-      rating: 4.8,
-      reviews: 1250,
-      image: "https://images.unsplash.com/photo-1556656793-08538906a9f8?w=300&h=300&fit=crop",
-      category: "가전",
-      seller: "테크몰",
-      freeShipping: true,
-      isNew: true
+      name: "직접 담근 배추김치 1kg",
+      price: 35000,
+      originalPrice: null,
+      discount: 0,
+      rating: 4.9,
+      reviews: 38,
+      image: "https://images.unsplash.com/photo-1583224964978-2257b8a1d74e?w=400&h=400&fit=crop&q=80",
+      category: "식품",
+      seller: "베이징댁",
+      freeShipping: false,
+      isNew: false,
+      location: "차오양구",
+      time: "1시간 전"
     },
     {
       id: 2,
-      name: "무선 블루투스 이어폰 프리미엄",
-      price: 89000,
-      originalPrice: 129000,
-      discount: 31,
-      rating: 4.6,
-      reviews: 890,
-      image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=300&h=300&fit=crop",
-      category: "가전",
-      seller: "일렉트로닉스",
-      freeShipping: true,
-      isNew: false
+      name: "이사 정리 — 주방용품·소형가전 일괄",
+      price: 0,
+      originalPrice: null,
+      discount: 0,
+      rating: null,
+      reviews: 0,
+      image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop&q=80",
+      category: "생활용품",
+      seller: "귀국준비中",
+      freeShipping: false,
+      isNew: false,
+      location: "푸동신구",
+      time: "3시간 전",
+      priceLabel: "협의"
     },
     {
       id: 3,
-      name: "천연 스킨케어 세트 3종",
-      price: 45000,
-      originalPrice: 65000,
-      discount: 31,
-      rating: 4.9,
-      reviews: 567,
-      image: "https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=300&h=300&fit=crop",
-      category: "뷰티",
-      seller: "뷰티샵",
-      freeShipping: true,
-      isNew: false
+      name: "한국 화장품 공동구매 모집 (이니스프리·에뛰드)",
+      price: 0,
+      originalPrice: null,
+      discount: 0,
+      rating: 4.8,
+      reviews: 12,
+      image: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=400&h=400&fit=crop&q=80",
+      category: "화장품",
+      seller: "뷰티왕언니",
+      freeShipping: false,
+      isNew: false,
+      location: "하이뎬구",
+      time: "5시간 전",
+      priceLabel: "정가 대비 20%↓"
     },
     {
       id: 4,
-      name: "프리미엄 가죽 백팩",
-      price: 120000,
-      originalPrice: 180000,
-      discount: 33,
-      rating: 4.7,
-      reviews: 234,
-      image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&h=300&fit=crop",
-      category: "패션",
-      seller: "가죽공방",
+      name: "한중 비즈니스 통역 (계약서·미팅 전문)",
+      price: 80000,
+      originalPrice: null,
+      discount: 0,
+      rating: 4.9,
+      reviews: 56,
+      image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&h=400&fit=crop&q=80",
+      category: "서비스",
+      seller: "통역사김씨",
       freeShipping: false,
-      isNew: true
+      isNew: false,
+      location: "전지역",
+      time: "어제",
+      priceLabel: "8만원/시간"
     },
     {
       id: 5,
-      name: "홈트레이닝 요가매트 10mm",
-      price: 35000,
-      originalPrice: 50000,
-      discount: 30,
-      rating: 4.5,
-      reviews: 892,
-      image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=300&h=300&fit=crop",
-      category: "스포츠",
-      seller: "스포츠존",
-      freeShipping: true,
-      isNew: false
+      name: "왕징 한국 반찬 정기배달 (주 1회)",
+      price: 0,
+      originalPrice: null,
+      discount: 0,
+      rating: 4.7,
+      reviews: 24,
+      image: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=400&h=400&fit=crop&q=80",
+      category: "식품",
+      seller: "반찬가게사모님",
+      freeShipping: false,
+      isNew: false,
+      location: "왕징",
+      time: "어제",
+      priceLabel: "150위안/주"
     },
     {
       id: 6,
-      name: "유기농 녹차 선물세트",
-      price: 28000,
-      originalPrice: 40000,
-      discount: 30,
+      name: "아파트 청소 서비스 (이사 전후·정기)",
+      price: 0,
+      originalPrice: null,
+      discount: 0,
       rating: 4.8,
-      reviews: 445,
-      image: "https://images.unsplash.com/photo-1563822249366-9c07e51a506a?w=300&h=300&fit=crop",
-      category: "식품",
-      seller: "차마을",
-      freeShipping: true,
-      isNew: false
+      reviews: 31,
+      image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=400&fit=crop&q=80",
+      category: "서비스",
+      seller: "깔끔청소",
+      freeShipping: false,
+      isNew: false,
+      location: "베이징·상하이",
+      time: "2일 전",
+      priceLabel: "300위안~"
     }
   ];
 
@@ -122,7 +139,7 @@ export function ShoppingPage({ onBack, initialCategory = '전체' }: ShoppingPag
               <Button variant="ghost" onClick={onBack} className="p-2">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <h1 className="text-2xl font-bold text-gray-900">틈새 쇼핑</h1>
+              <h1 className="text-xl font-semibold text-gray-900">틈새 마켓</h1>
             </div>
             <div className="flex items-center space-x-4">
               <div className="relative">
@@ -180,75 +197,47 @@ export function ShoppingPage({ onBack, initialCategory = '전체' }: ShoppingPag
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
           {filteredProducts.map((product) => (
-            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
-              <div className="relative">
+            <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer group border border-gray-100">
+              <div className="relative aspect-[4/3] overflow-hidden bg-gray-50">
                 <img 
                   src={product.image} 
                   alt={product.name}
-                  className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-200"
+                  className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
                 />
-                {product.discount > 0 && (
-                  <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 text-xs font-bold rounded">
-                    {product.discount}%
-                  </div>
-                )}
-                {product.isNew && (
-                  <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-1 text-xs font-bold rounded">
-                    NEW
-                  </div>
-                )}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="outline" size="sm" className="bg-white">
-                    <Heart className="w-4 h-4" />
-                  </Button>
-                </div>
               </div>
               
-              <div className="p-4">
-                <div className="mb-2">
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    {product.category}
-                  </span>
-                </div>
-                
-                <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2">
+              <div className="p-3.5">
+                <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2 leading-snug">
                   {product.name}
                 </h3>
+
+                <div className="text-sm font-semibold text-gray-900 mb-2.5">
+                  {(product as any).priceLabel
+                    ? (product as any).priceLabel
+                    : product.price > 0
+                      ? `${product.price.toLocaleString()}원`
+                      : '협의'}
+                </div>
                 
-                <div className="mb-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg font-bold text-gray-900">
-                      {product.price.toLocaleString()}원
-                    </span>
-                    {product.originalPrice > product.price && (
-                      <span className="text-sm text-gray-500 line-through">
-                        {product.originalPrice.toLocaleString()}원
-                      </span>
+                <div className="flex items-center justify-between text-xs text-gray-400">
+                  <div className="flex items-center gap-1.5">
+                    <span>{product.seller}</span>
+                    <span>·</span>
+                    <span>{(product as any).location}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {product.rating && (
+                      <>
+                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                        <span>{product.rating}</span>
+                        {product.reviews > 0 && <span>({product.reviews})</span>}
+                      </>
                     )}
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="text-sm text-gray-600">{product.rating}</span>
-                    <span className="text-xs text-gray-500">({product.reviews})</span>
-                  </div>
-                  {product.freeShipping && (
-                    <span className="text-xs text-green-600 font-medium">무료배송</span>
-                  )}
-                </div>
-                
-                <div className="text-xs text-gray-500 mb-3">
-                  판매자: {product.seller}
-                </div>
-                
-                <Button className="w-full bg-green-600 hover:bg-green-700">
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  장바구니
-                </Button>
+                <div className="text-xs text-gray-300 mt-1">{(product as any).time}</div>
               </div>
             </Card>
           ))}
