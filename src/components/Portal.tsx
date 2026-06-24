@@ -332,6 +332,9 @@ export function Portal() {
                 <LoginSection 
                   onLoginClick={() => setIsLoginModalOpen(true)} 
                   onSignupClick={() => setIsSignupModalOpen(true)}
+                  currentUser={currentUser}
+                  onLogout={() => { localStorage.removeItem('currentUser'); window.location.reload(); }}
+                  onNavigate={handleNavigate}
                 />
               )}
               {visibleSections >= 2 && (
@@ -385,6 +388,9 @@ export function Portal() {
               <LoginSection 
                 onLoginClick={() => setIsLoginModalOpen(true)}
                 onSignupClick={() => setIsSignupModalOpen(true)}
+                currentUser={currentUser}
+                onLogout={() => { localStorage.removeItem('currentUser'); window.location.reload(); }}
+                onNavigate={handleNavigate}
               />
               <Suspense fallback={<LoadingSpinner />}>
                 <RegionalNewsWidget />
