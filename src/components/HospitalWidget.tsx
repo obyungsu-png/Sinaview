@@ -146,47 +146,52 @@ export function HospitalWidget({ userCity = '베이징' }: HospitalWidgetProps) 
       {/* 병원 상세 모달 */}
       {selectedHospital && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedHospital(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="font-black text-gray-900 text-lg leading-tight">{selectedHospital.name}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{selectedHospital.nameEn}</p>
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8" onClick={e => e.stopPropagation()}>
+            {/* 헤더 */}
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex-1">
+                <h3 className="font-black text-2xl text-gray-900 leading-tight mb-1">{selectedHospital.name}</h3>
+                <p className="text-xs text-gray-500">{selectedHospital.nameEn}</p>
               </div>
-              <button className="text-gray-400 hover:text-gray-600" onClick={() => setSelectedHospital(null)}>
+              <button className="text-gray-400 hover:text-gray-600 ml-2" onClick={() => setSelectedHospital(null)}>
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-1.5">
-                {selectedHospital.isHot && <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full font-bold">🔥 HOT</span>}
-                {selectedHospital.korean && <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full font-bold">🇰🇷 한국어 가능</span>}
-                <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">{selectedHospital.dept}</span>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-                  <span className="text-gray-700">{selectedHospital.location}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-                  <span className="text-gray-700">{selectedHospital.hours}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="w-4 h-4 text-gray-400 shrink-0" />
-                  <a href={`tel:${selectedHospital.phone}`} className="text-blue-600 font-semibold hover:underline">{selectedHospital.phone}</a>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 shrink-0" />
-                  <span className="text-gray-700">평점 <strong>{selectedHospital.rating}</strong> / 5.0</span>
-                </div>
-              </div>
-              <a
-                href={`tel:${selectedHospital.phone}`}
-                className="block w-full bg-red-500 hover:bg-red-600 text-white text-center py-3 rounded-xl font-bold text-sm transition-colors"
-              >
-                📞 바로 전화하기
-              </a>
+
+            {/* 뱃지 */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {selectedHospital.isHot && <span className="bg-red-100 text-red-600 text-xs px-3 py-1 rounded-full font-bold">🔥 HOT</span>}
+              {selectedHospital.korean && <span className="bg-blue-100 text-blue-600 text-xs px-3 py-1 rounded-full font-bold">🇰🇷 한국어</span>}
+              <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">{selectedHospital.dept}</span>
             </div>
+
+            {/* 정보 */}
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-3">
+                <MapPin className="w-5 h-5 text-red-500 shrink-0" />
+                <span className="text-sm text-gray-700">{selectedHospital.location}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Clock className="w-5 h-5 text-blue-500 shrink-0" />
+                <span className="text-sm text-gray-700">{selectedHospital.hours}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Phone className="w-5 h-5 text-green-500 shrink-0" />
+                <a href={`tel:${selectedHospital.phone}`} className="text-sm font-semibold text-gray-900 hover:text-red-600 transition-colors">{selectedHospital.phone}</a>
+              </div>
+              <div className="flex items-center gap-3">
+                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400 shrink-0" />
+                <span className="text-sm text-gray-700"><strong className="text-lg">{selectedHospital.rating}</strong> / 5.0</span>
+              </div>
+            </div>
+
+            {/* 버튼 */}
+            <a
+              href={`tel:${selectedHospital.phone}`}
+              className="block w-full bg-red-500 hover:bg-red-600 text-white text-center py-3 rounded-full font-bold text-sm transition-colors"
+            >
+              📞 전화하기
+            </a>
           </div>
         </div>
       )}
