@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-import { Star, Heart, ShoppingCart } from 'lucide-react';
+import { MapPin, MessageCircle, Clock } from 'lucide-react';
 import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
-import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface ShoppingSectionProps {
   category: string;
@@ -13,483 +10,110 @@ interface ShoppingSectionProps {
 export function ShoppingSection({ category, onMoreClick }: ShoppingSectionProps) {
   const [activeSubcategory, setActiveSubcategory] = useState('전체');
 
-  const subcategories = [
-    { id: 'all', name: '전체', count: 850 },
-    { id: 'food', name: '한국 식품', count: 180 },
-    { id: 'living', name: '생활용품', count: 220 },
-    { id: 'cosmetics', name: '화장품', count: 150 },
-    { id: 'service', name: '서비스', count: 300 },
-    { id: 'coupang', name: '중국 쿠팡', count: 250 }
-  ];
-  const productsBySubcategory = {
-    '한국 식품': [
-      {
-        id: 1,
-        title: "한국 김치 1kg (배추김치/포기김치)",
-        price: "35,000",
-        originalPrice: "45,000",
-        discount: "22%",
-        rating: 4.9,
-        reviews: 3245,
-        image: "https://images.unsplash.com/photo-1590301157890-4810ed352733?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "신선배송",
-        platform: "한국마트"
-      },
-      {
-        id: 2,
-        title: "한국 고추장 1kg + 된장 500g 세트",
-        price: "42,000",
-        originalPrice: "58,000",
-        discount: "28%",
-        rating: 4.8,
-        reviews: 2156,
-        image: "https://images.unsplash.com/photo-1569682676935-b38a84eecdd6?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "인기상품",
-        platform: "한국마트"
-      },
-      {
-        id: 3,
-        title: "한국 라면 20봉 (신라면/너구리/안성탕면)",
-        price: "28,900",
-        originalPrice: "35,000",
-        discount: "17%",
-        rating: 4.9,
-        reviews: 8945,
-        image: "https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "베스트",
-        platform: "한국마트"
-      },
-      {
-        id: 4,
-        title: "한국 참기름 500ml + 들기름 500ml",
-        price: "55,000",
-        originalPrice: "72,000",
-        discount: "24%",
-        rating: 4.7,
-        reviews: 1834,
-        image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "국산",
-        platform: "한국마트"
-      }
+  const subcategories = ['전체', '식품', '생활용품', '화장품', '서비스', '기타'];
+
+  const listings: Record<string, any[]> = {
+    '전체': [
+      { id: 1, title: '한국 김치 직접 담근 것 판매', seller: '베이징댁', location: '차오양구', price: '35,000원/kg', time: '1시간 전', category: '식품', contact: '위챗', desc: '시어머니 레시피로 직접 담근 배추김치입니다. 매주 금요일 픽업 가능.' },
+      { id: 2, title: '이사 정리 생활용품 일괄 판매', seller: '상하이이사중', location: '푸동신구', price: '협의', time: '3시간 전', category: '생활용품', contact: '위챗', desc: '귀국 예정으로 살림살이 정리합니다. 직접 보러 오셔도 됩니다.' },
+      { id: 3, title: '한국 화장품 공동구매 모집', seller: '뷰티왕언니', location: '하이뎬구', price: '정가 대비 20%↓', time: '5시간 전', category: '화장품', contact: '카카오', desc: '이니스프리, 에뛰드 등 다음 주 한국 출장 시 구매 대행해드립니다.' },
+      { id: 4, title: '세금계산서 발행 가능 한중 통역', seller: '통역사김씨', location: '전지역', price: '8만원/시간', time: '어제', category: '서비스', contact: '전화', desc: '비즈니스 미팅, 계약서 번역 전문. 경력 10년.' },
+      { id: 5, title: '직접 만든 된장·고추장 판매', seller: '전통식품아줌마', location: '광저우', price: '된장 40,000원/kg', time: '어제', category: '식품', contact: '위챗', desc: '콩 100% 국산 재료로 담근 전통 방식입니다. 소량 제조 중.' },
+      { id: 6, title: '운전기사 서비스 (한국어 가능)', seller: '라오왕사장님', location: '베이징 전지역', price: '500위안/일', time: '2일 전', category: '서비스', contact: '위챗', desc: '한국어 가능한 운전기사입니다. 장거리 출장, 공항 픽업 가능.' },
+    ],
+    '식품': [
+      { id: 1, title: '한국 김치 직접 담근 것 판매', seller: '베이징댁', location: '차오양구', price: '35,000원/kg', time: '1시간 전', category: '식품', contact: '위챗', desc: '시어머니 레시피로 직접 담근 배추김치입니다. 매주 금요일 픽업 가능.' },
+      { id: 5, title: '직접 만든 된장·고추장 판매', seller: '전통식품아줌마', location: '광저우', price: '된장 40,000원/kg', time: '어제', category: '식품', contact: '위챗', desc: '콩 100% 국산 재료로 담근 전통 방식입니다. 소량 제조 중.' },
+      { id: 7, title: '한국 반찬 정기 배달 (베이징)', seller: '반찬가게사모님', location: '왕징', price: '주 1회 150위안', time: '2일 전', category: '식품', contact: '위챗', desc: '매주 화요일 왕징 일대 배달. 나물, 조림, 볶음 8가지 구성.' },
     ],
     '생활용품': [
-      {
-        id: 5,
-        title: "한국 치약 (2080/페리오) 6개입",
-        price: "18,900",
-        originalPrice: "28,000",
-        discount: "32%",
-        rating: 4.8,
-        reviews: 4567,
-        image: "https://images.unsplash.com/photo-1622007228726-c7a4e7c9e9c7?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "묶음할인",
-        platform: "생활용품"
-      },
-      {
-        id: 6,
-        title: "한국 세제 (퐁퐁/참그린) 대용량",
-        price: "24,900",
-        originalPrice: "35,000",
-        discount: "29%",
-        rating: 4.7,
-        reviews: 3421,
-        image: "https://images.unsplash.com/photo-1585659722983-3a675dabf23d?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "대용량",
-        platform: "생활용품"
-      },
-      {
-        id: 7,
-        title: "VPN 서비스 1년 이용권 (한국IP)",
-        price: "89,000",
-        originalPrice: "120,000",
-        discount: "26%",
-        rating: 4.9,
-        reviews: 12456,
-        image: "https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "필수품",
-        platform: "서비스"
-      },
-      {
-        id: 8,
-        title: "한중 번역기 포켓형 AI 음성인식",
-        price: "129,000",
-        originalPrice: "189,000",
-        discount: "32%",
-        rating: 4.6,
-        reviews: 5678,
-        image: "https://images.unsplash.com/photo-1589492477829-5e65395b66cc?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "AI번역",
-        platform: "전자기기"
-      }
+      { id: 2, title: '이사 정리 생활용품 일괄 판매', seller: '상하이이사중', location: '푸동신구', price: '협의', time: '3시간 전', category: '생활용품', contact: '위챗', desc: '귀국 예정으로 살림살이 정리합니다. 직접 보러 오셔도 됩니다.' },
+      { id: 8, title: '한국 직구 대행 (식품·생활용품)', seller: '직구전문점', location: '온라인', price: '구매가 + 10%', time: '3일 전', category: '생활용품', contact: '카카오', desc: '한국 직배송 안 되는 상품 대신 구매해드립니다. 배송비 별도.' },
     ],
     '화장품': [
-      {
-        id: 9,
-        title: "한국 스킨케어 세트 (토너+에센스+크림)",
-        price: "78,000",
-        originalPrice: "120,000",
-        discount: "35%",
-        rating: 4.8,
-        reviews: 6789,
-        image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "인기",
-        platform: "화장품"
-      },
-      {
-        id: 10,
-        title: "한국 마스크팩 30매 (메디힐/CNP)",
-        price: "32,000",
-        originalPrice: "48,000",
-        discount: "33%",
-        rating: 4.9,
-        reviews: 8934,
-        image: "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "대용량",
-        platform: "화장품"
-      },
-      {
-        id: 11,
-        title: "한국 선크림 SPF50+ PA++++ 100ml",
-        price: "28,900",
-        originalPrice: "42,000",
-        discount: "31%",
-        rating: 4.7,
-        reviews: 4512,
-        image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "여름필수",
-        platform: "화장품"
-      },
-      {
-        id: 12,
-        title: "한국 립스틱 세트 3색 (롬앤/페리페라)",
-        price: "45,000",
-        originalPrice: "68,000",
-        discount: "34%",
-        rating: 4.8,
-        reviews: 7623,
-        image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "인기색상",
-        platform: "화장품"
-      }
+      { id: 3, title: '한국 화장품 공동구매 모집', seller: '뷰티왕언니', location: '하이뎬구', price: '정가 대비 20%↓', time: '5시간 전', category: '화장품', contact: '카카오', desc: '이니스프리, 에뛰드 등 다음 주 한국 출장 시 구매 대행해드립니다.' },
+      { id: 9, title: '미개봉 한국 화장품 정리', seller: '뷰티덕후', location: '상하이 징안구', price: '정가 50%', time: '4일 전', category: '화장품', contact: '위챗', desc: '선물받은 화장품 중 안 맞는 것들 정리합니다. 직접 확인 후 구매 가능.' },
     ],
     '서비스': [
-      {
-        id: 13,
-        title: "한국-중국 국제배송 서비스 (20kg)",
-        price: "120,000",
-        originalPrice: "180,000",
-        discount: "33%",
-        rating: 4.6,
-        reviews: 2345,
-        image: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "빠른배송",
-        platform: "배송"
-      },
-      {
-        id: 14,
-        title: "중국 비자 연장 대행 서비스",
-        price: "350,000",
-        originalPrice: "450,000",
-        discount: "22%",
-        rating: 4.9,
-        reviews: 1234,
-        image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "전문가",
-        platform: "행정"
-      },
-      {
-        id: 15,
-        title: "한국 도서 배송대행 (중국 내 배송)",
-        price: "25,000",
-        originalPrice: "35,000",
-        discount: "29%",
-        rating: 4.7,
-        reviews: 3456,
-        image: "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "독서",
-        platform: "배송"
-      },
-      {
-        id: 16,
-        title: "한중 통역 서비스 (1일 8시간)",
-        price: "280,000",
-        originalPrice: "400,000",
-        discount: "30%",
-        rating: 4.8,
-        reviews: 987,
-        image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "전문통역",
-        platform: "통역"
-      }
+      { id: 4, title: '세금계산서 발행 가능 한중 통역', seller: '통역사김씨', location: '전지역', price: '8만원/시간', time: '어제', category: '서비스', contact: '전화', desc: '비즈니스 미팅, 계약서 번역 전문. 경력 10년.' },
+      { id: 6, title: '운전기사 서비스 (한국어 가능)', seller: '라오왕사장님', location: '베이징 전지역', price: '500위안/일', time: '2일 전', category: '서비스', contact: '위챗', desc: '한국어 가능한 운전기사입니다. 장거리 출장, 공항 픽업 가능.' },
+      { id: 10, title: '아파트 청소 서비스 (한국인 운영)', seller: '깔끔청소', location: '베이징·상하이', price: '300위안~', time: '5일 전', category: '서비스', contact: '위챗', desc: '이사 전후 청소, 정기 청소 모두 가능. 사진 견적 먼저 드립니다.' },
     ],
-    '중국 쿠팡': [
-      {
-        id: 17,
-        title: "샤오미 공기청정기 4 Pro 한국어판",
-        price: "189,000",
-        originalPrice: "320,000",
-        discount: "41%",
-        rating: 4.9,
-        reviews: 15678,
-        image: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "로켓배송",
-        platform: "중국쿠팡"
-      },
-      {
-        id: 18,
-        title: "화웨이 무선 이어폰 FreeBuds 5",
-        price: "119,000",
-        originalPrice: "189,000",
-        discount: "37%",
-        rating: 4.8,
-        reviews: 12456,
-        image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "특가",
-        platform: "중국쿠팡"
-      },
-      {
-        id: 19,
-        title: "중국 전통 차 선물세트 (보이차+백차)",
-        price: "45,900",
-        originalPrice: "89,000",
-        discount: "48%",
-        rating: 4.7,
-        reviews: 4567,
-        image: "https://images.unsplash.com/photo-1557735387-1a87e36cc97c?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "설선물",
-        platform: "중국쿠팡"
-      },
-      {
-        id: 20,
-        title: "하이얼 미니 냉장고 원룸용 70L",
-        price: "159,000",
-        originalPrice: "280,000",
-        discount: "43%",
-        rating: 4.6,
-        reviews: 8934,
-        image: "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "인기",
-        platform: "중국쿠팡"
-      },
-      {
-        id: 21,
-        title: "중국 명품 실크 스카프 (항저우)",
-        price: "78,000",
-        originalPrice: "150,000",
-        discount: "48%",
-        rating: 4.8,
-        reviews: 2345,
-        image: "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "명품",
-        platform: "중국쿠팡"
-      },
-      {
-        id: 22,
-        title: "전기 자전거 폴딩형 (접이식)",
-        price: "890,000",
-        originalPrice: "1,580,000",
-        discount: "44%",
-        rating: 4.7,
-        reviews: 3421,
-        image: "https://images.unsplash.com/photo-1571333250630-f0230c320b6d?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "무료배송",
-        platform: "중국쿠팡"
-      }
+    '기타': [
+      { id: 11, title: '자동차 매도 (현대 소나타 2021)', seller: '귀국준비중', location: '선전', price: '18만위안', time: '1일 전', category: '기타', contact: '위챗', desc: '귀국 예정으로 급매합니다. 무사고, 주행 3만km. 직접 확인 가능.' },
+      { id: 12, title: '피아노 레슨 (한국인 선생님)', seller: '음대출신선생님', location: '상하이 창닝구', price: '200위안/50분', time: '3일 전', category: '기타', contact: '카카오', desc: '음대 졸업. 어린이부터 성인까지 가능. 첫 수업 무료 체험.' },
     ],
-    '전체': [
-      {
-        id: 1,
-        title: "한국 김치 1kg (배추김치/포기김치)",
-        price: "35,000",
-        originalPrice: "45,000",
-        discount: "22%",
-        rating: 4.9,
-        reviews: 3245,
-        image: "https://images.unsplash.com/photo-1590301157890-4810ed352733?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "신선배송",
-        platform: "한국마트"
-      },
-      {
-        id: 3,
-        title: "한국 라면 20봉 (신라면/너구리/안성탕면)",
-        price: "28,900",
-        originalPrice: "35,000",
-        discount: "17%",
-        rating: 4.9,
-        reviews: 8945,
-        image: "https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "베스트",
-        platform: "한국마트"
-      },
-      {
-        id: 7,
-        title: "VPN 서비스 1년 이용권 (한국IP)",
-        price: "89,000",
-        originalPrice: "120,000",
-        discount: "26%",
-        rating: 4.9,
-        reviews: 12456,
-        image: "https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "필수품",
-        platform: "서비스"
-      },
-      {
-        id: 9,
-        title: "한국 스킨케어 세트 (토너+에센스+크림)",
-        price: "78,000",
-        originalPrice: "120,000",
-        discount: "35%",
-        rating: 4.8,
-        reviews: 6789,
-        image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "인기",
-        platform: "화장품"
-      },
-      {
-        id: 10,
-        title: "한국 마스크팩 30매 (메디힐/CNP)",
-        price: "32,000",
-        originalPrice: "48,000",
-        discount: "33%",
-        rating: 4.9,
-        reviews: 8934,
-        image: "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=200&h=200&fit=crop",
-        isLiked: false,
-        badge: "대용량",
-        platform: "화장품"
-      },
-      {
-        id: 14,
-        title: "중국 비자 연장 대행 서비스",
-        price: "350,000",
-        originalPrice: "450,000",
-        discount: "22%",
-        rating: 4.9,
-        reviews: 1234,
-        image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=200&h=200&fit=crop",
-        isLiked: true,
-        badge: "전문가",
-        platform: "행정"
-      }
-    ]
   };
 
-  const currentProducts = productsBySubcategory[activeSubcategory] || productsBySubcategory['전체'];
+  const contactColors: Record<string, string> = {
+    '위챗': 'text-green-600',
+    '카카오': 'text-yellow-600',
+    '전화': 'text-blue-600',
+  };
+
+  const currentListings = listings[activeSubcategory] || listings['전체'];
 
   return (
     <div className="space-y-4">
       <Card className="p-4">
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">틈새 쇼핑</h2>
+            <h2 className="text-base font-semibold text-gray-900">틈새 마켓</h2>
+            <span className="text-xs text-gray-400">소상공인 직거래</span>
           </div>
-          
-          {/* 서브카테고리 탭 */}
-          <div className="flex items-center space-x-1 text-sm text-gray-600">
-            {subcategories.map((subcat, index) => (
-              <div key={subcat.id} className="contents">
+
+          {/* 카테고리 탭 */}
+          <div className="flex items-center gap-1 text-sm flex-wrap">
+            {subcategories.map((cat, i) => (
+              <React.Fragment key={cat}>
                 <button
-                  onClick={() => setActiveSubcategory(subcat.name)}
-                  className={`hover:text-blue-600 transition-colors ${
-                    activeSubcategory === subcat.name
-                      ? 'text-blue-600 font-medium'
-                      : 'text-gray-600'
-                  }`}
+                  onClick={() => setActiveSubcategory(cat)}
+                  className={`transition-colors ${activeSubcategory === cat ? 'text-gray-900 font-medium' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                  {subcat.name}
+                  {cat}
                 </button>
-                {index < subcategories.length - 1 && (
-                  <span className="text-gray-400">|</span>
-                )}
-              </div>
+                {i < subcategories.length - 1 && <span className="text-gray-200">|</span>}
+              </React.Fragment>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {currentProducts.map((product) => (
-            <div 
-              key={product.id} 
-              className="group cursor-pointer"
+        {/* 리스트 */}
+        <div className="divide-y divide-gray-100">
+          {currentListings.map((item) => (
+            <button
+              key={item.id}
+              className="w-full text-left py-3.5 hover:bg-gray-50 transition-colors px-1 -mx-1"
               onClick={() => onMoreClick?.(activeSubcategory)}
             >
-              <div className="relative">
-                <ImageWithFallback
-                  src={product.image}
-                  alt={product.title}
-                  className="w-full h-32 sm:h-36 lg:h-32 object-cover rounded-lg"
-                />
-                <div className="absolute top-2 left-2">
-                  <Badge className="bg-red-500 text-white text-xs px-2 py-1">
-                    {product.badge}
-                  </Badge>
-                </div>
-                <button 
-                  className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Heart className={`w-4 h-4 ${product.isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-                </button>
-              </div>
-              
-              <div className="mt-2 space-y-1">
-                <h3 className="text-sm text-gray-900 line-clamp-2 group-hover:text-green-600">
-                  {product.title}
-                </h3>
-                
-                <div className="flex items-center space-x-2">
-                  <span className="text-red-500 font-semibold text-sm">{product.discount}</span>
-                  <span className="font-semibold">{product.price}원</span>
-                </div>
-                
-                <div className="text-xs text-gray-500 line-through">
-                  {product.originalPrice}원
-                </div>
-                
-                <div className="flex items-center space-x-2 text-xs">
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    <span>{product.rating}</span>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 leading-snug mb-0.5">{item.title}</p>
+                  <p className="text-xs text-gray-400 line-clamp-1 mb-1.5">{item.desc}</p>
+                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <span className="flex items-center gap-0.5">
+                      <MapPin className="w-3 h-3" />{item.location}
+                    </span>
+                    <span className="flex items-center gap-0.5">
+                      <Clock className="w-3 h-3" />{item.time}
+                    </span>
+                    <span className={`flex items-center gap-0.5 ${contactColors[item.contact]}`}>
+                      <MessageCircle className="w-3 h-3" />{item.contact}
+                    </span>
                   </div>
-                  <span className="text-gray-400">({product.reviews.toLocaleString()})</span>
                 </div>
+                <div className="text-sm font-semibold text-gray-900 shrink-0 mt-0.5">{item.price}</div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
-        <div className="mt-6 text-center">
-          <button 
+        <div className="mt-4 text-center">
+          <button
             onClick={() => onMoreClick?.(activeSubcategory)}
-            className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+            className="text-sm text-gray-500 hover:text-gray-800 transition-colors"
           >
-            더 많은 상품 보기
+            더 보기 →
           </button>
         </div>
       </Card>
