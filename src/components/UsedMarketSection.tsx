@@ -30,12 +30,19 @@ interface MarketItem {
   condition: string;
   views: number;
   likes?: number;
+  marketType?: 'used' | 'handmade';
 }
 
 export function UsedMarketSection({ category, onMoreClick, userRegion, currentUser, isAdmin }: UsedMarketSectionProps) {
   const [activeRegion, setActiveRegion] = useState('전체');
+  const [activeMainTab, setActiveMainTab] = useState<'used' | 'handmade'>('used');
   const [activeSubcategory, setActiveSubcategory] = useState('전체');
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
+
+  // 메인 탭 변경 시 서브카테고리 초기화
+  useEffect(() => {
+    setActiveSubcategory('전체');
+  }, [activeMainTab]);
 
   // userRegion이 변경되면 activeRegion 업데이트
   useEffect(() => {
@@ -66,13 +73,28 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
     return [allRegion!, userRegionObj, ...otherRegions];
   }, [userRegion]);
 
-  const subcategories = [
-    { id: 'all', name: '전체', count: 2450 },
-    { id: 'electronics', name: '전자제품', count: 680 },
-    { id: 'korean-food', name: '한국식품', count: 420 },
-    { id: 'cosmetics', name: '화장품', count: 350 },
-    { id: 'household', name: '생활용품', count: 1000 }
+  const usedSubcategories = [
+    { id: 'all', name: '전체' },
+    { id: 'electronics', name: '전자제품' },
+    { id: 'household', name: '생활용품' },
+    { id: 'furniture', name: '가구' },
+    { id: 'fashion', name: '의류' },
+    { id: 'cosmetics', name: '화장품' },
+    { id: 'kids', name: '유아용품' },
+    { id: 'etc', name: '기타' },
   ];
+
+  const handmadeSubcategories = [
+    { id: 'all', name: '전체' },
+    { id: 'food', name: '한국 음식' },
+    { id: 'banchan', name: '반찬·김치' },
+    { id: 'bakery', name: '베이커리' },
+    { id: 'craft', name: '수공예품' },
+    { id: 'clothes', name: '의류·소품' },
+    { id: 'service', name: '재능 서비스' },
+  ];
+
+  const subcategories = activeMainTab === 'used' ? usedSubcategories : handmadeSubcategories;
 
   const allItems: MarketItem[] = [
     {
@@ -353,8 +375,129 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
     }
   ];
 
+  // 수제품·핸드메이드 아이템
+  const handmadeItems: MarketItem[] = [
+    {
+      id: 101,
+      title: "직접 담근 배추김치 (1kg)",
+      price: "60위안",
+      location: "베이징 왕징",
+      region: "베이징",
+      seller: "왕징댁",
+      sellerPhone: "+86-138-2200-3344",
+      time: "1시간 전",
+      thumbnail: "https://images.unsplash.com/photo-1583224964978-2257b8a1d74e?w=400&h=300&fit=crop",
+      delivery: "직거래·배달",
+      status: "판매중",
+      type: "반찬·김치",
+      description: "시어머니 레시피로 직접 담근 배추김치예요. 매주 금요일 픽업/배달 가능합니다.",
+      condition: "신상",
+      views: 234,
+      likes: 28,
+      marketType: 'handmade',
+    },
+    {
+      id: 102,
+      title: "한국 반찬 8가지 정기배달 (주1회)",
+      price: "주 150위안",
+      location: "베이징 왕징",
+      region: "베이징",
+      seller: "반찬가게사모님",
+      sellerPhone: "+86-139-5577-8899",
+      time: "3시간 전",
+      thumbnail: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop",
+      delivery: "직접배달",
+      status: "판매중",
+      type: "한국 음식",
+      description: "매주 화요일 왕징 일대 직접 배달드립니다. 나물, 조림, 볶음 등 8종 구성.",
+      condition: "신상",
+      views: 567,
+      likes: 41,
+      marketType: 'handmade',
+    },
+    {
+      id: 103,
+      title: "수제 소금빵 / 통밀 식빵 주문 받습니다",
+      price: "20위안~",
+      location: "상하이 푸동",
+      region: "상하이",
+      seller: "푸동빵집",
+      sellerPhone: "+86-137-3344-5566",
+      time: "5시간 전",
+      thumbnail: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=300&fit=crop",
+      delivery: "직거래·택배",
+      status: "판매중",
+      type: "베이커리",
+      description: "한국식 재료로 매일 아침 굽습니다. 전날 예약 부탁드려요. 카카오/위챗 가능.",
+      condition: "신상",
+      views: 423,
+      likes: 35,
+      marketType: 'handmade',
+    },
+    {
+      id: 104,
+      title: "수제 천연 비누·캔들 (선물용 포장 가능)",
+      price: "35위안~",
+      location: "광저우 톈허",
+      region: "광저우",
+      seller: "광저우공방",
+      sellerPhone: "+86-136-1122-3344",
+      time: "어제",
+      thumbnail: "https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?w=400&h=300&fit=crop",
+      delivery: "전국 택배",
+      status: "판매중",
+      type: "수공예품",
+      description: "한국 원료로 만든 천연 비누, 향초. 선물용 포장도 가능합니다.",
+      condition: "신상",
+      views: 189,
+      likes: 22,
+      marketType: 'handmade',
+    },
+    {
+      id: 105,
+      title: "직접 만든 유아 손뜨개 옷 (3-12개월)",
+      price: "180위안~",
+      location: "심천 푸톈",
+      region: "심천",
+      seller: "심천이모",
+      sellerPhone: "+86-135-9988-7766",
+      time: "2일 전",
+      thumbnail: "https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=400&h=300&fit=crop",
+      delivery: "전국 택배",
+      status: "판매중",
+      type: "의류·소품",
+      description: "한 땀 한 땀 직접 떠서 만든 아기 옷입니다. 색상·사이즈 주문 제작 가능.",
+      condition: "신상",
+      views: 312,
+      likes: 47,
+      marketType: 'handmade',
+    },
+    {
+      id: 106,
+      title: "한국어 과외 / 한중 통역 출장",
+      price: "100위안/시간",
+      location: "베이징 전지역",
+      region: "베이징",
+      seller: "베이징선생님",
+      sellerPhone: "+86-138-7788-9900",
+      time: "3일 전",
+      thumbnail: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop",
+      delivery: "방문·온라인",
+      status: "예약 가능",
+      type: "재능 서비스",
+      description: "한국어능력시험(TOPIK) 준비반 운영. 1:1 또는 그룹 수업, 출장 통역도 가능.",
+      condition: "신상",
+      views: 256,
+      likes: 31,
+      marketType: 'handmade',
+    },
+  ];
+
+  // 현재 탭에 해당하는 아이템 목록
+  const currentItems = activeMainTab === 'used' ? allItems : handmadeItems;
+
   // 지역과 카테고리로 필터링
-  const filteredItems = allItems.filter(item => {
+  const filteredItems = currentItems.filter(item => {
     const regionMatch = activeRegion === '전체' || item.region === activeRegion;
     const categoryMatch = activeSubcategory === '전체' || item.type === activeSubcategory;
     return regionMatch && categoryMatch;
@@ -785,18 +928,45 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">{category}</h2>
+            <span className="text-xs text-gray-400">
+              {activeMainTab === 'used' ? '중국 거주 한인 직거래' : '한국인이 만든 수제품'}
+            </span>
           </div>
-          
+
+          {/* 메인 탭 토글 (중고거래 / 수제품) */}
+          <div className="flex border-b border-gray-200 mb-3">
+            <button
+              onClick={() => setActiveMainTab('used')}
+              className={`flex-1 pb-2 text-sm transition-colors ${
+                activeMainTab === 'used'
+                  ? 'border-b-2 border-orange-500 text-orange-600 font-semibold'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              🛍️ 중고거래
+            </button>
+            <button
+              onClick={() => setActiveMainTab('handmade')}
+              className={`flex-1 pb-2 text-sm transition-colors ${
+                activeMainTab === 'handmade'
+                  ? 'border-b-2 border-orange-500 text-orange-600 font-semibold'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              🌾 수제·핸드메이드
+            </button>
+          </div>
+
           {/* 지역 선택 탭 */}
           <div className="mb-3">
-            <div className="flex items-center space-x-1 text-sm text-gray-600">
+            <div className="flex items-center space-x-1 text-sm text-gray-600 flex-wrap">
               {sortedRegions.map((region, index) => (
                 <div key={region.id} className="contents">
                   <button
                     onClick={() => setActiveRegion(region.name)}
-                    className={`hover:text-blue-600 transition-colors ${
+                    className={`hover:text-orange-600 transition-colors ${
                       activeRegion === region.name
-                        ? 'text-blue-600 font-medium'
+                        ? 'text-orange-600 font-medium'
                         : 'text-gray-600'
                     }`}
                   >
@@ -818,7 +988,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
                 onClick={() => setActiveSubcategory(subcat.name)}
                 className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
                   activeSubcategory === subcat.name
-                    ? 'bg-blue-600 text-white font-medium'
+                    ? 'bg-orange-500 text-white font-medium'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >

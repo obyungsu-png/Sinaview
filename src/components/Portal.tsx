@@ -288,7 +288,7 @@ export function Portal() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div id="used-market">
                       <UsedMarketSection 
-                        category="당근시장" 
+                        category="화개장터" 
                         onMoreClick={handleGoToUsedMarketPage} 
                         userRegion={currentUser?.region}
                         currentUser={currentUser}
@@ -439,7 +439,7 @@ export function Portal() {
           {visibleSections >= 6 && (
             <>
               <Suspense fallback={<LoadingSpinner />}>
-                <UsedMarketSection category="당근시장" onMoreClick={handleGoToUsedMarketPage} userRegion={currentUser?.region} />
+                <UsedMarketSection category="화개장터" onMoreClick={handleGoToUsedMarketPage} userRegion={currentUser?.region} />
               </Suspense>
               <Suspense fallback={<LoadingSpinner />}>
                 <RealEstateSection

@@ -13,7 +13,7 @@ export const translations = {
     automobile: '자동차',
     securities: '증권',
     realEstate: '부동산',
-    usedMarket: '당근시장',
+    usedMarket: '화개장터',
     visaDocuments: '비자/서류',
     translate: '번역',
     calendar: '캘린더',

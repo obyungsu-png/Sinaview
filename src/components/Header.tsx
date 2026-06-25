@@ -42,7 +42,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
     { keyword: '자동차', aliases: ['차량', '중고차', 'BYD', '전기차', '현대', '기아', '벤츠', 'auto', '차'], section: 'auto', mobileSection: 'auto-mobile', page: 'auto', icon: '🚗', category: '자동차' },
     { keyword: '운전면허', aliases: ['면허', '면허시험', '필기시험', '운전', '면허교환', 'driver license'], section: 'auto', mobileSection: 'auto-mobile', page: 'driverlicense', icon: '🪪', category: '운전면허' },
     { keyword: '뉴스', aliases: ['중국소식', '중국뉴스', '뉴스', 'news', '소식', '시사'], section: 'news', mobileSection: 'news-mobile', page: 'news', icon: '📰', category: '중국소식' },
-    { keyword: '당근시장', aliases: ['중고시장', '중고', '중고거래', '벼룩시장', '물건팔기', '중고물품', 'used market', '당근'], section: 'used-market', mobileSection: 'used-market-mobile', page: 'usedmarket', icon: '🥕', category: '당근시장' },
+    { keyword: '화개장터', aliases: ['중고', '중고거래', '벼룩시장', '직접만든', '수제', '핸드메이드', '판매', 'market', '장터'], section: 'used-market', mobileSection: 'used-market-mobile', page: 'usedmarket', icon: '🏮', category: '화개장터' },
     { keyword: '증권', aliases: ['주식', '펀드', '투자', '상하이증시', '선전증시', 'stock', '증시', '코스피'], section: 'securities', mobileSection: 'securities-mobile', page: 'securities', icon: '📈', category: '중국 증권' },
     { keyword: '부동산', aliases: ['집', '아파트', '임대', '매매', '월세', 'real estate', '렌트'], section: 'realestate-section', mobileSection: 'realestate-section', page: 'realestate', icon: '🏠', category: '부동산' },
     { keyword: 'HSK', aliases: ['중국어시험', '한어수평고시', 'hsk', '중국어능력시험', 'HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'], section: null, mobileSection: null, page: 'hsk', icon: '🇨🇳', category: '학습 센터' },
@@ -53,7 +53,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
   ], []);
 
   // 인기 검색어
-  const trendingKeywords = ['HSK 시험', '비자 연장', '전기차', '당근시장 베이징', '운전면허 교환'];
+  const trendingKeywords = ['HSK 시험', '비자 연장', '전기차', '화개장터 베이징', '운전면허 교환'];
 
   // 검색어에 따른 필터링
   const filteredSuggestions = useMemo(() => {
@@ -383,7 +383,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
               onClick={() => scrollToSection('used-market', 'used-market-mobile')}
               className="hover:text-green-600 whitespace-nowrap"
             >
-              당근시장
+              화개장터
             </button>
             <button 
               onClick={() => scrollToSection('securities', 'securities-mobile')}
