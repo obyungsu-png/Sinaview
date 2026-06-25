@@ -197,10 +197,10 @@ export function ShoppingPage({ onBack, initialCategory = '전체' }: ShoppingPag
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {filteredProducts.map((product) => (
             <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer group border border-gray-100">
-              <div className="relative aspect-[4/3] overflow-hidden bg-gray-50">
+              <div className="relative aspect-square overflow-hidden bg-gray-50">
                 <img 
                   src={product.image} 
                   alt={product.name}
@@ -208,12 +208,12 @@ export function ShoppingPage({ onBack, initialCategory = '전체' }: ShoppingPag
                 />
               </div>
               
-              <div className="p-3.5">
-                <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2 leading-snug">
+              <div className="p-2.5">
+                <h3 className="text-xs font-medium text-gray-900 mb-1.5 line-clamp-2 leading-snug">
                   {product.name}
                 </h3>
 
-                <div className="text-sm font-semibold text-gray-900 mb-2.5">
+                <div className="text-sm font-semibold text-gray-900 mb-1.5">
                   {(product as any).priceLabel
                     ? (product as any).priceLabel
                     : product.price > 0
@@ -221,23 +221,20 @@ export function ShoppingPage({ onBack, initialCategory = '전체' }: ShoppingPag
                       : '협의'}
                 </div>
                 
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <div className="flex items-center gap-1.5">
-                    <span>{product.seller}</span>
+                <div className="flex items-center justify-between text-[10px] text-gray-400">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="truncate">{product.seller}</span>
                     <span>·</span>
-                    <span>{(product as any).location}</span>
+                    <span className="truncate">{(product as any).location}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    {product.rating && (
-                      <>
-                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                        <span>{product.rating}</span>
-                        {product.reviews > 0 && <span>({product.reviews})</span>}
-                      </>
-                    )}
-                  </div>
+                  {product.rating && (
+                    <div className="flex items-center gap-0.5 shrink-0 ml-1">
+                      <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
+                      <span>{product.rating}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="text-xs text-gray-300 mt-1">{(product as any).time}</div>
+                <div className="text-[10px] text-gray-300 mt-0.5">{(product as any).time}</div>
               </div>
             </Card>
           ))}
