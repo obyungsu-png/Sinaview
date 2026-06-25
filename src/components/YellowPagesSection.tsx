@@ -445,79 +445,76 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
         </div>
 
         {/* 오른쪽: 상세 정보 */}
-        <div className="border border-gray-200 rounded-lg p-3 bg-gradient-to-br from-blue-50 to-white h-fit">
+        <div className="border border-gray-200 rounded-lg p-2.5 bg-white h-fit">
           {selectedBusiness && (
             <div>
               {/* 업체 이미지 */}
-              <div className="mb-3 rounded-lg overflow-hidden">
+              <div className="mb-2 rounded-md overflow-hidden">
                 <ImageWithFallback 
                   src={selectedBusiness.imageUrl}
                   alt={selectedBusiness.name}
-                  className="w-full h-32 object-cover"
+                  className="w-full h-20 object-cover"
                 />
               </div>
 
               {/* 업체 기본 정보 */}
-              <div className="mb-3">
-                <h3 className="text-base font-semibold text-gray-900 mb-1">{selectedBusiness.name}</h3>
-                
-                <div className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full mb-2">
-                  {selectedBusiness.category}
+              <div className="mb-2">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-900 truncate flex-1">{selectedBusiness.name}</h3>
+                  <span className="inline-block px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded shrink-0">
+                    {selectedBusiness.category}
+                  </span>
                 </div>
 
-                <p className="text-xs text-gray-700 leading-relaxed mb-2">
+                <p className="text-[11px] text-gray-500 leading-snug line-clamp-2">
                   {selectedBusiness.description}
                 </p>
               </div>
 
-              {/* 주요 특징 */}
-              <div className="mb-3">
-                <h4 className="text-xs font-medium text-gray-900 mb-1.5">주요 서비스</h4>
-                <div className="grid grid-cols-1 gap-1">
-                  {selectedBusiness.features?.slice(0, 3).map((feature: string, idx: number) => (
-                    <div key={idx} className="flex items-center text-xs text-gray-600">
-                      <div className="w-1 h-1 bg-green-500 rounded-full mr-1.5"></div>
+              {/* 주요 특징 - 인라인으로 압축 */}
+              {selectedBusiness.features && selectedBusiness.features.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-1">
+                  {selectedBusiness.features.slice(0, 3).map((feature: string, idx: number) => (
+                    <span key={idx} className="text-[10px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                       {feature}
-                    </div>
+                    </span>
                   ))}
                 </div>
-              </div>
+              )}
 
               {/* 연락처 및 운영시간 */}
-              <div className="space-y-1.5 pt-2 border-t border-gray-200">
-                <div className="flex items-center text-xs">
-                  <MapPin className="w-3.5 h-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                  <span className="text-gray-700">{selectedBusiness.address}</span>
+              <div className="space-y-1 pt-2 border-t border-gray-100">
+                <div className="flex items-center text-[11px] text-gray-600">
+                  <MapPin className="w-3 h-3 mr-1 text-gray-400 flex-shrink-0" />
+                  <span className="truncate">{selectedBusiness.address}</span>
                 </div>
-                <div className="flex items-center text-xs">
-                  <Phone className="w-3.5 h-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                  <span className="text-gray-700">{selectedBusiness.phone}</span>
+                <div className="flex items-center text-[11px] text-gray-600">
+                  <Phone className="w-3 h-3 mr-1 text-gray-400 flex-shrink-0" />
+                  <span>{selectedBusiness.phone}</span>
                 </div>
-                <div className="flex items-center text-xs">
-                  <Clock className="w-3.5 h-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                  <span className="text-gray-700">{selectedBusiness.hours}</span>
+                <div className="flex items-center text-[11px] text-gray-600">
+                  <Clock className="w-3 h-3 mr-1 text-gray-400 flex-shrink-0" />
+                  <span>{selectedBusiness.hours}</span>
                 </div>
               </div>
 
-              {/* 액션 버튼 - 찾아가기 제거, WeChat과 상세보기만 */}
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              {/* 액션 버튼 */}
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
                 <Button 
                   onClick={() => {
-                    // WeChat으로 연락하기
                     alert(`WeChat으로 ${selectedBusiness.name}에 연락하세요.\\n전화번호: ${selectedBusiness.phone}`);
                   }}
-                  className="bg-green-600 hover:bg-green-700 text-white text-xs py-1.5"
+                  className="bg-green-600 hover:bg-green-700 text-white text-[11px] py-1 h-7"
                 >
                   WeChat
                 </Button>
                 <Button 
                   onClick={() => {
-                    // 상세보기 모달 열기
                     setSelectedBusinessForDetail(selectedBusiness);
                     setDetailModalOpen(true);
                   }}
                   variant="outline" 
-                  className="text-xs py-1.5"
+                  className="text-[11px] py-1 h-7"
                 >
                   상세보기
                 </Button>
