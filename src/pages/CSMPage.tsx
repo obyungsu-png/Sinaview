@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Plus, Edit, Trash2, Upload, Save, Eye, FileText, Image as ImageIcon, File, X, Check, History, Download, Scale, ShieldCheck, Camera, Paperclip, RefreshCw, MessageSquare, Pin, Bell } from 'lucide-react@0.487.0';
+import { ArrowLeft, Plus, Edit, Trash2, Upload, Save, Eye, FileText, Image as ImageIcon, File, X, Check, History, Download, Scale, ShieldCheck, Camera, Paperclip, RefreshCw, MessageSquare, Pin, Bell, Users, Crown, Star } from 'lucide-react@0.487.0';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -52,6 +52,27 @@ interface CommunityPost {
   order: number;
   createdAt: string;
   updatedAt: string;
+}
+
+interface Member {
+  id: string;
+  username: string;
+  name: string;
+  phone: string;
+  email: string;
+  region: string;
+  tier: 'free' | 'paid' | 'vip';
+  businessName?: string;       // 업체명 (유료/VIP)
+  businessCategory?: string;   // 카테고리
+  businessImage?: string;      // 사진 URL
+  businessDescription?: string;// 소개글
+  businessFeatures?: string[]; // 주요 서비스
+  businessAddress?: string;
+  businessPhone?: string;
+  businessHours?: string;
+  startDate: string;           // 가입일
+  expireDate?: string;         // 유료/VIP 만료일
+  status: 'active' | 'expired' | 'suspended';
 }
 
 export function CSMPage({ onBack }: CSMPageProps) {
@@ -144,6 +165,96 @@ export function CSMPage({ onBack }: CSMPageProps) {
     const newPosts = [...communityPosts];
     [newPosts[idx], newPosts[idx + 1]] = [newPosts[idx + 1], newPosts[idx]];
     saveCommunityPosts(newPosts.map((p, i) => ({ ...p, order: i + 1 })));
+  };
+
+  // ===== 회원 관리 =====
+  const [members, setMembers] = useState<Member[]>(() => {
+    try {
+      const saved = localStorage.getItem('csm_members');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'm1', username: 'kimchaina', name: '김차이나', phone: '+86-138-1234-5678',
+          email: 'kim@example.com', region: '베이징', tier: 'vip',
+          businessName: '베이징 한인병원', businessCategory: '병원',
+          businessImage: 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=400&h=300&fit=crop',
+          businessDescription: '한국어 진료 가능한 종합병원입니다.',
+          businessFeatures: ['한국어 진료', '24시간 응급실', '종합검진'],
+          businessAddress: '베이징 차오양구',
+          businessPhone: '+86-10-1234-5678',
+          businessHours: '월-토 09:00-18:00',
+          startDate: '2024.01.15', expireDate: '2025.01.15', status: 'active',
+        },
+        {
+          id: 'm2', username: 'shparkkim', name: '박상해', phone: '+86-138-2222-3333',
+          email: 'park@example.com', region: '상하이', tier: 'paid',
+          businessName: '상해 한국학교 인근 학원', businessCategory: '교육',
+          businessImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop',
+          businessDescription: 'TOPIK 준비반 운영, 1:1 한국어 수업',
+          businessFeatures: ['1:1 수업', 'TOPIK 대비', '온라인 가능'],
+          businessAddress: '상하이 푸동신구',
+          businessPhone: '+86-21-9876-5432',
+          businessHours: '평일 14:00-21:00',
+          startDate: '2024.06.20', expireDate: '2025.06.20', status: 'active',
+        },
+        {
+          id: 'm3', username: 'leefree', name: '이일반', phone: '+86-138-9999-0000',
+          email: 'lee@example.com', region: '대련', tier: 'free',
+          startDate: '2024.11.01', status: 'active',
+        },
+      ];
+    } catch { return []; }
+  });
+
+  const saveMembers = (m: Member[]) => {
+    localStorage.setItem('csm_members', JSON.stringify(m));
+    setMembers(m);
+  };
+
+  const [memberFilter, setMemberFilter] = useState<'all' | 'free' | 'paid' | 'vip'>('all');
+  const [memberSearch, setMemberSearch] = useState('');
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [isMemberDialogOpen, setIsMemberDialogOpen] = useState(false);
+  const [memberFeaturesText, setMemberFeaturesText] = useState('');
+
+  const filteredMembers = members.filter(m => {
+    const matchTier = memberFilter === 'all' || m.tier === memberFilter;
+    const search = memberSearch.toLowerCase();
+    const matchSearch = !search ||
+      m.name.toLowerCase().includes(search) ||
+      m.username.toLowerCase().includes(search) ||
+      (m.businessName || '').toLowerCase().includes(search) ||
+      m.phone.includes(search);
+    return matchTier && matchSearch;
+  });
+
+  const memberStats = {
+    total: members.length,
+    free: members.filter(m => m.tier === 'free').length,
+    paid: members.filter(m => m.tier === 'paid').length,
+    vip: members.filter(m => m.tier === 'vip').length,
+  };
+
+  const handleMemberSave = () => {
+    if (!editingMember) return;
+    const features = memberFeaturesText.split(',').map(s => s.trim()).filter(Boolean);
+    const updated: Member = { ...editingMember, businessFeatures: features };
+    if (members.find(m => m.id === editingMember.id)) {
+      saveMembers(members.map(m => m.id === editingMember.id ? updated : m));
+    } else {
+      saveMembers([...members, updated]);
+    }
+    setIsMemberDialogOpen(false);
+    setEditingMember(null);
+  };
+
+  const handleMemberTierChange = (id: string, tier: 'free' | 'paid' | 'vip') => {
+    saveMembers(members.map(m => m.id === id ? { ...m, tier } : m));
+  };
+
+  const handleMemberDelete = (id: string) => {
+    if (confirm('이 회원을 삭제하시겠습니까?')) {
+      saveMembers(members.filter(m => m.id !== id));
+    }
   };
 
   const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-c6687586`;
@@ -395,7 +506,7 @@ export function CSMPage({ onBack }: CSMPageProps) {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white">
+          <TabsList className="grid w-full grid-cols-4 bg-white">
             <TabsTrigger value="legal" className="flex items-center space-x-2">
               <Scale className="w-4 h-4" />
               <span>법적 고지 & 정책</span>
@@ -407,6 +518,10 @@ export function CSMPage({ onBack }: CSMPageProps) {
             <TabsTrigger value="community" className="flex items-center space-x-2">
               <Pin className="w-4 h-4" />
               <span>필독 & 공지 관리</span>
+            </TabsTrigger>
+            <TabsTrigger value="members" className="flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>회원 등급 관리</span>
             </TabsTrigger>
           </TabsList>
 
@@ -666,7 +781,330 @@ export function CSMPage({ onBack }: CSMPageProps) {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* 회원 등급 관리 탭 */}
+          <TabsContent value="members" className="space-y-6">
+            {/* 통계 */}
+            <div className="grid grid-cols-4 gap-3">
+              <Card className="p-3">
+                <div className="text-xs text-gray-500">전체 회원</div>
+                <div className="text-xl font-bold text-gray-900 mt-1">{memberStats.total}</div>
+              </Card>
+              <Card className="p-3 bg-gray-50">
+                <div className="text-xs text-gray-500 flex items-center gap-1"><Users className="w-3 h-3" /> 일반</div>
+                <div className="text-xl font-bold text-gray-700 mt-1">{memberStats.free}</div>
+              </Card>
+              <Card className="p-3 bg-blue-50">
+                <div className="text-xs text-blue-600 flex items-center gap-1"><Star className="w-3 h-3" /> 유료</div>
+                <div className="text-xl font-bold text-blue-700 mt-1">{memberStats.paid}</div>
+              </Card>
+              <Card className="p-3 bg-yellow-50">
+                <div className="text-xs text-yellow-700 flex items-center gap-1"><Crown className="w-3 h-3" /> VIP</div>
+                <div className="text-xl font-bold text-yellow-800 mt-1">{memberStats.vip}</div>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-purple-600" />
+                    <span>회원 등급 관리</span>
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="이름·아이디·업체명 검색"
+                      value={memberSearch}
+                      onChange={e => setMemberSearch(e.target.value)}
+                      className="w-56 text-sm"
+                    />
+                    <Button
+                      onClick={() => {
+                        setEditingMember({
+                          id: Date.now().toString(),
+                          username: '', name: '', phone: '', email: '', region: '베이징',
+                          tier: 'free', startDate: new Date().toLocaleDateString('ko-KR'),
+                          status: 'active',
+                        });
+                        setMemberFeaturesText('');
+                        setIsMemberDialogOpen(true);
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      회원 추가
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex gap-1.5 mt-3">
+                  {([
+                    { value: 'all', label: '전체' },
+                    { value: 'free', label: '일반' },
+                    { value: 'paid', label: '유료' },
+                    { value: 'vip', label: 'VIP' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setMemberFilter(opt.value)}
+                      className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                        memberFilter === opt.value
+                          ? 'bg-purple-600 text-white font-medium'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {filteredMembers.map(m => (
+                    <div
+                      key={m.id}
+                      className={`border rounded-lg p-3 flex items-center gap-3 ${
+                        m.tier === 'vip' ? 'bg-yellow-50 border-yellow-200' :
+                        m.tier === 'paid' ? 'bg-blue-50 border-blue-200' : 'bg-white'
+                      }`}
+                    >
+                      {/* 등급 뱃지 */}
+                      <div className="shrink-0">
+                        {m.tier === 'vip' && <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-200 text-yellow-800 text-xs font-bold rounded"><Crown className="w-3 h-3" />VIP</span>}
+                        {m.tier === 'paid' && <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-200 text-blue-800 text-xs font-bold rounded"><Star className="w-3 h-3" />유료</span>}
+                        {m.tier === 'free' && <span className="inline-block px-2 py-1 bg-gray-200 text-gray-700 text-xs font-medium rounded">일반</span>}
+                      </div>
+
+                      {/* 회원 정보 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900">{m.name}</span>
+                          <span className="text-xs text-gray-400">@{m.username}</span>
+                          {m.businessName && (
+                            <span className="text-xs text-purple-600 font-medium">· {m.businessName}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                          <span>📍 {m.region}</span>
+                          <span>📞 {m.phone}</span>
+                          {m.expireDate && <span>만료: {m.expireDate}</span>}
+                        </div>
+                      </div>
+
+                      {/* 액션 */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <select
+                          value={m.tier}
+                          onChange={e => handleMemberTierChange(m.id, e.target.value as any)}
+                          className="text-xs border rounded px-2 py-1 bg-white"
+                        >
+                          <option value="free">일반</option>
+                          <option value="paid">유료</option>
+                          <option value="vip">VIP</option>
+                        </select>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingMember(m);
+                            setMemberFeaturesText((m.businessFeatures || []).join(', '));
+                            setIsMemberDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-500 border-red-200 hover:bg-red-50"
+                          onClick={() => handleMemberDelete(m.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {filteredMembers.length === 0 && (
+                    <div className="text-center py-12 text-gray-400">
+                      <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <p>회원이 없습니다.</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
+        {/* 회원 편집 다이얼로그 */}
+        <Dialog open={isMemberDialogOpen} onOpenChange={(open) => { setIsMemberDialogOpen(open); if (!open) setEditingMember(null); }}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {editingMember?.tier === 'vip' && <Crown className="w-5 h-5 text-yellow-500" />}
+                {editingMember?.tier === 'paid' && <Star className="w-5 h-5 text-blue-500" />}
+                {editingMember?.tier === 'free' && <Users className="w-5 h-5 text-gray-500" />}
+                회원 정보 {members.find(m => m.id === editingMember?.id) ? '수정' : '추가'}
+              </DialogTitle>
+              <DialogDescription>
+                유료/VIP 회원은 엘로우페이지 등에서 사진과 함께 상세 정보가 노출됩니다.
+              </DialogDescription>
+            </DialogHeader>
+            {editingMember && (
+              <div className="space-y-4 pt-2">
+                {/* 기본 정보 */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2 pb-1 border-b">기본 정보</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>아이디 *</Label>
+                      <Input value={editingMember.username} onChange={e => setEditingMember({ ...editingMember, username: e.target.value })} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label>이름 *</Label>
+                      <Input value={editingMember.name} onChange={e => setEditingMember({ ...editingMember, name: e.target.value })} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label>전화번호</Label>
+                      <Input value={editingMember.phone} onChange={e => setEditingMember({ ...editingMember, phone: e.target.value })} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label>이메일</Label>
+                      <Input value={editingMember.email} onChange={e => setEditingMember({ ...editingMember, email: e.target.value })} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label>지역</Label>
+                      <select
+                        value={editingMember.region}
+                        onChange={e => setEditingMember({ ...editingMember, region: e.target.value })}
+                        className="w-full border rounded px-3 py-2 mt-1 text-sm"
+                      >
+                        {['베이징', '상하이', '광저우', '심천', '대련', '톈진', '청두', '우한'].map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label>등급 *</Label>
+                      <select
+                        value={editingMember.tier}
+                        onChange={e => setEditingMember({ ...editingMember, tier: e.target.value as any })}
+                        className="w-full border rounded px-3 py-2 mt-1 text-sm"
+                      >
+                        <option value="free">일반 회원</option>
+                        <option value="paid">유료 회원</option>
+                        <option value="vip">VIP 회원</option>
+                      </select>
+                    </div>
+                    {(editingMember.tier === 'paid' || editingMember.tier === 'vip') && (
+                      <div>
+                        <Label>만료일</Label>
+                        <Input
+                          type="text"
+                          placeholder="예: 2025.12.31"
+                          value={editingMember.expireDate || ''}
+                          onChange={e => setEditingMember({ ...editingMember, expireDate: e.target.value })}
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 업체 정보 (유료/VIP만) */}
+                {(editingMember.tier === 'paid' || editingMember.tier === 'vip') && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2 pb-1 border-b flex items-center gap-2">
+                      🏢 업체 정보
+                      <span className="text-xs text-purple-600 font-normal">(엘로우페이지에 노출됩니다)</span>
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>업체명</Label>
+                        <Input value={editingMember.businessName || ''} onChange={e => setEditingMember({ ...editingMember, businessName: e.target.value })} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label>카테고리</Label>
+                        <select
+                          value={editingMember.businessCategory || ''}
+                          onChange={e => setEditingMember({ ...editingMember, businessCategory: e.target.value })}
+                          className="w-full border rounded px-3 py-2 mt-1 text-sm"
+                        >
+                          <option value="">선택</option>
+                          {['병원', '교육', '음식점', '서비스', '쇼핑', '부동산', '여행', '기타'].map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <Label>업체 사진 URL</Label>
+                        <Input
+                          placeholder="https://..."
+                          value={editingMember.businessImage || ''}
+                          onChange={e => setEditingMember({ ...editingMember, businessImage: e.target.value })}
+                          className="mt-1"
+                        />
+                        {editingMember.businessImage && (
+                          <img src={editingMember.businessImage} alt="미리보기" className="mt-2 w-full h-32 object-cover rounded border" />
+                        )}
+                      </div>
+                      <div className="col-span-2">
+                        <Label>업체 소개</Label>
+                        <textarea
+                          value={editingMember.businessDescription || ''}
+                          onChange={e => setEditingMember({ ...editingMember, businessDescription: e.target.value })}
+                          rows={3}
+                          className="w-full border rounded px-3 py-2 mt-1 text-sm resize-y"
+                          placeholder="업체 소개 한두 문장"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>주요 서비스 (쉼표로 구분, 최대 4개)</Label>
+                        <Input
+                          placeholder="예: 한국어 진료, 24시간 응급실, 종합검진"
+                          value={memberFeaturesText}
+                          onChange={e => setMemberFeaturesText(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label>업체 주소</Label>
+                        <Input value={editingMember.businessAddress || ''} onChange={e => setEditingMember({ ...editingMember, businessAddress: e.target.value })} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label>업체 전화</Label>
+                        <Input value={editingMember.businessPhone || ''} onChange={e => setEditingMember({ ...editingMember, businessPhone: e.target.value })} className="mt-1" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>운영 시간</Label>
+                        <Input
+                          placeholder="예: 월-금 09:00-18:00"
+                          value={editingMember.businessHours || ''}
+                          onChange={e => setEditingMember({ ...editingMember, businessHours: e.target.value })}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <Button variant="outline" onClick={() => { setIsMemberDialogOpen(false); setEditingMember(null); }}>
+                    취소
+                  </Button>
+                  <Button
+                    onClick={handleMemberSave}
+                    className="bg-purple-600 hover:bg-purple-700"
+                    disabled={!editingMember.username || !editingMember.name}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    저장
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* 커뮤니티 게시물 작성/수정 다이얼로그 */}
         <Dialog open={isCpCreateOpen} onOpenChange={(open) => { setIsCpCreateOpen(open); if (!open) setEditingCp(null); }}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Search, MapPin, Phone, Clock, Star } from 'lucide-react';
@@ -23,6 +23,8 @@ interface Business {
   imageUrl: string;
   videoUrl: string;
   reviews: number;
+  tier?: 'free' | 'paid' | 'vip';  // 회원 등급 (CMS 연동)
+  isMemberBusiness?: boolean;       // 회원 등록 업체 여부
 }
 
 export function YellowPagesSection({ category, onMoreClick }: YellowPagesSectionProps) {
@@ -332,7 +334,50 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
   };
 
   const currentRegionData = businessesByRegion[activeRegion] || businessesByRegion['대련'];
-  const currentBusinesses = currentRegionData[activeSubcategory] || currentRegionData['전체'];
+  const baseBusinesses = currentRegionData[activeSubcategory] || currentRegionData['전체'];
+
+  // CMS 회원 데이터에서 유료/VIP 회원의 업체 정보를 끌어옴
+  const memberBusinesses = useMemo<Business[]>(() => {
+    try {
+      const saved = localStorage.getItem('csm_members');
+      if (!saved) return [];
+      const members = JSON.parse(saved) as any[];
+      return members
+        .filter(m =>
+          (m.tier === 'paid' || m.tier === 'vip') &&
+          m.status === 'active' &&
+          m.businessName &&
+          (activeRegion === '전체' || m.region === activeRegion) &&
+          (activeSubcategory === '전체' || m.businessCategory === activeSubcategory)
+        )
+        .map(m => ({
+          name: m.businessName,
+          category: m.businessCategory || '기타',
+          address: m.businessAddress || '',
+          chineseAddress: m.businessAddress || '',
+          phone: m.businessPhone || m.phone || '',
+          rating: 5.0,
+          isOpen: true,
+          description: m.businessDescription || '',
+          features: m.businessFeatures || [],
+          hours: m.businessHours || '',
+          imageUrl: m.businessImage || 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop',
+          videoUrl: '',
+          reviews: 0,
+          tier: m.tier,
+          isMemberBusiness: true,
+        }));
+    } catch {
+      return [];
+    }
+  }, [activeRegion, activeSubcategory]);
+
+  // VIP → 유료 → 일반(기존 데이터) 순으로 정렬
+  const currentBusinesses = useMemo(() => {
+    const vipFirst = memberBusinesses.filter(b => b.tier === 'vip');
+    const paidNext = memberBusinesses.filter(b => b.tier === 'paid');
+    return [...vipFirst, ...paidNext, ...baseBusinesses];
+  }, [memberBusinesses, baseBusinesses]);
 
   // 선택된 업체 상세 정보
   const selectedBusiness = hoveredBusiness !== null ? currentBusinesses[hoveredBusiness] : currentBusinesses[0];
@@ -411,15 +456,30 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
             <div 
               key={index} 
               onMouseEnter={() => setHoveredBusiness(index)}
+              onClick={() => setHoveredBusiness(index)}
               className={`p-3 border rounded-lg cursor-pointer transition-all ${
                 hoveredBusiness === index 
-                  ? 'border-green-500 bg-white shadow-md' 
+                  ? business.tier === 'vip'
+                    ? 'border-yellow-400 bg-yellow-50 shadow-md'
+                    : business.tier === 'paid'
+                    ? 'border-blue-400 bg-blue-50 shadow-md'
+                    : 'border-green-500 bg-white shadow-md'
+                  : business.tier === 'vip'
+                  ? 'border-yellow-200 bg-yellow-50/40 hover:border-yellow-400'
+                  : business.tier === 'paid'
+                  ? 'border-blue-200 bg-blue-50/30 hover:border-blue-400'
                   : 'border-gray-200 hover:border-green-300 hover:bg-gray-50'
               }`}
             >
               <div className="flex items-start justify-between mb-1">
                 <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    {business.tier === 'vip' && (
+                      <span className="px-1.5 py-0.5 bg-yellow-400 text-yellow-900 text-[10px] font-bold rounded">👑 VIP</span>
+                    )}
+                    {business.tier === 'paid' && (
+                      <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded">⭐ 유료</span>
+                    )}
                     <h3 className="text-sm font-medium text-gray-900">{business.name}</h3>
                     {business.isOpen && (
                       <div className="flex items-center space-x-1">
@@ -445,17 +505,35 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
         </div>
 
         {/* 오른쪽: 상세 정보 */}
-        <div className="border border-gray-200 rounded-lg p-2.5 bg-white h-fit">
+        <div className={`border rounded-lg p-2.5 h-fit ${
+          selectedBusiness?.tier === 'vip'
+            ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-white shadow-sm'
+            : selectedBusiness?.tier === 'paid'
+            ? 'border-blue-200 bg-blue-50/30'
+            : 'border-gray-200 bg-white'
+        }`}>
           {selectedBusiness && (
             <div>
-              {/* 업체 이미지 */}
-              <div className="mb-2 rounded-md overflow-hidden">
-                <ImageWithFallback 
-                  src={selectedBusiness.imageUrl}
-                  alt={selectedBusiness.name}
-                  className="w-full h-20 object-cover"
-                />
-              </div>
+              {/* VIP/유료 등록 업체만 이미지 표시 */}
+              {selectedBusiness.isMemberBusiness && (selectedBusiness.tier === 'vip' || selectedBusiness.tier === 'paid') && (
+                <div className="mb-2 rounded-md overflow-hidden relative">
+                  <ImageWithFallback 
+                    src={selectedBusiness.imageUrl}
+                    alt={selectedBusiness.name}
+                    className="w-full h-20 object-cover"
+                  />
+                  {selectedBusiness.tier === 'vip' && (
+                    <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-yellow-400 text-yellow-900 text-[10px] font-bold rounded shadow">
+                      👑 VIP
+                    </span>
+                  )}
+                  {selectedBusiness.tier === 'paid' && (
+                    <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded shadow">
+                      ⭐ 유료
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* 업체 기본 정보 */}
               <div className="mb-2">
@@ -466,13 +544,15 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
                   </span>
                 </div>
 
-                <p className="text-[11px] text-gray-500 leading-snug line-clamp-2">
-                  {selectedBusiness.description}
-                </p>
+                {selectedBusiness.description && (
+                  <p className="text-[11px] text-gray-500 leading-snug line-clamp-2">
+                    {selectedBusiness.description}
+                  </p>
+                )}
               </div>
 
-              {/* 주요 특징 - 인라인으로 압축 */}
-              {selectedBusiness.features && selectedBusiness.features.length > 0 && (
+              {/* 주요 특징 - 인라인으로 압축 (유료/VIP만) */}
+              {(selectedBusiness.tier === 'vip' || selectedBusiness.tier === 'paid') && selectedBusiness.features && selectedBusiness.features.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-1">
                   {selectedBusiness.features.slice(0, 3).map((feature: string, idx: number) => (
                     <span key={idx} className="text-[10px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
@@ -484,18 +564,24 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
 
               {/* 연락처 및 운영시간 */}
               <div className="space-y-1 pt-2 border-t border-gray-100">
-                <div className="flex items-center text-[11px] text-gray-600">
-                  <MapPin className="w-3 h-3 mr-1 text-gray-400 flex-shrink-0" />
-                  <span className="truncate">{selectedBusiness.address}</span>
-                </div>
-                <div className="flex items-center text-[11px] text-gray-600">
-                  <Phone className="w-3 h-3 mr-1 text-gray-400 flex-shrink-0" />
-                  <span>{selectedBusiness.phone}</span>
-                </div>
-                <div className="flex items-center text-[11px] text-gray-600">
-                  <Clock className="w-3 h-3 mr-1 text-gray-400 flex-shrink-0" />
-                  <span>{selectedBusiness.hours}</span>
-                </div>
+                {selectedBusiness.address && (
+                  <div className="flex items-center text-[11px] text-gray-600">
+                    <MapPin className="w-3 h-3 mr-1 text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{selectedBusiness.address}</span>
+                  </div>
+                )}
+                {selectedBusiness.phone && (
+                  <div className="flex items-center text-[11px] text-gray-600">
+                    <Phone className="w-3 h-3 mr-1 text-gray-400 flex-shrink-0" />
+                    <span>{selectedBusiness.phone}</span>
+                  </div>
+                )}
+                {selectedBusiness.hours && (
+                  <div className="flex items-center text-[11px] text-gray-600">
+                    <Clock className="w-3 h-3 mr-1 text-gray-400 flex-shrink-0" />
+                    <span>{selectedBusiness.hours}</span>
+                  </div>
+                )}
               </div>
 
               {/* 액션 버튼 */}
