@@ -76,13 +76,8 @@ export function Portal() {
   const [activeYellowPagesCategory, setActiveYellowPagesCategory] = useState('엘로우페이지');
   const [selectedShoppingCategory, setSelectedShoppingCategory] = useState('전체');
   
-  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; username?: string; region?: string; city?: string } | null>({
-    id: 'user_demo_123',
-    name: '김차이나',
-    username: 'kimchaina',
-    region: '베이징'
-  });
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; username?: string; region?: string; city?: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [showCalendar, setShowCalendar] = useState(true);
   const [currentPage, setCurrentPage] = useState('main');
   const [selectedArticle, setSelectedArticle] = useState<any>(null);

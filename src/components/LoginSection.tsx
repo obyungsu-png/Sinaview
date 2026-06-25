@@ -43,13 +43,18 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
   // 로그인된 상태
   if (currentUser) {
     const menuItems = [
-      { icon: <FileText className="w-5 h-5" />, label: '내 게시글', page: 'chinalife' },
-      { icon: <Stethoscope className="w-5 h-5" />, label: '병원 상담', page: 'chinalife' },
-      { icon: <Building2 className="w-5 h-5" />, label: '부동산', page: 'realestate' },
-      { icon: <CalendarDays className="w-5 h-5" />, label: '나의 일정', page: 'chinalife' },
-      { icon: <Mail className="w-5 h-5" />, label: '쪽지함', page: 'chinalife' },
-      { icon: <Settings className="w-5 h-5" />, label: '설정', page: 'chinalife' },
+      { icon: <FileText className="w-7 h-7" strokeWidth={1.5} />, label: '내 게시글', page: 'chinalife' },
+      { icon: <Stethoscope className="w-7 h-7" strokeWidth={1.5} />, label: '병원 상담', page: 'chinalife' },
+      { icon: <Building2 className="w-7 h-7" strokeWidth={1.5} />, label: '부동산', page: 'realestate' },
+      { icon: <CalendarDays className="w-7 h-7" strokeWidth={1.5} />, label: '나의 일정', page: 'chinalife' },
+      { icon: <Mail className="w-7 h-7" strokeWidth={1.5} />, label: '쪽지함', page: 'chinalife' },
+      { icon: <Settings className="w-7 h-7" strokeWidth={1.5} />, label: '설정', page: 'chinalife' },
     ];
+
+    const activeIdx = 4; // 쪽지함을 활성으로 강조
+
+    // 사용자 등급 (region 기반으로 임시 결정)
+    const userBadge = currentUser.region ? '현지' : '주재원';
 
     return (
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -59,36 +64,41 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
           onClick={() => onNavigate?.('chinalife')}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold text-sm">
-              {(currentUser.name || currentUser.username || '사용자').charAt(0).toUpperCase()}
+            {/* 사각형 뱃지 */}
+            <div className="w-12 h-12 rounded-2xl bg-teal-500 flex items-center justify-center text-white text-xs font-semibold tracking-tighter px-1">
+              {userBadge}
             </div>
-            <div className="text-left">
-              <p className="text-sm font-semibold text-gray-900">
-                {currentUser.name || currentUser.username || '사용자'}
-              </p>
-              {currentUser.region && (
-                <p className="text-xs text-gray-400">{currentUser.region}</p>
-              )}
-            </div>
+            <p className="text-base font-semibold text-gray-900">
+              {currentUser.name || currentUser.username || '사용자'}
+            </p>
           </div>
           <span className="text-gray-300 text-lg">›</span>
         </button>
 
-        {/* 구분선 */}
-        <div className="border-t border-gray-100" />
-
         {/* 메뉴 그리드 */}
-        <div className="grid grid-cols-3 divide-x divide-y divide-gray-100">
-          {menuItems.map((item, i) => (
-            <button
-              key={i}
-              className="flex flex-col items-center justify-center py-4 hover:bg-gray-50 transition-colors gap-1.5"
-              onClick={() => onNavigate?.(item.page)}
-            >
-              <span className="text-gray-500">{item.icon}</span>
-              <span className="text-xs text-gray-600">{item.label}</span>
-            </button>
-          ))}
+        <div className="bg-gray-50 grid grid-cols-3 px-2 pt-2 pb-2">
+          {menuItems.map((item, i) => {
+            const isActive = i === activeIdx;
+            // 세로 구분선: 마지막 열이 아닌 경우
+            const showRightBorder = (i % 3) !== 2;
+            return (
+              <button
+                key={i}
+                className="flex flex-col items-center justify-center py-4 gap-1.5 relative hover:bg-white/70 rounded-lg transition-colors"
+                onClick={() => onNavigate?.(item.page)}
+              >
+                <span className={isActive ? 'text-teal-500' : 'text-gray-700'}>
+                  {item.icon}
+                </span>
+                <span className={`text-xs ${isActive ? 'text-teal-500 font-medium' : 'text-gray-600'}`}>
+                  {item.label}
+                </span>
+                {showRightBorder && (
+                  <span className="absolute right-0 top-1/2 -translate-y-1/2 h-7 w-px bg-gray-200" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     );
