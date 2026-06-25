@@ -225,7 +225,7 @@ export function RegionalNewsWidget({ onMoreClick }: RegionalNewsWidgetProps) {
 
       {/* 지역 소식 목록 */}
       <div className="space-y-3">
-        {currentNews.map((news) => (
+        {currentNews.slice(0, 3).map((news) => (
           <div key={news.id} className="group cursor-pointer hover:bg-gray-50 p-2.5 rounded-lg transition-colors border-b border-gray-100 last:border-b-0">
             <div className="flex items-start justify-between mb-1.5">
               <div className="flex-1">
