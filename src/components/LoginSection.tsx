@@ -14,7 +14,6 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [saveId, setSaveId] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -144,47 +143,18 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
           {isSubmitting ? '로그인 중...' : '로그인하기'}
         </button>
 
-        {/* 아이디 저장 + 링크 */}
-        <div className="flex items-center justify-between text-xs text-gray-500 pt-0.5">
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={saveId}
-              onChange={e => setSaveId(e.target.checked)}
-              className="w-3.5 h-3.5 accent-teal-600"
-            />
-            아이디 저장
-          </label>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={onLoginClick} className="hover:text-gray-700">아이디 찾기</button>
-            <span className="text-gray-300">|</span>
-            <button type="button" onClick={onLoginClick} className="hover:text-gray-700">비밀번호 찾기</button>
-            <span className="text-gray-300">|</span>
-            <button type="button" onClick={onSignupClick} className="hover:text-gray-700">회원가입</button>
-          </div>
+        {/* 회원가입 */}
+        <div className="text-center text-xs text-gray-500 pt-1">
+          아직 회원이 아니신가요?{' '}
+          <button
+            type="button"
+            onClick={onSignupClick}
+            className="text-teal-600 hover:text-teal-700 font-medium hover:underline"
+          >
+            회원가입
+          </button>
         </div>
       </form>
-
-      {/* SNS 로그인 */}
-      <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-        <p className="text-xs text-center text-gray-400 mb-3">SNS 계정으로 간편하게 로그인하세요!</p>
-        <button
-          type="button"
-          className="w-full flex items-center gap-3 px-4 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          onClick={onLoginClick}
-        >
-          <span className="w-6 h-6 bg-[#03C75A] rounded-full flex items-center justify-center text-white text-xs font-black">N</span>
-          <span className="text-sm text-gray-700">네이버 간편로그인</span>
-        </button>
-        <button
-          type="button"
-          className="w-full flex items-center gap-3 px-4 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          onClick={onLoginClick}
-        >
-          <span className="w-6 h-6 bg-[#FEE500] rounded-full flex items-center justify-center text-[#3C1E1E] text-xs font-black">K</span>
-          <span className="text-sm text-gray-700">카카오 간편로그인</span>
-        </button>
-      </div>
     </div>
   );
 }
