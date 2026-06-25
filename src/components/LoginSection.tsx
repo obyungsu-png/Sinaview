@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, FileText, Stethoscope, Building2, CalendarDays, Mail, Settings } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
 interface LoginSectionProps {
@@ -43,12 +43,12 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
   // 로그인된 상태
   if (currentUser) {
     const menuItems = [
-      { icon: '📋', label: '내 게시글', page: 'chinalife' },
-      { icon: '🏥', label: '병원 상담', page: 'chinalife' },
-      { icon: '🏠', label: '부동산', page: 'realestate' },
-      { icon: '📅', label: '나의 일정', page: 'chinalife' },
-      { icon: '💬', label: '쪽지함', page: 'chinalife' },
-      { icon: '⚙️', label: '설정', page: 'chinalife' },
+      { icon: <FileText className="w-5 h-5" />, label: '내 게시글', page: 'chinalife' },
+      { icon: <Stethoscope className="w-5 h-5" />, label: '병원 상담', page: 'chinalife' },
+      { icon: <Building2 className="w-5 h-5" />, label: '부동산', page: 'realestate' },
+      { icon: <CalendarDays className="w-5 h-5" />, label: '나의 일정', page: 'chinalife' },
+      { icon: <Mail className="w-5 h-5" />, label: '쪽지함', page: 'chinalife' },
+      { icon: <Settings className="w-5 h-5" />, label: '설정', page: 'chinalife' },
     ];
 
     return (
@@ -85,7 +85,7 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
               className="flex flex-col items-center justify-center py-4 hover:bg-gray-50 transition-colors gap-1.5"
               onClick={() => onNavigate?.(item.page)}
             >
-              <span className="text-2xl">{item.icon}</span>
+              <span className="text-gray-500">{item.icon}</span>
               <span className="text-xs text-gray-600">{item.label}</span>
             </button>
           ))}
