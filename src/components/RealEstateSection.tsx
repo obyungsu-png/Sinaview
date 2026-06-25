@@ -33,25 +33,7 @@ export function RealEstateSection({ category = '부동산', onMoreClick, userCit
     { id: 8, title: '선전 푸톈구 럭셔리 아파트', price: '18억원', type: '매매', location: '푸톈구 CBD', area: '150㎡', rooms: 4, bathrooms: 3, floor: '30/40층', image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=400&h=300&fit=crop', isHot: true, description: '최고급 주거단지, 수영장/헬스장', views: 2341, date: '2주일 전' },
   ];
 
-  // 위젯용 도시별 인기 매물 (기존 RealEstateWidget 데이터)
-  const cityData: Record<string, { hotDistricts: Array<{ id: number; title: string; price: string; area: string; location: string; isHot: boolean }> }> = {
-    '베이징': { hotDistricts: [
-      { id: 1, title: "차오양구 CBD 아파트", price: "15억원", area: "95㎡", location: "차오양구 CBD", isHot: true },
-      { id: 2, title: "하이덴구 중관촌 아파트", price: "12억원", area: "85㎡", location: "하이덴구 중관촌", isHot: true },
-      { id: 3, title: "둥청구 왕징 신축", price: "10억원", area: "78㎡", location: "차오양구 왕징", isHot: false },
-    ]},
-    '상하이': { hotDistricts: [
-      { id: 1, title: "푸동신구 루자주이 아파트", price: "18억원", area: "100㎡", location: "푸동신구 루자주이", isHot: true },
-      { id: 2, title: "징안구 난징서로 오피스텔", price: "13억원", area: "68㎡", location: "징안구 난징서로", isHot: true },
-      { id: 3, title: "쉬후이구 쉬자후이 아파트", price: "11억원", area: "80㎡", location: "쉬후이구 쉬자후이", isHot: false },
-    ]},
-    '광저우': { hotDistricts: [
-      { id: 1, title: "티엔허구 주장신청 아파트", price: "9억원", area: "88㎡", location: "티엔허구 주장신청", isHot: true },
-      { id: 2, title: "위에슈구 북경로 오피스텔", price: "7억원", area: "65㎡", location: "위에슈구 북경로", isHot: false },
-      { id: 3, title: "하이주구 주장신청 신축", price: "8.5억원", area: "92㎡", location: "하이주구", isHot: true },
-    ]},
-  };
-  const hotItems = cityData[userCity]?.hotDistricts ?? cityData['베이징'].hotDistricts;
+  // 위젯용 도시별 인기 매물은 제거됨
 
   const filteredProperties = properties.filter(p => {
     const matchCat = activeCategory === '전체' || p.type === activeCategory;
@@ -96,35 +78,6 @@ export function RealEstateSection({ category = '부동산', onMoreClick, userCit
       {/* ===== 매물 탭 ===== */}
       {activeTab === 'listings' && (
         <div>
-          {/* 인기 매물 (도시별) */}
-          <div className="bg-gray-50 p-3 rounded-lg mb-4">
-            <p className="text-xs font-semibold text-gray-500 mb-2">📍 {userCity} 인기 매물</p>
-            <div className="space-y-2">
-              {hotItems.map(item => (
-                <div
-                  key={item.id}
-                  className="hover:bg-gray-100 bg-white p-2 rounded cursor-pointer"
-                  onClick={onMoreClick}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">{item.title}</h3>
-                        {item.isHot && <span className="bg-red-100 text-red-700 px-1 py-0.5 text-xs font-bold rounded">HOT</span>}
-                      </div>
-                      <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
-                        <span>{item.area}</span>
-                        <span>•</span>
-                        <span>{item.location}</span>
-                      </div>
-                    </div>
-                    <div className="text-sm font-bold text-green-600 ml-2">{item.price}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* 전체 매물 검색/필터 */}
           <div className="mb-3">
             <div className="relative mb-2">
