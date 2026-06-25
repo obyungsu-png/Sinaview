@@ -12,7 +12,6 @@ import {
 
 interface HeaderProps {
   onCategorySelect: (category: string) => void;
-  onShoppingSelect: (category: string) => void;
   onYellowPagesSelect: (category: string) => void;
   onNavigate?: (page: string) => void;
   currentPage?: string;
@@ -23,7 +22,7 @@ interface HeaderProps {
   currentUser?: { id: string; name: string; username?: string } | null;
 }
 
-export function Header({ onCategorySelect, onShoppingSelect, onYellowPagesSelect, onNavigate, currentPage = 'main', onNStudyHubToggle, isNStudyHubOpen = false, userRegion, onLoginClick, currentUser }: HeaderProps) {
+export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, currentPage = 'main', onNStudyHubToggle, isNStudyHubOpen = false, userRegion, onLoginClick, currentUser }: HeaderProps) {
   const [searchValue, setSearchValue] = useState('');
   const [showPlaceholder, setShowPlaceholder] = useState(true);
   const [currentUserRegion, setCurrentUserRegion] = useState('');
@@ -40,11 +39,10 @@ export function Header({ onCategorySelect, onShoppingSelect, onYellowPagesSelect
     { keyword: '서류', aliases: ['서류발급', '공증', '인증', '대사관'], section: 'visa-documents', mobileSection: 'visa-documents-mobile', page: 'visadocument', icon: '📋', category: '비자/서류' },
     { keyword: '교육', aliases: ['학교', '유학', '교육정보', '입학', '국제학교', 'education'], section: 'education', mobileSection: 'education-mobile', page: 'education', icon: '🎓', category: '교육' },
     { keyword: '엘로우페이지', aliases: ['옐로우페이지', '업소록', '전화번호', '업체', 'yellow pages', '엘로우 페이지'], section: 'yellowpages', mobileSection: 'yellowpages-mobile', page: 'yellowpages', icon: '📒', category: '엘로우 페이지' },
-    { keyword: '쇼핑', aliases: ['shopping', '타오바오', '징동', '구매대행', '직구', '틈새쇼핑'], section: 'shopping', mobileSection: 'shopping-mobile', page: 'shopping', icon: '🛒', category: '틈새 쇼핑' },
     { keyword: '자동차', aliases: ['차량', '중고차', 'BYD', '전기차', '현대', '기아', '벤츠', 'auto', '차'], section: 'auto', mobileSection: 'auto-mobile', page: 'auto', icon: '🚗', category: '자동차' },
     { keyword: '운전면허', aliases: ['면허', '면허시험', '필기시험', '운전', '면허교환', 'driver license'], section: 'auto', mobileSection: 'auto-mobile', page: 'driverlicense', icon: '🪪', category: '운전면허' },
     { keyword: '뉴스', aliases: ['중국소식', '중국뉴스', '뉴스', 'news', '소식', '시사'], section: 'news', mobileSection: 'news-mobile', page: 'news', icon: '📰', category: '중국소식' },
-    { keyword: '중고시장', aliases: ['중고', '중고거래', '벼룩시장', '물건팔기', '중고물품', 'used market'], section: 'used-market', mobileSection: 'used-market-mobile', page: 'usedmarket', icon: '🏪', category: '중고시장' },
+    { keyword: '당근시장', aliases: ['중고시장', '중고', '중고거래', '벼룩시장', '물건팔기', '중고물품', 'used market', '당근'], section: 'used-market', mobileSection: 'used-market-mobile', page: 'usedmarket', icon: '🥕', category: '당근시장' },
     { keyword: '증권', aliases: ['주식', '펀드', '투자', '상하이증시', '선전증시', 'stock', '증시', '코스피'], section: 'securities', mobileSection: 'securities-mobile', page: 'securities', icon: '📈', category: '중국 증권' },
     { keyword: '부동산', aliases: ['집', '아파트', '임대', '매매', '월세', 'real estate', '렌트'], section: 'realestate-section', mobileSection: 'realestate-section', page: 'realestate', icon: '🏠', category: '부동산' },
     { keyword: 'HSK', aliases: ['중국어시험', '한어수평고시', 'hsk', '중국어능력시험', 'HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'], section: null, mobileSection: null, page: 'hsk', icon: '🇨🇳', category: '학습 센터' },
@@ -55,7 +53,7 @@ export function Header({ onCategorySelect, onShoppingSelect, onYellowPagesSelect
   ], []);
 
   // 인기 검색어
-  const trendingKeywords = ['HSK 시험', '비자 연장', '전기차', '중고시장 베이징', '운전면허 교환'];
+  const trendingKeywords = ['HSK 시험', '비자 연장', '전기차', '당근시장 베이징', '운전면허 교환'];
 
   // 검색어에 따른 필터링
   const filteredSuggestions = useMemo(() => {
@@ -367,15 +365,6 @@ export function Header({ onCategorySelect, onShoppingSelect, onYellowPagesSelect
               엘로우 페이지
             </button>
             <button 
-              onClick={() => {
-                onShoppingSelect('쇼핑');
-                scrollToSection('shopping', 'shopping-mobile');
-              }}
-              className="hover:text-green-600 whitespace-nowrap"
-            >
-              틈새 쇼핑
-            </button>
-            <button 
               onClick={() => scrollToSection('auto', 'auto-mobile')}
               className="hover:text-green-600 whitespace-nowrap"
             >
@@ -394,7 +383,7 @@ export function Header({ onCategorySelect, onShoppingSelect, onYellowPagesSelect
               onClick={() => scrollToSection('used-market', 'used-market-mobile')}
               className="hover:text-green-600 whitespace-nowrap"
             >
-              중고시장
+              당근시장
             </button>
             <button 
               onClick={() => scrollToSection('securities', 'securities-mobile')}

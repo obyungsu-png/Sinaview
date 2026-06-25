@@ -135,7 +135,7 @@ export function UsedMarketPage({ onBack }: UsedMarketPageProps) {
               <ArrowLeft className="w-4 h-4" />
               <span>메인으로</span>
             </Button>
-            <h1 className="text-2xl font-bold text-gray-900">중고시장</h1>
+            <h1 className="text-2xl font-bold text-gray-900">당근시장</h1>
             <div className="text-sm text-gray-500">
               중국 거주 한국인 물품 교환 커뮤니티
             </div>
@@ -305,7 +305,7 @@ export function UsedMarketPage({ onBack }: UsedMarketPageProps) {
       <div className="bg-white border-t mt-12">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="text-center text-sm text-gray-600">
-            <p className="mb-2 font-semibold">중고시장 이용 안내</p>
+            <p className="mb-2 font-semibold">당근시장 이용 안내</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <h4 className="font-medium mb-2">택배 배송 옵션</h4>

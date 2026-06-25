@@ -12,7 +12,6 @@ const VisaDocumentSection = lazy(() => import('./VisaDocumentSection').then(m =>
 const EducationSection = lazy(() => import('./EducationSection').then(m => ({ default: m.EducationSection })));
 const SmallAdBanner = lazy(() => import('./SmallAdBanner').then(m => ({ default: m.SmallAdBanner })));
 const YellowPagesSection = lazy(() => import('./YellowPagesSection').then(m => ({ default: m.YellowPagesSection })));
-const ShoppingSection = lazy(() => import('./ShoppingSection').then(m => ({ default: m.ShoppingSection })));
 const AutoSection = lazy(() => import('./AutoSection').then(m => ({ default: m.AutoSection })));
 const NewsSection = lazy(() => import('./NewsSection').then(m => ({ default: m.NewsSection })));
 const UsedMarketSection = lazy(() => import('./UsedMarketSection').then(m => ({ default: m.UsedMarketSection })));
@@ -30,7 +29,6 @@ const BlogSection = lazy(() => import('./BlogSection').then(m => ({ default: m.B
 
 // Lazy load page components
 const NewsPage = lazy(() => import('../pages/NewsPage').then(m => ({ default: m.NewsPage })));
-const ShoppingPage = lazy(() => import('../pages/ShoppingPage').then(m => ({ default: m.ShoppingPage })));
 const YellowPagesPage = lazy(() => import('../pages/YellowPagesPage').then(m => ({ default: m.YellowPagesPage })));
 const VisaDocumentPage = lazy(() => import('../pages/VisaDocumentPage').then(m => ({ default: m.VisaDocumentPage })));
 const EducationPage = lazy(() => import('../pages/EducationPage').then(m => ({ default: m.EducationPage })));
@@ -73,9 +71,7 @@ export function Portal() {
   const visibleSections = useDeferredSections(8);
 
   const [activeNewsCategory, setActiveNewsCategory] = useState('중국소식');
-  const [activeShoppingCategory, setActiveShoppingCategory] = useState('쇼핑');
   const [activeYellowPagesCategory, setActiveYellowPagesCategory] = useState('엘로우페이지');
-  const [selectedShoppingCategory, setSelectedShoppingCategory] = useState('전체');
   
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; username?: string; region?: string; city?: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -144,10 +140,6 @@ export function Portal() {
 
   // Navigation handlers
   const handleGoToNewsPage = () => setCurrentPage('news');
-  const handleGoToShoppingPage = (category?: string) => {
-    if (category) setSelectedShoppingCategory(category);
-    setCurrentPage('shopping');
-  };
   const handleGoToYellowPagesPage = () => setCurrentPage('yellowpages');
   const handleGoToVisaDocumentPage = () => setCurrentPage('visadocument');
   const handleGoToEducationPage = () => setCurrentPage('education');
@@ -186,7 +178,6 @@ export function Portal() {
   const pageMap: Record<string, JSX.Element> = {
     homepage: <HomePage />,
     news: <NewsPage onBack={handleBackToHome} />,
-    shopping: <ShoppingPage onBack={handleBackToHome} initialCategory={selectedShoppingCategory} />,
     yellowpages: <YellowPagesPage onBack={handleBackToHome} />,
     visadocument: <VisaDocumentPage onBack={handleBackToHome} selectedArticle={selectedArticle} currentUser={currentUser} isAdmin={isAdmin} />,
     education: <EducationPage onBack={handleBackToHome} selectedArticle={selectedArticle} currentUser={currentUser} isAdmin={isAdmin} />,
@@ -217,7 +208,6 @@ export function Portal() {
       <Header 
         key={currentUser?.region || 'no-user'}
         onCategorySelect={setActiveNewsCategory} 
-        onShoppingSelect={setActiveShoppingCategory}
         onYellowPagesSelect={setActiveYellowPagesCategory}
         onNavigate={handleNavigate}
         currentPage={currentPage}
@@ -273,17 +263,6 @@ export function Portal() {
                 </>
               )}
               
-              {visibleSections >= 3 && (
-                <Suspense fallback={<LoadingSpinner />}>
-                  <div id="shopping">
-                    <ShoppingSection 
-                      category={activeShoppingCategory} 
-                      onMoreClick={handleGoToShoppingPage}
-                    />
-                  </div>
-                </Suspense>
-              )}
-              
               {visibleSections >= 4 && (
                 <Suspense fallback={<LoadingSpinner />}>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -309,7 +288,7 @@ export function Portal() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div id="used-market">
                       <UsedMarketSection 
-                        category="중고시장" 
+                        category="당근시장" 
                         onMoreClick={handleGoToUsedMarketPage} 
                         userRegion={currentUser?.region}
                         currentUser={currentUser}
@@ -439,9 +418,6 @@ export function Portal() {
               <Suspense fallback={<LoadingSpinner />}>
                 <YellowPagesSection category={activeYellowPagesCategory} />
               </Suspense>
-              <Suspense fallback={<LoadingSpinner />}>
-                <ShoppingSection category={activeShoppingCategory} />
-              </Suspense>
             </>
           )}
           
@@ -463,7 +439,7 @@ export function Portal() {
           {visibleSections >= 6 && (
             <>
               <Suspense fallback={<LoadingSpinner />}>
-                <UsedMarketSection category="중고시장" onMoreClick={handleGoToUsedMarketPage} userRegion={currentUser?.region} />
+                <UsedMarketSection category="당근시장" onMoreClick={handleGoToUsedMarketPage} userRegion={currentUser?.region} />
               </Suspense>
               <Suspense fallback={<LoadingSpinner />}>
                 <RealEstateSection
