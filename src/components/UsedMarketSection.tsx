@@ -38,6 +38,12 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
   const [activeMainTab, setActiveMainTab] = useState<'used' | 'handmade'>('handmade');
   const [activeSubcategory, setActiveSubcategory] = useState('전체');
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // 메인 탭/지역/카테고리 변경 시 펼침 상태 초기화
+  useEffect(() => {
+    setIsExpanded(false);
+  }, [activeMainTab, activeRegion, activeSubcategory]);
 
   // 메인 탭 변경 시 서브카테고리 초기화
   useEffect(() => {
@@ -933,7 +939,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
             </span>
           </div>
 
-          {/* 메인 탭 토글 (우리장터 / 중고거래) */}
+          {/* 메인 탭 토글 (우리장터 / 중고장터) */}
           <div className="flex border-b border-gray-200 mb-3">
             <button
               onClick={() => setActiveMainTab('handmade')}
@@ -953,7 +959,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              🛍️ 중고거래
+              🛍️ 중고장터
             </button>
           </div>
 
@@ -999,7 +1005,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
         </div>
 
         <div className="space-y-3">
-          {filteredItems.slice(0, 6).map((item) => (
+          {filteredItems.slice(0, isExpanded ? filteredItems.length : 4).map((item) => (
             <div 
               key={item.id} 
               className="flex items-start space-x-3 p-2 rounded cursor-pointer transition-colors hover:bg-gray-50"
@@ -1045,14 +1051,34 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
           ))}
         </div>
 
-        <div className="mt-4 text-center">
-          <button 
-            onClick={onMoreClick}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            더보기 ({filteredItems.length}개) &gt;
-          </button>
-        </div>
+        {filteredItems.length > 4 && (
+          <div className="mt-4 text-center">
+            {!isExpanded ? (
+              <button
+                onClick={() => setIsExpanded(true)}
+                className="text-sm text-gray-500 hover:text-orange-600 transition-colors"
+              >
+                더보기 ({filteredItems.length - 4}개 더 보기) &gt;
+              </button>
+            ) : (
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setIsExpanded(false)}
+                  className="text-sm text-gray-500 hover:text-orange-600 transition-colors"
+                >
+                  접기 ↑
+                </button>
+                <span className="text-gray-200">|</span>
+                <button
+                  onClick={onMoreClick}
+                  className="text-sm text-gray-500 hover:text-orange-600 transition-colors"
+                >
+                  전체보기 →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
     </div>
   );

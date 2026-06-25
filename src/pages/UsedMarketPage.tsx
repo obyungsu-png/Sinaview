@@ -315,7 +315,7 @@ export function UsedMarketPage({ onBack }: UsedMarketPageProps) {
                 <p>한인이 직접 만든 김치·반찬·베이커리·수공예품·재능 서비스</p>
               </div>
               <div>
-                <h4 className="font-medium mb-2">🛍️ 중고거래</h4>
+                <h4 className="font-medium mb-2">🛍️ 중고장터</h4>
                 <p>이사·귀국 정리, 사용감 적은 물품. 직거래 또는 택배 가능</p>
               </div>
               <div>
