@@ -307,16 +307,16 @@ export function UsedMarketPage({ onBack }: UsedMarketPageProps) {
           <div className="text-center text-sm text-gray-600">
             <p className="mb-2 font-semibold">화개장터 이용 안내</p>
             <p className="text-xs text-gray-400 mb-4">
-              중국 거주 한인들의 직거래 + 한국인이 직접 만든 수제·핸드메이드 제품을 함께 만나는 공간입니다
+              한인이 직접 만든 제품과 중국 거주 한인들의 직거래를 함께 만나는 공간입니다
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <h4 className="font-medium mb-2">🛍️ 중고거래</h4>
-                <p>이사·귀국 정리, 사용감 적은 물품. 직거래 또는 택배 가능</p>
+                <h4 className="font-medium mb-2">🌾 우리장터</h4>
+                <p>한인이 직접 만든 김치·반찬·베이커리·수공예품·재능 서비스</p>
               </div>
               <div>
-                <h4 className="font-medium mb-2">🌾 수제·핸드메이드</h4>
-                <p>김치·반찬·베이커리·수공예품·재능 서비스까지 한국인이 직접 만든 것들</p>
+                <h4 className="font-medium mb-2">🛍️ 중고거래</h4>
+                <p>이사·귀국 정리, 사용감 적은 물품. 직거래 또는 택배 가능</p>
               </div>
               <div>
                 <h4 className="font-medium mb-2">⚠️ 안전 거래</h4>

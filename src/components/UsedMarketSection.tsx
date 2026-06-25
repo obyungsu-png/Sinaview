@@ -35,7 +35,7 @@ interface MarketItem {
 
 export function UsedMarketSection({ category, onMoreClick, userRegion, currentUser, isAdmin }: UsedMarketSectionProps) {
   const [activeRegion, setActiveRegion] = useState('전체');
-  const [activeMainTab, setActiveMainTab] = useState<'used' | 'handmade'>('used');
+  const [activeMainTab, setActiveMainTab] = useState<'used' | 'handmade'>('handmade');
   const [activeSubcategory, setActiveSubcategory] = useState('전체');
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
 
@@ -375,7 +375,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
     }
   ];
 
-  // 수제품·핸드메이드 아이템
+  // 우리장터 아이템 (한인이 직접 만든 제품)
   const handmadeItems: MarketItem[] = [
     {
       id: 101,
@@ -929,12 +929,22 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">{category}</h2>
             <span className="text-xs text-gray-400">
-              {activeMainTab === 'used' ? '중국 거주 한인 직거래' : '한국인이 만든 수제품'}
+              {activeMainTab === 'used' ? '중국 거주 한인 직거래' : '한인이 직접 만든 제품'}
             </span>
           </div>
 
-          {/* 메인 탭 토글 (중고거래 / 수제품) */}
+          {/* 메인 탭 토글 (우리장터 / 중고거래) */}
           <div className="flex border-b border-gray-200 mb-3">
+            <button
+              onClick={() => setActiveMainTab('handmade')}
+              className={`flex-1 pb-2 text-sm transition-colors ${
+                activeMainTab === 'handmade'
+                  ? 'border-b-2 border-orange-500 text-orange-600 font-semibold'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              🌾 우리장터
+            </button>
             <button
               onClick={() => setActiveMainTab('used')}
               className={`flex-1 pb-2 text-sm transition-colors ${
@@ -944,16 +954,6 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
               }`}
             >
               🛍️ 중고거래
-            </button>
-            <button
-              onClick={() => setActiveMainTab('handmade')}
-              className={`flex-1 pb-2 text-sm transition-colors ${
-                activeMainTab === 'handmade'
-                  ? 'border-b-2 border-orange-500 text-orange-600 font-semibold'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              🌾 수제·핸드메이드
             </button>
           </div>
 
