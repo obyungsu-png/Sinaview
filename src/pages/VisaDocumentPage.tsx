@@ -52,6 +52,77 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
 
   const categories = ['전체', '학생비자', '취업비자', '거류증', '공증서류', '회사설립', '혼인신고', '기타'];
 
+  // 카테고리별 빠른 서비스
+  const quickServicesByCategory: Record<string, { icon: React.ReactNode; label: string; service: string }[]> = {
+    '전체': [
+      { icon: <Briefcase className="w-5 h-5" />, label: '직업정보', service: '직업정보' },
+      { icon: <Building className="w-5 h-5" />, label: '대학정보', service: '대학정보' },
+      { icon: <BookOpen className="w-5 h-5" />, label: '학과정보', service: '학과정보' },
+      { icon: <FileText className="w-5 h-5" />, label: '전형정보', service: '전형정보' },
+      { icon: <PieChart className="w-5 h-5" />, label: '성적분석', service: '성적분석' },
+      { icon: <LayoutList className="w-5 h-5" />, label: '학생부입력', service: '학생부입력' },
+      { icon: <Database className="w-5 h-5" />, label: '대입자료', service: '대입자료' },
+      { icon: <MessageCircle className="w-5 h-5" />, label: '종합상담', service: '종합상담' },
+      { icon: <ClipboardList className="w-5 h-5" />, label: '대입상담', service: '대입상담' },
+      { icon: <CalendarDays className="w-5 h-5" />, label: '전형일정', service: '전형일정' },
+      { icon: <Settings2 className="w-5 h-5" />, label: '메뉴편집', service: '메뉴편집' },
+    ],
+    '학생비자': [
+      { icon: <FileText className="w-5 h-5" />, label: 'X1비자 신청', service: 'X1비자신청' },
+      { icon: <FileText className="w-5 h-5" />, label: 'X2비자 신청', service: 'X2비자신청' },
+      { icon: <Download className="w-5 h-5" />, label: '서류 다운로드', service: '서류다운로드' },
+      { icon: <Calendar className="w-5 h-5" />, label: '예약 서비스', service: '예약서비스' },
+      { icon: <ExternalLink className="w-5 h-5" />, label: '진행 상황', service: '진행상황' },
+      { icon: <MessageCircle className="w-5 h-5" />, label: '유학 상담', service: '유학상담' },
+    ],
+    '취업비자': [
+      { icon: <FileText className="w-5 h-5" />, label: 'Z비자 신청', service: 'Z비자신청' },
+      { icon: <Briefcase className="w-5 h-5" />, label: '취업 허가', service: '취업허가' },
+      { icon: <Download className="w-5 h-5" />, label: '서류 다운로드', service: '서류다운로드' },
+      { icon: <Calendar className="w-5 h-5" />, label: '영사관 예약', service: '영사관예약' },
+      { icon: <ExternalLink className="w-5 h-5" />, label: '진행 상황', service: '진행상황' },
+      { icon: <MessageCircle className="w-5 h-5" />, label: '취업 상담', service: '취업상담' },
+    ],
+    '거류증': [
+      { icon: <FileText className="w-5 h-5" />, label: '거류증 신청', service: '거류증신청' },
+      { icon: <FileText className="w-5 h-5" />, label: '거류증 갱신', service: '거류증갱신' },
+      { icon: <Download className="w-5 h-5" />, label: '양식 다운로드', service: '양식다운로드' },
+      { icon: <Calendar className="w-5 h-5" />, label: '출입국 예약', service: '출입국예약' },
+      { icon: <ExternalLink className="w-5 h-5" />, label: '진행 상황', service: '진행상황' },
+      { icon: <MessageCircle className="w-5 h-5" />, label: '거류 상담', service: '거류상담' },
+    ],
+    '공증서류': [
+      { icon: <FileText className="w-5 h-5" />, label: '공증 신청', service: '공증신청' },
+      { icon: <Download className="w-5 h-5" />, label: '서류 목록', service: '서류목록' },
+      { icon: <Calendar className="w-5 h-5" />, label: '공증 예약', service: '공증예약' },
+      { icon: <ExternalLink className="w-5 h-5" />, label: '진행 확인', service: '진행확인' },
+      { icon: <MessageCircle className="w-5 h-5" />, label: '공증 상담', service: '공증상담' },
+    ],
+    '회사설립': [
+      { icon: <Building className="w-5 h-5" />, label: '법인 설립', service: '법인설립' },
+      { icon: <FileText className="w-5 h-5" />, label: '사업자 등록', service: '사업자등록' },
+      { icon: <Download className="w-5 h-5" />, label: '서류 다운로드', service: '서류다운로드' },
+      { icon: <Database className="w-5 h-5" />, label: '세무 서비스', service: '세무서비스' },
+      { icon: <MessageCircle className="w-5 h-5" />, label: '창업 상담', service: '창업상담' },
+    ],
+    '혼인신고': [
+      { icon: <FileText className="w-5 h-5" />, label: '혼인신고 안내', service: '혼인신고' },
+      { icon: <Download className="w-5 h-5" />, label: '서류 다운로드', service: '서류다운로드' },
+      { icon: <Calendar className="w-5 h-5" />, label: '영사관 예약', service: '영사관예약' },
+      { icon: <ExternalLink className="w-5 h-5" />, label: '진행 상황', service: '진행상황' },
+      { icon: <MessageCircle className="w-5 h-5" />, label: '혼인 상담', service: '혼인상담' },
+    ],
+    '기타': [
+      { icon: <FileText className="w-5 h-5" />, label: '서류 신청', service: '서류신청' },
+      { icon: <Download className="w-5 h-5" />, label: '서류 다운로드', service: '서류다운로드' },
+      { icon: <Calendar className="w-5 h-5" />, label: '예약 서비스', service: '예약서비스' },
+      { icon: <ExternalLink className="w-5 h-5" />, label: '진행 상황', service: '진행상황' },
+      { icon: <MessageCircle className="w-5 h-5" />, label: '기타 상담', service: '기타상담' },
+    ],
+  };
+
+  const currentQuickServices = quickServicesByCategory[selectedCategory] || quickServicesByCategory['전체'];
+
   const documents = [
     {
       id: 1,
@@ -404,23 +475,11 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Quick Services — 한 줄 가로 스크롤 */}
+        {/* Quick Services — 카테고리 연동 */}
         <div className="mb-6">
           <h2 className="text-base font-semibold mb-4">빠른 서비스</h2>
           <div className="flex gap-4 overflow-x-auto pb-2" style={{scrollbarWidth:'none'}}>
-            {[
-              { icon: <Briefcase className="w-5 h-5" />, label: '직업정보', service: '직업정보' },
-              { icon: <Building className="w-5 h-5" />, label: '대학정보', service: '대학정보' },
-              { icon: <BookOpen className="w-5 h-5" />, label: '학과정보', service: '학과정보' },
-              { icon: <FileText className="w-5 h-5" />, label: '전형정보', service: '전형정보' },
-              { icon: <PieChart className="w-5 h-5" />, label: '성적분석', service: '성적분석' },
-              { icon: <LayoutList className="w-5 h-5" />, label: '학생부입력', service: '학생부입력' },
-              { icon: <Database className="w-5 h-5" />, label: '대입자료', service: '대입자료' },
-              { icon: <MessageCircle className="w-5 h-5" />, label: '종합상담', service: '종합상담' },
-              { icon: <ClipboardList className="w-5 h-5" />, label: '대입상담', service: '대입상담' },
-              { icon: <CalendarDays className="w-5 h-5" />, label: '전형일정', service: '전형일정' },
-              { icon: <Settings2 className="w-5 h-5" />, label: '메뉴편집', service: '메뉴편집' },
-            ].map(item => (
+            {currentQuickServices.map(item => (
               <button
                 key={item.service}
                 onClick={() => handleQuickService(item.service)}
@@ -429,7 +488,7 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
                 <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 bg-white group-hover:border-teal-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-all">
                   {item.icon}
                 </div>
-                <p className="text-xs text-gray-700">{item.label}</p>
+                <p className="text-xs text-gray-700 whitespace-nowrap">{item.label}</p>
               </button>
             ))}
           </div>
