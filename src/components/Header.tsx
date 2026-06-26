@@ -311,7 +311,6 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                 <span className="text-sm font-semibold text-orange-700">{currentUser.region}</span>
               </div>
             )}
-            <UserProfileDropdown currentUser={currentUser} onLoginClick={onLoginClick} />
           </div>
 
           {/* Mobile Menu */}
@@ -330,7 +329,6 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                 <span className="text-xs font-semibold text-orange-700">{currentUser.region}</span>
               </div>
             )}
-            <UserProfileDropdown currentUser={currentUser} onLoginClick={onLoginClick} />
           </div>
         </div>
 
