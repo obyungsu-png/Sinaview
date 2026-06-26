@@ -303,7 +303,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                   : 'text-gray-600 hover:text-transparent hover:bg-blue-50 hover:shadow-sm'
               }`}
             >
-              N study Hub {isNStudyHubOpen ? '▼' : '▶'}
+              CSM {isNStudyHubOpen ? '▼' : '▶'}
             </button>
             {currentUser?.region && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-200">
@@ -322,7 +322,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                 isNStudyHubOpen ? 'text-transparent' : 'text-transparent'
               }`}
             >
-              N study Hub {isNStudyHubOpen ? '▼' : '▶'}
+              CSM {isNStudyHubOpen ? '▼' : '▶'}
             </button>
             {currentUser?.region && (
               <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-orange-50 to-red-50 rounded-md border border-orange-200">

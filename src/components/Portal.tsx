@@ -153,7 +153,17 @@ export function Portal() {
   const handleGoToRealEstatePage = () => setCurrentPage('realestate');
   const handleBackToHome = () => setCurrentPage('main');
   const handleNavigate = (page: string) => setCurrentPage(page);
-  const handleNStudyHubToggle = () => setIsNStudyHubOpen(prev => !prev);
+  const handleNStudyHubToggle = () => {
+    if (!isNStudyHubOpen) {
+      const pw = window.prompt('비밀번호를 입력하세요');
+      if (pw === null) return; // 취소
+      if (pw !== 'sw21qa00') {
+        alert('비밀번호가 올바르지 않습니다.');
+        return;
+      }
+    }
+    setIsNStudyHubOpen(prev => !prev);
+  };
   
   const handleVisaArticleClick = (article: any) => {
     setSelectedArticle(article);
@@ -169,7 +179,7 @@ export function Portal() {
     return (
       <div className="h-screen flex flex-col">
         <Suspense fallback={<LoadingSpinner />}>
-          <LSMPage onBack={() => setIsNStudyHubOpen(false)} />
+          <CSMPage onBack={() => setIsNStudyHubOpen(false)} />
         </Suspense>
       </div>
     );
