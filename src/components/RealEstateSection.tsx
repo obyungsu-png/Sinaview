@@ -15,7 +15,13 @@ interface RealEstateSectionProps {
 export function RealEstateSection({ category = '부동산', onMoreClick, userCity = '베이징' }: RealEstateSectionProps) {
   const [activeTab, setActiveTab] = useState<'listings' | 'apps'>('listings');
   const [activeCategory, setActiveCategory] = useState('전체');
+  const [activeRegion, setActiveRegion] = useState('전체');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const regions = [
+    '전체', '대련', '북경', '상해', '소주', '무석', '난징', '항저우',
+    '천진', '심천', '심양', '연길', '시안', '우한', '청두', '광저우', '연태', '위해', '청도'
+  ];
   const [showContactModal, setShowContactModal] = useState(false);
   const [beikeSubTab, setBeikeSubTab] = useState<'info' | 'guide'>('info');
   const [anjukeSubTab, setAnjukeSubTab] = useState<'info' | 'guide'>('info');
@@ -23,23 +29,24 @@ export function RealEstateSection({ category = '부동산', onMoreClick, userCit
   const categories = ['전체', '매매', '전세', '월세', '상가', '오피스텔'];
 
   const properties = [
-    { id: 1, title: '베이징 차오양구 고급 아파트', price: '12억원', type: '매매', location: '차오양구 CBD', area: '85㎡', rooms: 3, bathrooms: 2, floor: '15/25층', image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=300&fit=crop', isHot: true, description: '지하철역 도보 5분, 명문학군, 풀옵션', views: 1234, date: '1일 전' },
-    { id: 2, title: '상하이 황푸구 신축 오피스텔', price: '8.5억원', type: '매매', location: '황푸구 인민광장', area: '45㎡', rooms: 1, bathrooms: 1, floor: '20/30층', image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&h=300&fit=crop', isHot: true, description: '신축 건물, 한국인 밀집지역', views: 892, date: '2일 전' },
-    { id: 3, title: '선전 난산구 아파트', price: '6.2억원', type: '매매', location: '난산구 과학기술단지', area: '78㎡', rooms: 2, bathrooms: 2, floor: '10/18층', image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop', isHot: false, description: 'IT 기업 밀집지역, 교통 편리', views: 567, date: '3일 전' },
-    { id: 4, title: '베이징 하이뎬구 학군 아파트', price: '300만원/월', type: '월세', location: '하이뎬구 중관촌', area: '92㎡', rooms: 3, bathrooms: 2, floor: '8/15층', image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&h=300&fit=crop', isHot: false, description: '명문대 인근, 한국 마트 도보 거리', views: 423, date: '4일 전' },
-    { id: 5, title: '상하이 푸동 신구 오피스', price: '15억원', type: '매매', location: '푸동신구 루자쭈이', area: '120㎡', rooms: 4, bathrooms: 3, floor: '25/35층', image: 'https://images.unsplash.com/photo-1600607687644-c7171b42498f?w=400&h=300&fit=crop', isHot: true, description: '금융중심지, 강변뷰', views: 1567, date: '5일 전' },
-    { id: 6, title: '광저우 톈허구 상가', price: '9억원', type: '상가', location: '톈허구 상권', area: '65㎡', rooms: 0, bathrooms: 1, floor: '1층', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop', isHot: false, description: '한국인 상권, 높은 유동인구', views: 789, date: '1주일 전' },
-    { id: 7, title: '베이징 순이구 전세 아파트', price: '2억원 (2년)', type: '전세', location: '순이구 국제공항 인근', area: '75㎡', rooms: 2, bathrooms: 1, floor: '12/20층', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&h=300&fit=crop', isHot: false, description: '공항 접근성 우수, 조용한 주거지', views: 345, date: '1주일 전' },
-    { id: 8, title: '선전 푸톈구 럭셔리 아파트', price: '18억원', type: '매매', location: '푸톈구 CBD', area: '150㎡', rooms: 4, bathrooms: 3, floor: '30/40층', image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=400&h=300&fit=crop', isHot: true, description: '최고급 주거단지, 수영장/헬스장', views: 2341, date: '2주일 전' },
+    { id: 1, title: '북경 차오양구 고급 아파트', price: '12억원', type: '매매', region: '북경', location: '차오양구 CBD', area: '85㎡', rooms: 3, bathrooms: 2, floor: '15/25층', image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=300&fit=crop', isHot: true, description: '지하철역 도보 5분', views: 1234, date: '1일 전' },
+    { id: 2, title: '상해 황푸구 신축 오피스텔', price: '8.5억원', type: '매매', region: '상해', location: '황푸구 인민광장', area: '45㎡', rooms: 1, bathrooms: 1, floor: '20/30층', image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&h=300&fit=crop', isHot: true, description: '신축 건물', views: 892, date: '2일 전' },
+    { id: 3, title: '심천 난산구 아파트', price: '6.2억원', type: '매매', region: '심천', location: '난산구 과학기술단지', area: '78㎡', rooms: 2, bathrooms: 2, floor: '10/18층', image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop', isHot: false, description: 'IT 기업 밀집', views: 567, date: '3일 전' },
+    { id: 4, title: '북경 하이뎬구 학군 아파트', price: '300만원/월', type: '월세', region: '북경', location: '하이뎬구 중관촌', area: '92㎡', rooms: 3, bathrooms: 2, floor: '8/15층', image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&h=300&fit=crop', isHot: false, description: '명문대 인근', views: 423, date: '4일 전' },
+    { id: 5, title: '상해 푸동 신구 오피스', price: '15억원', type: '매매', region: '상해', location: '푸동신구 루자쭈이', area: '120㎡', rooms: 4, bathrooms: 3, floor: '25/35층', image: 'https://images.unsplash.com/photo-1600607687644-c7171b42498f?w=400&h=300&fit=crop', isHot: true, description: '금융중심지', views: 1567, date: '5일 전' },
+    { id: 6, title: '광저우 톈허구 상가', price: '9억원', type: '상가', region: '광저우', location: '톈허구 상권', area: '65㎡', rooms: 0, bathrooms: 1, floor: '1층', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop', isHot: false, description: '한국인 상권', views: 789, date: '1주일 전' },
+    { id: 7, title: '북경 순이구 전세 아파트', price: '2억원 (2년)', type: '전세', region: '북경', location: '순이구 국제공항 인근', area: '75㎡', rooms: 2, bathrooms: 1, floor: '12/20층', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&h=300&fit=crop', isHot: false, description: '공항 접근성 우수', views: 345, date: '1주일 전' },
+    { id: 8, title: '심천 푸톈구 럭셔리 아파트', price: '18억원', type: '매매', region: '심천', location: '푸톈구 CBD', area: '150㎡', rooms: 4, bathrooms: 3, floor: '30/40층', image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=400&h=300&fit=crop', isHot: true, description: '최고급 주거단지', views: 2341, date: '2주일 전' },
   ];
 
   // 위젯용 도시별 인기 매물은 제거됨
 
   const filteredProperties = properties.filter(p => {
     const matchCat = activeCategory === '전체' || p.type === activeCategory;
+    const matchRegion = activeRegion === '전체' || p.region === activeRegion;
     const matchSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         p.location.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCat && matchSearch;
+    return matchCat && matchRegion && matchSearch;
   });
 
   const WechatIcon = () => (
@@ -88,6 +95,21 @@ export function RealEstateSection({ category = '부동산', onMoreClick, userCit
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors"
             />
+          </div>
+
+          {/* 지역 선택 */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 flex-wrap" style={{scrollbarWidth:'none'}}>
+            {regions.map(r => (
+              <button
+                key={r}
+                onClick={() => setActiveRegion(r)}
+                className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors ${
+                  activeRegion === r ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {r}
+              </button>
+            ))}
           </div>
 
           {/* 카테고리 필터 */}

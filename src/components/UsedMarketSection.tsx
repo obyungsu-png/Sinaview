@@ -58,22 +58,25 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
   }, [userRegion]);
 
   const regions = [
-    { id: 'all',       name: '전체',   emoji: '🇨🇳' },
-    { id: 'beijing',   name: '베이징', emoji: '🏛️' },
-    { id: 'shanghai',  name: '상하이', emoji: '🌆' },
-    { id: 'guangzhou', name: '광저우', emoji: '🌸' },
-    { id: 'shenzhen',  name: '심천',   emoji: '🏙️' },
-    { id: 'dalian',    name: '대련',   emoji: '🌊' },
-    { id: 'tianjin',   name: '톈진',   emoji: '🏗️' },
-    { id: 'chengdu',   name: '청두',   emoji: '🐼' },
-    { id: 'wuhan',     name: '우한',   emoji: '🌉' },
-    { id: 'qingdao',   name: '칭다오', emoji: '🍺' },
-    { id: 'shenyang',  name: '선양',   emoji: '❄️' },
-    { id: 'suzhou',    name: '쑤저우', emoji: '🏯' },
-    { id: 'hangzhou',  name: '항저우', emoji: '🍵' },
-    { id: 'xian',      name: '시안',   emoji: '🗿' },
-    { id: 'chongqing', name: '충칭',   emoji: '🌶️' },
-    { id: 'other',     name: '기타',   emoji: '📍' },
+    { id: 'all',       name: '전체' },
+    { id: 'dalian',    name: '대련' },
+    { id: 'beijing',   name: '북경' },
+    { id: 'shanghai',  name: '상해' },
+    { id: 'suzhou',    name: '소주' },
+    { id: 'wuxi',      name: '무석' },
+    { id: 'nanjing',   name: '난징' },
+    { id: 'hangzhou',  name: '항저우' },
+    { id: 'tianjin',   name: '천진' },
+    { id: 'shenzhen',  name: '심천' },
+    { id: 'shenyang',  name: '심양' },
+    { id: 'yanji',     name: '연길' },
+    { id: 'xian',      name: '시안' },
+    { id: 'wuhan',     name: '우한' },
+    { id: 'chengdu',   name: '청두' },
+    { id: 'guangzhou', name: '광저우' },
+    { id: 'yantai',    name: '연태' },
+    { id: 'weihai',    name: '위해' },
+    { id: 'qingdao',   name: '청도' },
   ];
 
   // 사용자 지역을 맨 앞으로 정렬 (전체 제외)
@@ -114,8 +117,8 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
       id: 1,
       title: "아이폰 13 Pro 256GB 깨끗한 상태 판매",
       price: "4,500위안",
-      location: "베이징 조양구",
-      region: "베이징",
+      location: "북경 조양구",
+      region: "북경",
       seller: "김서울",
       sellerPhone: "+86-138-1234-5678",
       time: "30분 전",
@@ -153,8 +156,8 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
       id: 2,
       title: "한국 김치냉장고 디오스 120L (거의 새것)",
       price: "2,800위안",
-      location: "상하이 푸동신구",
-      region: "상하이",
+      location: "상해 푸동신구",
+      region: "상해",
       seller: "박중국",
       sellerPhone: "+86-139-2345-6789",
       time: "1시간 전",
@@ -220,7 +223,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
       id: 4,
       title: "한국 라면 50개 + 김치 2kg 세트",
       price: "350위안",
-      location: "선전 난산구",
+      location: "심천 난산구",
       region: "심천",
       seller: "최한국",
       sellerPhone: "+86-136-4567-8901",
@@ -256,8 +259,8 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
       id: 5,
       title: "삼성 갤럭시 S23 Ultra 512GB",
       price: "5,200위안",
-      location: "상하이 징안구",
-      region: "상하이",
+      location: "상해 징안구",
+      region: "상해",
       seller: "한국인",
       sellerPhone: "+86-138-5678-9012",
       time: "4시간 전",
@@ -326,8 +329,8 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
       id: 7,
       title: "한국 고추장, 된장, 간장 세트",
       price: "180위안",
-      location: "베이징 하이디안구",
-      region: "베이징",
+      location: "북경 하이디안구",
+      region: "북경",
       seller: "김맛있어",
       sellerPhone: "+86-137-7890-1234",
       time: "6시간 전",
@@ -394,8 +397,8 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
       id: 101,
       title: "직접 담근 배추김치 (1kg)",
       price: "60위안",
-      location: "베이징 왕징",
-      region: "베이징",
+      location: "북경 왕징",
+      region: "북경",
       seller: "왕징댁",
       sellerPhone: "+86-138-2200-3344",
       time: "1시간 전",
@@ -413,8 +416,8 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
       id: 102,
       title: "한국 반찬 8가지 정기배달 (주1회)",
       price: "주 150위안",
-      location: "베이징 왕징",
-      region: "베이징",
+      location: "북경 왕징",
+      region: "북경",
       seller: "반찬가게사모님",
       sellerPhone: "+86-139-5577-8899",
       time: "3시간 전",
@@ -432,8 +435,8 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
       id: 103,
       title: "수제 소금빵 / 통밀 식빵 주문 받습니다",
       price: "20위안~",
-      location: "상하이 푸동",
-      region: "상하이",
+      location: "상해 푸동",
+      region: "상해",
       seller: "푸동빵집",
       sellerPhone: "+86-137-3344-5566",
       time: "5시간 전",
@@ -489,8 +492,8 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
       id: 106,
       title: "한국어 과외 / 한중 통역 출장",
       price: "100위안/시간",
-      location: "베이징 전지역",
-      region: "베이징",
+      location: "북경 전지역",
+      region: "북경",
       seller: "베이징선생님",
       sellerPhone: "+86-138-7788-9900",
       time: "3일 전",
@@ -952,7 +955,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
               onClick={() => setActiveMainTab('handmade')}
               className={`flex-1 pb-2 text-sm transition-colors ${
                 activeMainTab === 'handmade'
-                  ? 'border-b-2 border-orange-500 text-orange-600 font-semibold'
+                  ? 'border-b-2 border-gray-800 text-gray-900 font-semibold'
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
@@ -962,7 +965,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
               onClick={() => setActiveMainTab('used')}
               className={`flex-1 pb-2 text-sm transition-colors ${
                 activeMainTab === 'used'
-                  ? 'border-b-2 border-orange-500 text-orange-600 font-semibold'
+                  ? 'border-b-2 border-gray-800 text-gray-900 font-semibold'
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
@@ -970,24 +973,23 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
             </button>
           </div>
 
-          {/* 지역 선택 — 가로 스크롤 pill 탭 */}
+          {/* 지역 선택 */}
           <div className="mb-3 -mx-1">
             <div
-              className="flex gap-1.5 overflow-x-auto pb-1 px-1"
+              className="flex gap-1.5 overflow-x-auto pb-1 px-1 flex-wrap"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {sortedRegions.map((region) => (
                 <button
                   key={region.id}
                   onClick={() => setActiveRegion(region.name)}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all shrink-0 ${
+                  className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors ${
                     activeRegion === region.name
-                      ? 'bg-orange-500 text-white font-semibold shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-orange-600'
+                      ? 'bg-gray-800 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  <span>{region.emoji}</span>
-                  <span>{region.name}</span>
+                  {region.name}
                 </button>
               ))}
             </div>
@@ -1001,7 +1003,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
                 onClick={() => setActiveSubcategory(subcat.name)}
                 className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
                   activeSubcategory === subcat.name
-                    ? 'bg-orange-500 text-white font-medium'
+                    ? 'bg-gray-800 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
