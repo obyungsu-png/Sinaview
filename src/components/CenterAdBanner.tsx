@@ -56,7 +56,6 @@ export function CenterAdBanner() {
   const currentAd = ads[currentAdIndex];
 
   return (
-    <>
     <div className="bg-white py-4">
       <div className="max-w-6xl mx-auto px-4">
         <div
@@ -104,8 +103,7 @@ export function CenterAdBanner() {
           </div>
         </div>
       </div>
+      {selectedAd && <AdModal ad={selectedAd} onClose={() => setSelectedAd(null)} />}
     </div>
-    {selectedAd && <AdModal ad={selectedAd} onClose={() => setSelectedAd(null)} />}
-    </>
   );
 }
