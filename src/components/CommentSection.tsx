@@ -663,7 +663,15 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
                           {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                         </div>
                         <div className={`chat-bubble ${msg.role === 'user' ? 'user' : 'ai'}`}>
-                          {cleanContent}
+                          {msg.role === 'assistant'
+                            ? cleanContent.split('\n').map((line, i) => (
+                                <span key={i}>
+                                  {line}
+                                  {i < cleanContent.split('\n').length - 1 && <br />}
+                                </span>
+                              ))
+                            : cleanContent
+                          }
                         </div>
                       </div>
                     );
