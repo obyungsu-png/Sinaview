@@ -78,94 +78,56 @@ export function RealEstateSection({ category = '부동산', onMoreClick, userCit
       {/* ===== 매물 탭 ===== */}
       {activeTab === 'listings' && (
         <div>
-          {/* 전체 매물 검색/필터 */}
-          <div className="mb-3">
-            <div className="relative mb-2">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="지역, 단지명으로 검색"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-green-500"
-              />
-            </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors ${activeCategory === cat ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+          {/* 검색 */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="지역, 단지명으로 검색"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400 transition-colors"
+            />
           </div>
 
-          {/* 통계 */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="bg-green-50 rounded-lg p-2 text-center">
-              <div className="text-lg font-bold text-green-600">{filteredProperties.length}</div>
-              <div className="text-xs text-gray-500">매물 수</div>
-            </div>
-            <div className="bg-blue-50 rounded-lg p-2 text-center">
-              <div className="text-lg font-bold text-blue-600">12.5억</div>
-              <div className="text-xs text-gray-500">평균 가격</div>
-            </div>
-            <div className="bg-red-50 rounded-lg p-2 text-center">
-              <div className="text-lg font-bold text-red-600">+5.2%</div>
-              <div className="text-xs text-gray-500">전월 대비</div>
-            </div>
+          {/* 카테고리 필터 */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3" style={{scrollbarWidth:'none'}}>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors shrink-0 ${activeCategory === cat ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
 
           {/* 매물 목록 */}
-          <div className="space-y-3">
+          <div className="divide-y divide-gray-100">
             {filteredProperties.slice(0, 4).map(p => (
-              <div key={p.id} className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex" onClick={onMoreClick}>
-                <img src={p.image} alt={p.title} className="w-20 h-20 object-cover flex-shrink-0" />
-                <div className="p-3 flex-1 min-w-0">
-                  <div className="flex items-start justify-between">
-                    <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 flex-1">{p.title}</h3>
-                    {p.isHot && <span className="ml-1 bg-red-100 text-red-600 text-xs px-1 rounded font-bold shrink-0">HOT</span>}
-                  </div>
-                  <div className="flex items-center text-xs text-gray-500 mt-1">
-                    <MapPin className="w-3 h-3 mr-0.5" />
-                    <span className="line-clamp-1">{p.location}</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm font-bold text-green-600">{p.price}</span>
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                      <span className="bg-gray-100 px-1.5 rounded">{p.type}</span>
-                      <span>{p.area}</span>
-                    </div>
+              <button key={p.id} className="w-full text-left py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors -mx-1 px-1 rounded" onClick={onMoreClick}>
+                <img src={p.image} alt={p.title} className="w-14 h-14 object-cover rounded-lg shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 line-clamp-1">{p.title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{p.location}</p>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-sm font-semibold text-green-600">{p.price}</span>
+                    <span className="text-xs text-gray-400">{p.type} · {p.area}</span>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
           {filteredProperties.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
-              <Home className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">검색 결과가 없습니다</p>
-            </div>
+            <div className="text-center py-8 text-gray-400 text-sm">검색 결과가 없습니다</div>
           )}
 
-          <div className="mt-4 text-center">
-            <button onClick={onMoreClick} className="text-sm text-gray-500 hover:text-green-600 transition-colors">
-              부동산 더보기 &gt;
+          <div className="mt-3 text-center">
+            <button onClick={onMoreClick} className="text-sm text-gray-400 hover:text-gray-700 transition-colors">
+              더보기 →
             </button>
-          </div>
-
-          {/* 거래 안내 */}
-          <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
-            <p className="text-xs font-semibold text-green-700 mb-1">📋 부동산 거래 안내</p>
-            <ul className="text-xs text-gray-600 space-y-0.5">
-              <li>• 외국인 부동산 거래는 제한이 있을 수 있습니다</li>
-              <li>• 반드시 전문가와 상담 후 진행하세요</li>
-              <li>• 계약 전 등기부등본 및 권리관계 확인 필수</li>
-            </ul>
           </div>
         </div>
       )}
