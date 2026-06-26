@@ -416,68 +416,45 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
               </>
             ) : loginMethod === 'signup' ? (
               <>
-                {/* 회원가입 폼 */}
-                {/* 인증 방식 선택 탭 */}
-                <div className="mb-4">
-                  <div className="text-sm text-gray-700 mb-2 text-center">인증 방식 선택</div>
-                  <div className="flex gap-2 bg-gray-100 p-1 rounded-lg border border-gray-200">
-                    <button
-                      type="button"
-                      onClick={() => setSignupVerification('phone')}
-                      className="flex-1 py-2 rounded-md transition-all text-sm flex items-center justify-center gap-2"
-                      style={{
-                        backgroundColor: signupVerification === 'phone' ? 'white' : 'transparent',
-                        color: signupVerification === 'phone' ? '#1F2937' : '#6B7280',
-                        fontWeight: signupVerification === 'phone' ? '600' : 'normal',
-                        boxShadow: signupVerification === 'phone' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                      }}
-                    >
-                      <Smartphone className="w-4 h-4" />
-                      전화번호
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSignupVerification('wechat')}
-                      className="flex-1 py-2 rounded-md transition-all text-sm flex items-center justify-center gap-2"
-                      style={{
-                        backgroundColor: signupVerification === 'wechat' ? 'white' : 'transparent',
-                        color: signupVerification === 'wechat' ? '#1F2937' : '#6B7280',
-                        fontWeight: signupVerification === 'wechat' ? '600' : 'normal',
-                        boxShadow: signupVerification === 'wechat' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                      }}
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      웨이신
-                    </button>
-                  </div>
+                {/* 회원가입 폼 — 로그인 폼과 동일한 스타일 */}
+
+                {/* 아이디 */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="아이디"
+                    required
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-gray-400 transition-colors text-sm"
+                  />
                 </div>
 
-                {signupVerification === 'wechat' ? (
-                  /* 웨이신 회원가입 */
-                  <>
-                    <div className="flex flex-col items-center justify-center py-6 space-y-4">
-                      <div className="w-40 h-40 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200">
-                        <div className="text-center">
-                          <MessageCircle className="w-16 h-16 mx-auto mb-2" style={{ color: '#07c160' }} />
-                          <p className="text-xs text-gray-600">QR 코드 스캔</p>
-                          <p className="text-xs text-gray-400 mt-1">웨이신으로 스캔하세요</p>
-                        </div>
-                      </div>
-                      
-                      <div className="w-full space-y-3">
-                        {/* 지역 선택 */}
-                        <div className="relative">
-                          <select
-                            value={formData.region}
-                            onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                            className="w-full px-4 py-2.5 pl-11 rounded-lg bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                          >
-                            {regions.map(region => (
-                              <option key={region.id} value={region.name}>{region.name}</option>
-                            ))}
-                          </select>
-                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
-                            📍
+                {/* 비밀번호 */}
+                <div className="relative">
+                  <input
+                    type="password"
+                    placeholder="비밀번호 (6자리 이상)"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-gray-400 transition-colors text-sm"
+                  />
+                </div>
+
+                {/* 지역 선택 */}
+                <div className="relative">
+                  <select
+                    value={formData.region}
+                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 focus:outline-none focus:border-gray-400 transition-colors text-sm appearance-none"
+                  >
+                    {regions.map(region => (
+                      <option key={region.id} value={region.name}>{region.name}</option>
+                    ))}
+                  </select>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs">▼</span>
+                </div>
                           </div>
                         </div>
 
@@ -487,93 +464,6 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
                             setIsSubmitting(true);
                             setTimeout(() => {
                               const wechatUser = {
-                                username: 'wechat_user_' + Date.now(),
-                                phone: '+86' + Math.floor(Math.random() * 1000000000),
-                                region: formData.region,
-                                loginMethod: 'wechat',
-                                createdAt: new Date().toISOString()
-                              };
-                              
-                              const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-                              registeredUsers.push(wechatUser);
-                              localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-                              localStorage.setItem('currentUser', JSON.stringify(wechatUser));
-                              setIsSubmitting(false);
-                              toast.success('웨이신 회원가입 성공!');
-                              
-                              if (onLoginSuccess) {
-                                onLoginSuccess();
-                              }
-                              onClose();
-                            }, 2000);
-                          }}
-                          disabled={isSubmitting}
-                          className="w-full py-3 text-white rounded-lg font-bold cursor-pointer hover:shadow-lg transition-all disabled:opacity-70"
-                          style={{
-                            backgroundColor: '#07c160'
-                          }}
-                          onMouseEnter={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = '#06a850')}
-                          onMouseLeave={(e) => !isSubmitting && (e.currentTarget.style.backgroundColor = '#07c160')}
-                        >
-                          {isSubmitting ? '가입 중...' : '웨이신으로 회원가입'}
-                        </button>
-                      </div>
-                      
-                      <p className="text-xs text-gray-500 text-center">
-                        실제 환경에서는 웨이신 QR 코드로 인증합니다
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  /* 전화번호 회원가입 */
-                  <>
-                    {/* 사용자명 */}
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="아이디"
-                        required
-                        value={formData.username}
-                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                        className="w-full px-4 py-2.5 pl-11 rounded-lg bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      />
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
-                        👤
-                      </div>
-                    </div>
-
-                    {/* 비밀번호 */}
-                    <div className="relative">
-                      <input
-                        type="password"
-                        placeholder="비밀번호 (6자리 이상)"
-                        required
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full px-4 py-2.5 pl-11 rounded-lg bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      />
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
-                        🔒
-                      </div>
-                    </div>
-
-                    {/* 지역 선택 */}
-                    <div className="relative">
-                      <select
-                        value={formData.region}
-                        onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                        className="w-full px-4 py-2.5 pl-11 rounded-lg bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      >
-                        {regions.map(region => (
-                          <option key={region.id} value={region.name}>{region.name}</option>
-                        ))}
-                      </select>
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
-                        📍
-                      </div>
-                    </div>
-                  </>
-                )}
               </>
             ) : (
               <>
@@ -629,12 +519,12 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
               </>
             )}
 
-            {/* 로그인 버튼 - 회원가입 웨이신 인증일 때는 숨김 */}
+            {/* 로그인/회원가입 버튼 */}
             {!(loginMethod === 'signup' && signupVerification === 'wechat') && (
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold cursor-pointer hover:bg-blue-700 hover:shadow-lg transition-all disabled:opacity-70 mt-4"
+                className="w-full py-2.5 bg-teal-600 text-white rounded-lg font-medium cursor-pointer hover:bg-teal-700 transition-colors disabled:opacity-60 mt-2 text-sm"
               >
                 {isSubmitting ? '확인 중...' : loginMethod === 'signup' ? '회원가입' : '로그인'}
               </button>
@@ -702,15 +592,12 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
 
             {/* 회원가입일 때 로그인 링크 표시 */}
             {loginMethod === 'signup' && (
-              <div className="mt-4 text-center text-xs">
-                <span className="text-gray-600">이미 계정이 있으신가요? </span>
+              <div className="mt-3 text-center text-xs text-gray-500">
+                이미 계정이 있으신가요?{' '}
                 <a
                   href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setLoginMethod('password');
-                  }}
-                  className="text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium"
+                  onClick={(e) => { e.preventDefault(); setLoginMethod('password'); }}
+                  className="text-teal-600 hover:text-teal-700 font-medium hover:underline"
                 >
                   로그인
                 </a>
