@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, EyeOff, FileText, Stethoscope, Building2, CalendarDays, Mail, Settings } from 'lucide-react';
+import { Eye, EyeOff, FileText, GraduationCap, Building2, CalendarDays, Mail, Settings } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
 interface LoginSectionProps {
@@ -43,7 +43,7 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
   if (currentUser) {
     const menuItems = [
       { icon: <FileText className="w-7 h-7" strokeWidth={1.5} />, label: '내 게시글', page: 'chinalife' },
-      { icon: <Stethoscope className="w-7 h-7" strokeWidth={1.5} />, label: '병원 상담', page: 'chinalife' },
+      { icon: <GraduationCap className="w-7 h-7" strokeWidth={1.5} />, label: '교육 상담', page: 'chinalife' },
       { icon: <Building2 className="w-7 h-7" strokeWidth={1.5} />, label: '부동산', page: 'realestate' },
       { icon: <CalendarDays className="w-7 h-7" strokeWidth={1.5} />, label: '나의 일정', page: 'chinalife' },
       { icon: <Mail className="w-7 h-7" strokeWidth={1.5} />, label: '쪽지함', page: 'chinalife' },
