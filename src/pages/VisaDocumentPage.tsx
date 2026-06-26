@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Search, Filter, FileText, Calendar, Download, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Search, Filter, FileText, Calendar, Download, ExternalLink, Briefcase, Building, BookOpen, PieChart, LayoutList, Database, MessageCircle, ClipboardList, CalendarDays, Settings2 } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -404,74 +404,36 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Quick Services */}
+        {/* Quick Services — 원형 아이콘 스타일 */}
         <div className="mb-6">
-          <h2 className="text-base font-semibold mb-3">빠른 서비스</h2>
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-            <Card 
-              className="p-2 text-center hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleQuickService('비자 신청')}
-            >
-              <FileText className="w-4 h-4 mx-auto mb-1 text-blue-600" />
-              <h3 className="font-medium text-xs">비자 신청</h3>
-              <p className="text-xs text-gray-500 text-[10px]">온라인 접수</p>
-            </Card>
-            <Card 
-              className="p-2 text-center hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleQuickService('예약 서비스')}
-            >
-              <Calendar className="w-4 h-4 mx-auto mb-1 text-green-600" />
-              <h3 className="font-medium text-xs">예약 서비스</h3>
-              <p className="text-xs text-gray-500 text-[10px]">영사관 방문</p>
-            </Card>
-            <Card 
-              className="p-2 text-center hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleQuickService('서류 다운로드')}
-            >
-              <Download className="w-4 h-4 mx-auto mb-1 text-purple-600" />
-              <h3 className="font-medium text-xs">서류 다운로드</h3>
-              <p className="text-xs text-gray-500 text-[10px]">양식 모음</p>
-            </Card>
-            <Card 
-              className="p-2 text-center hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleQuickService('진행 상황')}
-            >
-              <ExternalLink className="w-4 h-4 mx-auto mb-1 text-orange-600" />
-              <h3 className="font-medium text-xs">진행 상황</h3>
-              <p className="text-xs text-gray-500 text-[10px]">실시간 확인</p>
-            </Card>
-            <Card 
-              className="p-2 text-center hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleQuickService('거류증 갱신')}
-            >
-              <FileText className="w-4 h-4 mx-auto mb-1 text-red-600" />
-              <h3 className="font-medium text-xs">거류증 갱신</h3>
-              <p className="text-xs text-gray-500 text-[10px]">온라인 신청</p>
-            </Card>
-            <Card 
-              className="p-2 text-center hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleQuickService('공증 서비스')}
-            >
-              <FileText className="w-4 h-4 mx-auto mb-1 text-yellow-600" />
-              <h3 className="font-medium text-xs">공증 서비스</h3>
-              <p className="text-xs text-gray-500 text-[10px]">서류 공증</p>
-            </Card>
-            <Card 
-              className="p-2 text-center hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleQuickService('은행 계좌')}
-            >
-              <FileText className="w-4 h-4 mx-auto mb-1 text-teal-600" />
-              <h3 className="font-medium text-xs">은행 계좌</h3>
-              <p className="text-xs text-gray-500 text-[10px]">개설 도움</p>
-            </Card>
-            <Card 
-              className="p-2 text-center hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleQuickService('세무 서비스')}
-            >
-              <FileText className="w-4 h-4 mx-auto mb-1 text-indigo-600" />
-              <h3 className="font-medium text-xs">세무 서비스</h3>
-              <p className="text-xs text-gray-500 text-[10px]">신고 대행</p>
-            </Card>
+          <h2 className="text-base font-semibold mb-4">빠른 서비스</h2>
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+            {[
+              { icon: <Briefcase className="w-5 h-5" />, label: '직업정보', sub: '취업 안내', service: '직업정보' },
+              { icon: <Building className="w-5 h-5" />, label: '대학정보', sub: '입학 안내', service: '대학정보' },
+              { icon: <BookOpen className="w-5 h-5" />, label: '학과정보', sub: '학과 검색', service: '학과정보' },
+              { icon: <FileText className="w-5 h-5" />, label: '전형정보', sub: '전형 안내', service: '전형정보' },
+              { icon: <PieChart className="w-5 h-5" />, label: '성적분석', sub: '합격분석', service: '성적분석' },
+              { icon: <LayoutList className="w-5 h-5" />, label: '학생부입력', sub: '직접입력', service: '학생부입력' },
+              { icon: <Database className="w-5 h-5" />, label: '대입자료', sub: '정보자료', service: '대입자료' },
+              { icon: <MessageCircle className="w-5 h-5" />, label: '종합상담', sub: '전형상담', service: '종합상담' },
+              { icon: <ClipboardList className="w-5 h-5" />, label: '대입상담', sub: '1:1 상담', service: '대입상담' },
+              { icon: <CalendarDays className="w-5 h-5" />, label: '전형일정', sub: '일정 확인', service: '전형일정' },
+              { icon: <Settings2 className="w-5 h-5" />, label: '메뉴편집', sub: '개인설정', service: '메뉴편집' },
+            ].map(item => (
+              <button
+                key={item.service}
+                onClick={() => handleQuickService(item.service)}
+                className="flex flex-col items-center gap-2 group"
+              >
+                <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 bg-white group-hover:border-teal-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-all">
+                  {item.icon}
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-medium text-gray-800 leading-tight">{item.label}</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -500,60 +462,34 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
         </div>
 
         {/* Documents List */}
-        <div className="space-y-6">
+        <div className="space-y-2">
           {filteredDocuments.map((document) => (
-            <Card key={document.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="md:flex">
-                <div className="md:w-1/6">
-                  <img 
-                    src={document.image} 
-                    alt={document.title}
-                    className="w-full h-28 md:h-full object-cover"
-                  />
-                </div>
-                <div className="md:w-5/6 p-6">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 text-xs font-medium rounded">
-                      {document.category}
-                    </span>
-                    {document.isUrgent && (
-                      <span className="bg-red-100 text-red-700 px-2 py-1 text-xs font-bold rounded">긴급</span>
-                    )}
+            <Card key={document.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+              <div className="flex gap-3 p-3">
+                <img
+                  src={document.image}
+                  alt={document.title}
+                  className="w-20 h-16 object-cover rounded shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-medium rounded">{document.category}</span>
+                    {document.isUrgent && <span className="bg-red-100 text-red-700 px-1.5 py-0.5 text-[10px] font-bold rounded">긴급</span>}
                   </div>
-                  
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {document.title}
-                  </h3>
-                  
-                  <p className="text-gray-600 mb-3 line-clamp-2">
-                    {document.description}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {document.tags.map((tag, index) => (
-                      <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 text-xs rounded">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                  
+                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 mb-0.5">{document.title}</h3>
+                  <p className="text-xs text-gray-500 line-clamp-1 mb-1">{document.description}</p>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <div className="flex items-center gap-2 text-[10px] text-gray-400">
                       <span>{document.source}</span>
+                      <span>·</span>
                       <span>{document.time}</span>
-                      <span>조회수: {document.views.toLocaleString()}</span>
-                      <span>다운로드: {document.downloads.toLocaleString()}</span>
+                      <span>· 조회 {document.views.toLocaleString()}</span>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Download className="w-4 h-4 mr-1" />
-                        다운로드
+                    <div className="flex gap-1.5 shrink-0">
+                      <Button variant="outline" size="sm" className="h-6 text-[10px] px-2">
+                        <Download className="w-3 h-3 mr-0.5" />다운
                       </Button>
-                      <Button 
-                        size="sm" 
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={() => handleViewDetails(document)}
-                      >
+                      <Button size="sm" className="h-6 text-[10px] px-2 bg-green-600 hover:bg-green-700" onClick={() => handleViewDetails(document)}>
                         상세보기
                       </Button>
                     </div>
