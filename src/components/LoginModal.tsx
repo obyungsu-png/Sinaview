@@ -416,10 +416,8 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
               </>
             ) : loginMethod === 'signup' ? (
               <>
-                {/* 회원가입 폼 — 로그인 폼과 동일한 스타일 */}
-
                 {/* 아이디 */}
-                <div className="relative">
+                <div>
                   <input
                     type="text"
                     placeholder="아이디"
@@ -431,7 +429,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
                 </div>
 
                 {/* 비밀번호 */}
-                <div className="relative">
+                <div>
                   <input
                     type="password"
                     placeholder="비밀번호 (6자리 이상)"
@@ -439,6 +437,28 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-gray-400 transition-colors text-sm"
+                  />
+                </div>
+
+                {/* 전화번호 */}
+                <div className="flex gap-2">
+                  <select
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="w-28 px-2 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 text-sm focus:outline-none focus:border-gray-400"
+                  >
+                    <option value="+86">🇨🇳 +86</option>
+                    <option value="+82">🇰🇷 +82</option>
+                    <option value="+1">🇺🇸 +1</option>
+                    <option value="+81">🇯🇵 +81</option>
+                    <option value="+44">🇬🇧 +44</option>
+                  </select>
+                  <input
+                    type="tel"
+                    placeholder="전화번호"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-gray-400 transition-colors text-sm"
                   />
                 </div>
 
@@ -455,15 +475,6 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
                   </select>
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs">▼</span>
                 </div>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsSubmitting(true);
-                            setTimeout(() => {
-                              const wechatUser = {
               </>
             ) : (
               <>
@@ -590,19 +601,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
               </>
             )}
 
-            {/* 회원가입일 때 로그인 링크 표시 */}
-            {loginMethod === 'signup' && (
-              <div className="mt-3 text-center text-xs text-gray-500">
-                이미 계정이 있으신가요?{' '}
-                <a
-                  href="#"
-                  onClick={(e) => { e.preventDefault(); setLoginMethod('password'); }}
-                  className="text-teal-600 hover:text-teal-700 font-medium hover:underline"
-                >
-                  로그인
-                </a>
-              </div>
-            )}
+            {/* 회원가입일 때 로그인 링크 숨김 */}
           </form>
         )}
       </div>
