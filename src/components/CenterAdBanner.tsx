@@ -59,7 +59,10 @@ export function CenterAdBanner() {
     <>
     <div className="bg-white py-4">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="bg-gray-100 border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow">
+        <div
+          className="bg-gray-100 border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setSelectedAd({ id: currentAd.id, title: currentAd.title, description: currentAd.description, company: currentAd.company, imageUrl: currentAd.image, link: currentAd.link })}
+        >
           <div className="flex items-center">
             {/* Ad Image - 25% */}
             <div className="w-1/4 pr-4">
