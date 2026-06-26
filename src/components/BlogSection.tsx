@@ -1,6 +1,7 @@
 import { MessageCircle, Eye, Heart } from 'lucide-react';
 import { Card } from './ui/card';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { KoreanBizSection } from './KoreanBizSection';
 
 interface BlogSectionProps {
   onViewHomeClick?: () => void;
@@ -128,28 +129,7 @@ export function BlogSection({ onViewHomeClick }: BlogSectionProps) {
         </div>
       </Card>
 
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-medium">한인 기업</h3>
-          <button className="text-sm text-gray-500 hover:text-gray-700">
-            더보기 &gt;
-          </button>
-        </div>
-        
-        <div className="space-y-3">
-          {popularCafes.map((cafe, index) => (
-            <div key={index} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded cursor-pointer">
-              <div>
-                <div className="text-sm font-medium">{cafe.name}</div>
-                <div className="text-xs text-gray-500">{cafe.category}</div>
-              </div>
-              <div className="text-xs text-gray-500">
-                멤버 {cafe.members}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
+      <KoreanBizSection />
     </div>
   );
 }
