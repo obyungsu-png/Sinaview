@@ -15,11 +15,11 @@ interface VisaDocumentPageProps {
 export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin }: VisaDocumentPageProps) {
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDocument, setSelectedDocument] = useState<any>(null);
+  const [selectedDocument, setSelectedDocument] = useState<any>(null); // 상세 페이지
+  const [previewDocument, setPreviewDocument] = useState<any>(null);   // 목록에서 첫 클릭 시 미리보기
 
   useEffect(() => {
     if (selectedArticle) {
-      // VisaDocumentSection에서 온 기사 데이터를 VisaDocumentPage 형식으로 변환
       const convertedDocument = {
         id: selectedArticle.id,
         title: selectedArticle.title,
@@ -38,16 +38,29 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
   }, [selectedArticle]);
 
   const handleQuickService = (serviceName: string) => {
-    // LMS 시스템과 연동
     window.location.href = `/pages/LSMPage.tsx?service=${encodeURIComponent(serviceName)}`;
   };
 
+  // 목록 카드 클릭 → 미리보기 (첫 번째 클릭)
+  const handleCardClick = (document: any) => {
+    if (previewDocument?.id === document.id) {
+      // 같은 카드 두 번 클릭 → 상세 페이지
+      setSelectedDocument(document);
+    } else {
+      // 다른 카드 클릭 → 미리보기
+      setPreviewDocument(document);
+    }
+  };
+
+  // 상세보기 버튼 클릭 → 상세 페이지
   const handleViewDetails = (document: any) => {
     setSelectedDocument(document);
+    setPreviewDocument(null);
   };
 
   const handleBackToList = () => {
     setSelectedDocument(null);
+    setPreviewDocument(null);
   };
 
   const categories = ['전체', '학생비자', '취업비자', '거류증', '공증서류', '회사설립', '혼인신고', '기타'];
@@ -542,13 +555,17 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
         {/* Documents List */}
         <div className="space-y-2">
           {filteredDocuments.map((document) => (
-            <Card key={document.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+            <Card
+              key={document.id}
+              className={`overflow-hidden transition-all cursor-pointer ${
+                previewDocument?.id === document.id
+                  ? 'ring-2 ring-teal-400 shadow-md'
+                  : 'hover:shadow-md'
+              }`}
+              onClick={() => handleCardClick(document)}
+            >
               <div className="flex gap-3 p-3">
-                <img
-                  src={document.image}
-                  alt={document.title}
-                  className="w-20 h-16 object-cover rounded shrink-0"
-                />
+                <img src={document.image} alt={document.title} className="w-20 h-16 object-cover rounded shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-medium rounded">{document.category}</span>
@@ -558,19 +575,18 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
                   <p className="text-xs text-gray-500 line-clamp-1 mb-1">{document.description}</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                      <span>{document.source}</span>
-                      <span>·</span>
-                      <span>{document.time}</span>
-                      <span>· 조회 {document.views.toLocaleString()}</span>
+                      <span>{document.source}</span><span>·</span><span>{document.time}</span><span>· 조회 {document.views.toLocaleString()}</span>
                     </div>
-                    <div className="flex gap-1.5 shrink-0">
+                    {previewDocument?.id === document.id ? (
+                      <Button size="sm" className="h-6 text-[10px] px-2 bg-teal-600 hover:bg-teal-700"
+                        onClick={(e) => { e.stopPropagation(); handleViewDetails(document); }}>
+                        상세보기 →
+                      </Button>
+                    ) : (
                       <Button variant="outline" size="sm" className="h-6 text-[10px] px-2">
                         <Download className="w-3 h-3 mr-0.5" />다운
                       </Button>
-                      <Button size="sm" className="h-6 text-[10px] px-2 bg-green-600 hover:bg-green-700" onClick={() => handleViewDetails(document)}>
-                        상세보기
-                      </Button>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>

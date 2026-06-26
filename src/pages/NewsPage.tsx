@@ -234,54 +234,9 @@ export function NewsPage({ onBack }: NewsPageProps) {
           </div>
         </div>
 
-        {/* Featured News */}
-        {filteredNews.length > 0 && (
-          <div className="mb-8">
-            <Card className="overflow-hidden">
-              <div className="md:flex">
-                <div className="md:w-1/5">
-                  <img 
-                    src={filteredNews[0].image} 
-                    alt={filteredNews[0].title}
-                    className="w-full h-32 md:h-full object-cover"
-                  />
-                </div>
-                <div className="md:w-4/5 p-6">
-                  {filteredNews[0].isBreaking && (
-                    <div className="flex items-center space-x-2 mb-3">
-                      <span className="bg-red-600 text-white px-2 py-1 text-xs font-bold rounded">속보</span>
-                      <TrendingUp className="w-4 h-4 text-red-600" />
-                    </div>
-                  )}
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className="bg-green-100 text-green-700 px-2 py-1 text-xs font-medium rounded">
-                      {filteredNews[0].category}
-                    </span>
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-3">
-                    {filteredNews[0].title}
-                  </h2>
-                  <p className="text-gray-600 mb-4 line-clamp-3">
-                    {filteredNews[0].content}
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <div className="flex items-center space-x-4">
-                      <span>{filteredNews[0].source}</span>
-                      <span>{filteredNews[0].time}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <span>조회수: {filteredNews[0].views.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* News List — compact */}
+        {/* News List — compact (전체 포함) */}
         <div className="space-y-2">
-          {filteredNews.slice(1).map((item) => (
+          {filteredNews.map((item) => (
             <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleViewDetails(item)}>
               <div className="flex gap-3 p-3">
                 <img src={item.image} alt={item.title} className="w-20 h-16 object-cover rounded shrink-0" />
