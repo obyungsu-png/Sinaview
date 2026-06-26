@@ -397,57 +397,28 @@ export function NewsPage({ onBack }: NewsPageProps) {
           </div>
         )}
 
-        {/* News List */}
-        <div className="grid gap-6">
+        {/* News List — compact */}
+        <div className="space-y-2">
           {filteredNews.slice(1).map((item) => (
-            <Card 
-              key={item.id} 
-              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => handleViewDetails(item)}
-            >
-              <div className="md:flex">
-                <div className="md:w-1/6">
-                  <img 
-                    src={item.image} 
-                    alt={item.title}
-                    className="w-full h-28 md:h-full object-cover"
-                  />
-                </div>
-                <div className="md:w-5/6 p-6">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 text-xs font-medium rounded">
-                      {item.category}
-                    </span>
-                    {item.isBreaking && (
-                      <span className="bg-red-100 text-red-700 px-2 py-1 text-xs font-bold rounded">속보</span>
-                    )}
+            <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleViewDetails(item)}>
+              <div className="flex gap-3 p-3">
+                <img src={item.image} alt={item.title} className="w-20 h-16 object-cover rounded shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-medium rounded">{item.category}</span>
+                    {item.isBreaking && <span className="bg-red-100 text-red-700 px-1.5 py-0.5 text-[10px] font-bold rounded">속보</span>}
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {item.title}
-                  </h3>
-                  <p className="text-gray-600 mb-3 line-clamp-2">
-                    {item.content}
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <div className="flex items-center space-x-4">
-                      <span>{item.source}</span>
-                      <span>{item.time}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <span>조회수: {item.views.toLocaleString()}</span>
-                    </div>
+                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 mb-0.5">{item.title}</h3>
+                  <p className="text-xs text-gray-500 line-clamp-1 mb-1">{item.content}</p>
+                  <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                    <span>{item.source}</span><span>·</span><span>{item.time}</span><span>· 조회 {item.views.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
             </Card>
           ))}
+          {filteredNews.length === 0 && <div className="text-center py-8 text-gray-400 text-sm">검색 결과가 없습니다.</div>}
         </div>
-
-        {filteredNews.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">검색 결과가 없습니다.</p>
-          </div>
-        )}
       </div>
     </div>
   );

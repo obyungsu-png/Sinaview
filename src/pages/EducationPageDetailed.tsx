@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Search, Filter, GraduationCap, BookOpen, Award, Users } from 'lucide-react';
+import { ArrowLeft, Search, Filter, GraduationCap, BookOpen, Award, Users, FileText, Calendar, MessageCircle } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -335,121 +335,71 @@ export function EducationPage({ onBack, selectedArticle, currentUser, isAdmin }:
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Quick Access */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">교육 서비스</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-4 text-center hover:shadow-lg transition-shadow cursor-pointer">
-              <GraduationCap className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-              <h3 className="font-medium text-sm">대학 검색</h3>
-              <p className="text-xs text-gray-500">중국 대학 정보</p>
-            </Card>
-            <Card className="p-4 text-center hover:shadow-lg transition-shadow cursor-pointer">
-              <BookOpen className="w-8 h-8 mx-auto mb-2 text-green-600" />
-              <h3 className="font-medium text-sm">온라인 강의</h3>
-              <p className="text-xs text-gray-500">어학 학습</p>
-            </Card>
-            <Card className="p-4 text-center hover:shadow-lg transition-shadow cursor-pointer">
-              <Award className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-              <h3 className="font-medium text-sm">장학금 정보</h3>
-              <p className="text-xs text-gray-500">지원 프로그램</p>
-            </Card>
-            <Card className="p-4 text-center hover:shadow-lg transition-shadow cursor-pointer">
-              <Users className="w-8 h-8 mx-auto mb-2 text-orange-600" />
-              <h3 className="font-medium text-sm">취업 정보</h3>
-              <p className="text-xs text-gray-500">채용 공고</p>
-            </Card>
+        {/* Quick Access — 원형 아이콘 */}
+        <div className="mb-6">
+          <h2 className="text-base font-semibold mb-4">빠른 서비스</h2>
+          <div className="flex gap-4 overflow-x-auto pb-2" style={{scrollbarWidth:'none'}}>
+            {[
+              { icon: <GraduationCap className="w-5 h-5" />, label: '대학 검색', service: '대학검색' },
+              { icon: <BookOpen className="w-5 h-5" />, label: '온라인 강의', service: '온라인강의' },
+              { icon: <Award className="w-5 h-5" />, label: '장학금 정보', service: '장학금' },
+              { icon: <Users className="w-5 h-5" />, label: '취업 정보', service: '취업정보' },
+              { icon: <FileText className="w-5 h-5" />, label: '입학 서류', service: '입학서류' },
+              { icon: <Calendar className="w-5 h-5" />, label: '입시 일정', service: '입시일정' },
+              { icon: <MessageCircle className="w-5 h-5" />, label: '교육 상담', service: '교육상담' },
+            ].map(item => (
+              <button key={item.service} className="flex flex-col items-center gap-2 shrink-0 group">
+                <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 bg-white group-hover:border-teal-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-all">
+                  {item.icon}
+                </div>
+                <p className="text-xs text-gray-700 whitespace-nowrap">{item.label}</p>
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Category Filters */}
         <div className="mb-6">
-          <div className="flex items-center space-x-2 mb-4">
+          <div className="flex items-center space-x-2 mb-3">
             <Filter className="w-4 h-4 text-gray-500" />
             <span className="text-sm font-medium text-gray-700">카테고리</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? "default" : "outline"}
-                size="sm"
+              <Button key={category} variant={selectedCategory === category ? "default" : "outline"} size="sm"
                 onClick={() => setSelectedCategory(category)}
                 className={selectedCategory === category ? "bg-green-600 hover:bg-green-700" : ""}
-              >
-                {category}
-              </Button>
+              >{category}</Button>
             ))}
           </div>
-          <div className="mt-2 text-sm text-gray-600">
-            총 {filteredItems.length}개 항목
-          </div>
+          <div className="mt-2 text-sm text-gray-500">총 {filteredItems.length}개 항목</div>
         </div>
 
-        {/* Education Items List */}
-        <div className="space-y-6">
+        {/* Education Items List — compact */}
+        <div className="space-y-2">
           {filteredItems.map((item) => (
-            <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="md:flex">
-                <div className="md:w-1/6">
-                  <img 
-                    src={item.image} 
-                    alt={item.title}
-                    className="w-full h-28 md:h-full object-cover"
-                  />
-                </div>
-                <div className="md:w-5/6 p-6">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="bg-green-100 text-green-700 px-2 py-1 text-xs font-medium rounded">
-                      {item.category}
-                    </span>
-                    {item.isPopular && (
-                      <span className="bg-orange-100 text-orange-700 px-2 py-1 text-xs font-bold rounded">인기</span>
-                    )}
+            <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+              <div className="flex gap-3 p-3">
+                <img src={item.image} alt={item.title} className="w-20 h-16 object-cover rounded shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="bg-green-100 text-green-700 px-1.5 py-0.5 text-[10px] font-medium rounded">{item.category}</span>
+                    {item.isPopular && <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 text-[10px] font-bold rounded">인기</span>}
                   </div>
-                  
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {item.title}
-                  </h3>
-                  
-                  <p className="text-gray-600 mb-3 line-clamp-2">
-                    {item.description}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {item.tags.map((tag, index) => (
-                      <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 text-xs rounded">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                  
+                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 mb-0.5">{item.title}</h3>
+                  <p className="text-xs text-gray-500 line-clamp-1 mb-1">{item.description}</p>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>{item.source}</span>
-                      <span>{item.time}</span>
-                      <span>조회수: {item.views.toLocaleString()}</span>
-                      <span>좋아요: {item.likes}</span>
+                    <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                      <span>{item.source}</span><span>·</span><span>{item.time}</span><span>· 조회 {item.views.toLocaleString()}</span>
                     </div>
-                    <Button 
-                      size="sm" 
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => handleViewDetails(item)}
-                    >
-                      자세히 보기
-                    </Button>
+                    <Button size="sm" className="h-6 text-[10px] px-2 bg-green-600 hover:bg-green-700" onClick={() => handleViewDetails(item)}>자세히 보기</Button>
                   </div>
                 </div>
               </div>
             </Card>
           ))}
+          {filteredItems.length === 0 && <div className="text-center py-8 text-gray-400 text-sm">검색 결과가 없습니다.</div>}
         </div>
-
-        {filteredItems.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">검색 결과가 없습니다.</p>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -651,17 +651,21 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {chatMessages.map((msg, idx) => (
-                    <div key={idx} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                      <div className={msg.role === 'user' ? 'user-avatar' : 'ai-avatar'}>
-                        {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                <div className="flex flex-col space-y-4">
+                  {chatMessages.map((msg, idx) => {
+                    // <think>...</think> 태그 제거
+                    const cleanContent = msg.content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                    return (
+                      <div key={idx} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <div className={msg.role === 'user' ? 'user-avatar' : 'ai-avatar'}>
+                          {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                        </div>
+                        <div className={`chat-bubble ${msg.role === 'user' ? 'user' : 'ai'}`}>
+                          {cleanContent}
+                        </div>
                       </div>
-                      <div className={`chat-bubble ${msg.role === 'user' ? 'user' : 'ai'}`}>
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {isAiLoading && (
                     <div className="flex gap-2 flex-row">
                       <div className="ai-avatar animate-pulse">
