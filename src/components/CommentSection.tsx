@@ -235,7 +235,7 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
           'Authorization': `Bearer dc2213720f4b4a88ae06ddbd434ab1dd.qDGcLtBM9gGqp6ff`
         },
         body: JSON.stringify({
-          model: 'glm-4-flash',
+          model: 'glm-z1-flash',
           messages: [
             {
               role: 'system',
