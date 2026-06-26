@@ -258,45 +258,48 @@ export function KoreanBizSection() {
                 </div>
               </div>
 
-              {/* SNS 버튼 */}
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">SNS · 채널</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {selectedCompany.wechat && (
-                    <button
-                      onClick={() => { navigator.clipboard.writeText(selectedCompany.wechat!); alert(`위챗 ID 복사됨: ${selectedCompany.wechat}`); }}
-                      className="flex items-center gap-3 px-4 py-2.5 bg-[#07c160] hover:bg-[#06a850] text-white rounded-xl text-sm font-medium transition-colors"
-                    >
-                      <WechatIcon />
-                      <span>WeChat · {selectedCompany.wechat}</span>
-                    </button>
-                  )}
-                  {selectedCompany.tiktok && (
-                    <a
-                      href={`https://www.tiktok.com/${selectedCompany.tiktok}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 px-4 py-2.5 bg-gray-900 hover:bg-gray-700 text-white rounded-xl text-sm font-medium transition-colors"
-                    >
-                      <TiktokIcon />
-                      <span>TikTok · {selectedCompany.tiktok}</span>
-                      <ExternalLink className="w-3 h-3 ml-auto opacity-60" />
-                    </a>
-                  )}
-                  {selectedCompany.xiaohongshu && (
-                    <a
-                      href={`https://www.xiaohongshu.com/user/profile/${selectedCompany.xiaohongshu}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium transition-colors"
-                    >
-                      <XiaohongshuIcon />
-                      <span>小红书 · {selectedCompany.xiaohongshu}</span>
-                      <ExternalLink className="w-3 h-3 ml-auto opacity-60" />
-                    </a>
-                  )}
+              {/* SNS 탭 */}
+              {(selectedCompany.wechat || selectedCompany.tiktok || selectedCompany.xiaohongshu) && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">SNS · 채널</p>
+                  <div className="flex gap-2">
+                    {selectedCompany.wechat && (
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(selectedCompany.wechat!); alert(`위챗 ID 복사됨: ${selectedCompany.wechat}`); }}
+                        className="flex-1 flex flex-col items-center gap-1.5 py-3 bg-[#07c160]/10 hover:bg-[#07c160]/20 border border-[#07c160]/30 rounded-xl transition-colors"
+                      >
+                        <span className="text-[#07c160]"><WechatIcon /></span>
+                        <span className="text-[10px] text-gray-600 font-medium">WeChat</span>
+                        <span className="text-[9px] text-gray-400 truncate max-w-[80px]">{selectedCompany.wechat}</span>
+                      </button>
+                    )}
+                    {selectedCompany.tiktok && (
+                      <a
+                        href={`https://www.tiktok.com/${selectedCompany.tiktok}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex flex-col items-center gap-1.5 py-3 bg-gray-900/5 hover:bg-gray-900/10 border border-gray-200 rounded-xl transition-colors"
+                      >
+                        <span className="text-gray-800"><TiktokIcon /></span>
+                        <span className="text-[10px] text-gray-600 font-medium">TikTok</span>
+                        <span className="text-[9px] text-gray-400 truncate max-w-[80px]">{selectedCompany.tiktok}</span>
+                      </a>
+                    )}
+                    {selectedCompany.xiaohongshu && (
+                      <a
+                        href={`https://www.xiaohongshu.com/user/profile/${selectedCompany.xiaohongshu}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex flex-col items-center gap-1.5 py-3 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-colors"
+                      >
+                        <span className="text-red-500"><XiaohongshuIcon /></span>
+                        <span className="text-[10px] text-gray-600 font-medium">小红书</span>
+                        <span className="text-[9px] text-gray-400 truncate max-w-[80px]">{selectedCompany.xiaohongshu}</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
