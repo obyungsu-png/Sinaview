@@ -108,9 +108,9 @@ export function EducationPage({ onBack, selectedArticle, currentUser, isAdmin }:
 
         {/* Article Content */}
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Main Content */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-3">
               <div className="mb-6">
                 <div className="flex items-center space-x-2 mb-4">
                   <span className="bg-green-100 text-green-700 px-3 py-1 text-sm font-medium rounded">

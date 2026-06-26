@@ -596,7 +596,7 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
 
         {/* 댓글 입력창 */}
         {!currentUser ? (
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-indigo-100 rounded-lg p-5 text-center">
+          <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-100 rounded-lg p-5 text-center">
             <p className="text-[#667eea] font-medium text-sm">🐰 댓글을 작성하고 싶으신가요? 먼저 회원가입을 해주세요~ 💕</p>
           </div>
         ) : (
@@ -624,14 +624,14 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
 
       {/* 오른쪽: AI 채팅 위젯 (1/3) */}
       <div className="ai-chat-widget lg:col-span-1">
-        <Card className="h-full max-h-[600px] flex flex-col border-2 border-indigo-100 shadow-md">
-          <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-4 px-5 rounded-t-lg shrink-0">
+        <Card className="h-full max-h-[600px] flex flex-col border-2 border-teal-100 shadow-md">
+          <CardHeader className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white py-4 px-5 rounded-t-lg shrink-0">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="w-5 h-5 text-yellow-300" />
+              <Sparkles className="w-5 h-5 text-yellow-200" />
               AI에게 물어보세요
             </CardTitle>
-            <p className="text-xs text-indigo-100 opacity-90 font-normal mt-1">
-              DeepSeek AI가 궁금한 점을 답변해드립니다.
+            <p className="text-xs text-teal-100 opacity-90 font-normal mt-1">
+              궁금한 점을 물어보면 답변해드립니다.
             </p>
           </CardHeader>
           
@@ -639,7 +639,7 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
             <ScrollArea className="flex-1 p-4 bg-gray-50/50">
               {chatMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6 text-gray-400 space-y-3 mt-10">
-                  <Bot className="w-12 h-12 text-indigo-200" />
+                  <Bot className="w-12 h-12 text-teal-200" />
                   <p className="text-sm">
                     "중국 비자 신청은 어떻게 하나요?"<br/>
                     "상하이 날씨 어때요?"<br/>
@@ -693,7 +693,7 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
                 <Button 
                   type="submit" 
                   size="icon" 
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
+                  className="bg-teal-600 hover:bg-teal-700 text-white shrink-0"
                   disabled={!chatInput.trim() || isAiLoading}
                 >
                   <Send className="w-4 h-4" />
