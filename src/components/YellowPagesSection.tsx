@@ -80,6 +80,8 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
   }, [userRegion]);
 
   const [showAllRegions, setShowAllRegions] = React.useState(false);
+
+  const subcategories = [
     { id: 'all', name: '전체', count: 2450 },
     { id: 'hospital', name: '병원', count: 380 },
     { id: 'restaurant', name: '음식점', count: 650 },
