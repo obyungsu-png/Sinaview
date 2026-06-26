@@ -52,20 +52,24 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
 
   const categories = ['전체', '학생비자', '취업비자', '거류증', '공증서류', '회사설립', '혼인신고', '기타'];
 
+  const [showMoreServices, setShowMoreServices] = useState(false);
+
   // 카테고리별 빠른 서비스
   const quickServicesByCategory: Record<string, { icon: React.ReactNode; label: string; service: string }[]> = {
-    '전체': [
-      { icon: <Briefcase className="w-5 h-5" />, label: '직업정보', service: '직업정보' },
-      { icon: <Building className="w-5 h-5" />, label: '대학정보', service: '대학정보' },
-      { icon: <BookOpen className="w-5 h-5" />, label: '학과정보', service: '학과정보' },
-      { icon: <FileText className="w-5 h-5" />, label: '전형정보', service: '전형정보' },
-      { icon: <PieChart className="w-5 h-5" />, label: '성적분석', service: '성적분석' },
-      { icon: <LayoutList className="w-5 h-5" />, label: '학생부입력', service: '학생부입력' },
-      { icon: <Database className="w-5 h-5" />, label: '대입자료', service: '대입자료' },
-      { icon: <MessageCircle className="w-5 h-5" />, label: '종합상담', service: '종합상담' },
-      { icon: <ClipboardList className="w-5 h-5" />, label: '대입상담', service: '대입상담' },
-      { icon: <CalendarDays className="w-5 h-5" />, label: '전형일정', service: '전형일정' },
-      { icon: <Settings2 className="w-5 h-5" />, label: '메뉴편집', service: '메뉴편집' },
+    '전체_all': [
+      { icon: <FileText className="w-5 h-5" />, label: 'X1·X2비자', service: 'X1비자신청' },
+      { icon: <Briefcase className="w-5 h-5" />, label: 'Z비자(취업)', service: 'Z비자신청' },
+      { icon: <ExternalLink className="w-5 h-5" />, label: '거류증 갱신', service: '거류증갱신' },
+      { icon: <Download className="w-5 h-5" />, label: '공증 신청', service: '공증신청' },
+      { icon: <Building className="w-5 h-5" />, label: '법인 설립', service: '법인설립' },
+      { icon: <Calendar className="w-5 h-5" />, label: '혼인신고', service: '혼인신고' },
+    ],
+    '전체_more': [
+      { icon: <Download className="w-5 h-5" />, label: '서류 다운로드', service: '서류다운로드' },
+      { icon: <Calendar className="w-5 h-5" />, label: '예약 서비스', service: '예약서비스' },
+      { icon: <ExternalLink className="w-5 h-5" />, label: '진행 상황', service: '진행상황' },
+      { icon: <MessageCircle className="w-5 h-5" />, label: '종합 상담', service: '종합상담' },
+      { icon: <Database className="w-5 h-5" />, label: '세무 서비스', service: '세무서비스' },
     ],
     '학생비자': [
       { icon: <FileText className="w-5 h-5" />, label: 'X1비자 신청', service: 'X1비자신청' },
@@ -121,7 +125,12 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
     ],
   };
 
-  const currentQuickServices = quickServicesByCategory[selectedCategory] || quickServicesByCategory['전체'];
+  const isAll = selectedCategory === '전체';
+  const currentQuickServices = isAll
+    ? (showMoreServices
+      ? [...quickServicesByCategory['전체_all'], ...quickServicesByCategory['전체_more']]
+      : quickServicesByCategory['전체_all'])
+    : (quickServicesByCategory[selectedCategory] || quickServicesByCategory['기타']);
 
   const documents = [
     {
@@ -491,6 +500,18 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
                 <p className="text-xs text-gray-700 whitespace-nowrap">{item.label}</p>
               </button>
             ))}
+            {/* 전체 카테고리일 때만 더보기/접기 버튼 */}
+            {isAll && (
+              <button
+                onClick={() => setShowMoreServices(v => !v)}
+                className="flex flex-col items-center gap-2 shrink-0 group"
+              >
+                <div className="w-14 h-14 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 bg-white group-hover:border-teal-300 group-hover:text-teal-500 transition-all text-lg">
+                  {showMoreServices ? '↑' : '···'}
+                </div>
+                <p className="text-xs text-gray-400 whitespace-nowrap">{showMoreServices ? '접기' : '더보기'}</p>
+              </button>
+            )}
           </div>
         </div>
 
@@ -506,7 +527,7 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedCategory(category)}
+                onClick={() => { setSelectedCategory(category); setShowMoreServices(false); }}
                 className={selectedCategory === category ? "bg-green-600 hover:bg-green-700" : ""}
               >
                 {category}
