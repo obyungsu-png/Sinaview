@@ -404,34 +404,32 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Quick Services — 원형 아이콘 스타일 */}
+        {/* Quick Services — 한 줄 가로 스크롤 */}
         <div className="mb-6">
           <h2 className="text-base font-semibold mb-4">빠른 서비스</h2>
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+          <div className="flex gap-4 overflow-x-auto pb-2" style={{scrollbarWidth:'none'}}>
             {[
-              { icon: <Briefcase className="w-5 h-5" />, label: '직업정보', sub: '취업 안내', service: '직업정보' },
-              { icon: <Building className="w-5 h-5" />, label: '대학정보', sub: '입학 안내', service: '대학정보' },
-              { icon: <BookOpen className="w-5 h-5" />, label: '학과정보', sub: '학과 검색', service: '학과정보' },
-              { icon: <FileText className="w-5 h-5" />, label: '전형정보', sub: '전형 안내', service: '전형정보' },
-              { icon: <PieChart className="w-5 h-5" />, label: '성적분석', sub: '합격분석', service: '성적분석' },
-              { icon: <LayoutList className="w-5 h-5" />, label: '학생부입력', sub: '직접입력', service: '학생부입력' },
-              { icon: <Database className="w-5 h-5" />, label: '대입자료', sub: '정보자료', service: '대입자료' },
-              { icon: <MessageCircle className="w-5 h-5" />, label: '종합상담', sub: '전형상담', service: '종합상담' },
-              { icon: <ClipboardList className="w-5 h-5" />, label: '대입상담', sub: '1:1 상담', service: '대입상담' },
-              { icon: <CalendarDays className="w-5 h-5" />, label: '전형일정', sub: '일정 확인', service: '전형일정' },
-              { icon: <Settings2 className="w-5 h-5" />, label: '메뉴편집', sub: '개인설정', service: '메뉴편집' },
+              { icon: <Briefcase className="w-5 h-5" />, label: '직업정보', service: '직업정보' },
+              { icon: <Building className="w-5 h-5" />, label: '대학정보', service: '대학정보' },
+              { icon: <BookOpen className="w-5 h-5" />, label: '학과정보', service: '학과정보' },
+              { icon: <FileText className="w-5 h-5" />, label: '전형정보', service: '전형정보' },
+              { icon: <PieChart className="w-5 h-5" />, label: '성적분석', service: '성적분석' },
+              { icon: <LayoutList className="w-5 h-5" />, label: '학생부입력', service: '학생부입력' },
+              { icon: <Database className="w-5 h-5" />, label: '대입자료', service: '대입자료' },
+              { icon: <MessageCircle className="w-5 h-5" />, label: '종합상담', service: '종합상담' },
+              { icon: <ClipboardList className="w-5 h-5" />, label: '대입상담', service: '대입상담' },
+              { icon: <CalendarDays className="w-5 h-5" />, label: '전형일정', service: '전형일정' },
+              { icon: <Settings2 className="w-5 h-5" />, label: '메뉴편집', service: '메뉴편집' },
             ].map(item => (
               <button
                 key={item.service}
                 onClick={() => handleQuickService(item.service)}
-                className="flex flex-col items-center gap-2 group"
+                className="flex flex-col items-center gap-2 shrink-0 group"
               >
                 <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 bg-white group-hover:border-teal-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-all">
                   {item.icon}
                 </div>
-                <div className="text-center">
-                  <p className="text-xs font-medium text-gray-800 leading-tight">{item.label}</p>
-                </div>
+                <p className="text-xs text-gray-700">{item.label}</p>
               </button>
             ))}
           </div>
