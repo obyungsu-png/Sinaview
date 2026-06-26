@@ -200,7 +200,7 @@ export function EducationSection({ category, onMoreClick, onArticleClick, userRe
                     activeSubcategory === subcat.name ? 'ring-2 ring-red-300' : ''
                   }`}
                 >
-                  🔥 {subcat.name}
+                  {subcat.name}
                 </button>
               ) : (
                 <button
