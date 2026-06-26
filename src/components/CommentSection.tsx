@@ -220,7 +220,6 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
     const userMessage = chatInput;
     setChatInput('');
     
-    // 사용자 메시지 추가
     const newHistory: ChatMessage[] = [
       ...chatMessages, 
       { role: 'user', content: userMessage, timestamp: Date.now() }
@@ -229,37 +228,42 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
     setIsAiLoading(true);
 
     try {
-      // AI API 호출
-      const response = await fetch(`${API_BASE}/api/ai-chat`, {
+      const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`
+          'Authorization': `Bearer dc2213720f4b4a88ae06ddbd434ab1dd.qDGcLtBM9gGqp6ff`
         },
-        body: JSON.stringify({ 
-          message: userMessage,
-          history: chatMessages.map(msg => ({ role: msg.role, content: msg.content })) // 과거 대화 이력 전달
+        body: JSON.stringify({
+          model: 'glm-4-flash',
+          messages: [
+            {
+              role: 'system',
+              content: '당신은 중국에 거주하는 한국인(재중 한인)을 위한 생활 도우미 AI입니다. 비자, 거류증, 생활정보, 병원, 부동산, 교육, 교통 등 중국 생활 전반에 대해 한국어로 친절하고 정확하게 답변해주세요. 답변은 간결하고 실용적으로 해주세요.'
+            },
+            ...newHistory.map(msg => ({ role: msg.role, content: msg.content }))
+          ],
+          max_tokens: 800,
+          temperature: 0.7,
         })
       });
 
       const data = await response.json();
 
-      if (data.success) {
+      if (data.choices && data.choices[0]) {
+        const reply = data.choices[0].message.content;
         setChatMessages(prev => [
           ...prev,
-          { role: 'assistant', content: data.reply, timestamp: Date.now() }
+          { role: 'assistant', content: reply, timestamp: Date.now() }
         ]);
       } else {
-        setChatMessages(prev => [
-          ...prev,
-          { role: 'assistant', content: "죄송해요, 일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요. 😢", timestamp: Date.now() }
-        ]);
+        throw new Error('Invalid response');
       }
     } catch (err) {
-      console.error('AI error:', err);
+      console.error('GLAM AI error:', err);
       setChatMessages(prev => [
         ...prev,
-        { role: 'assistant', content: "네트워크 오류가 발생했어요. 인터넷 연결을 확인해주세요. 🔌", timestamp: Date.now() }
+        { role: 'assistant', content: "죄송해요, 일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요. 😢", timestamp: Date.now() }
       ]);
     } finally {
       setIsAiLoading(false);
@@ -631,7 +635,7 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
               AI에게 물어보세요
             </CardTitle>
             <p className="text-xs text-teal-100 opacity-90 font-normal mt-1">
-              궁금한 점을 물어보면 답변해드립니다.
+              중국 생활 전반에 대해 한국어로 답변해드립니다.
             </p>
           </CardHeader>
           
