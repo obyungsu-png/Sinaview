@@ -440,25 +440,14 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
                   />
                 </div>
 
-                {/* 전화번호 */}
-                <div className="flex gap-2">
-                  <select
-                    value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value)}
-                    className="w-28 px-2 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 text-sm focus:outline-none focus:border-gray-400"
-                  >
-                    <option value="+86">🇨🇳 +86</option>
-                    <option value="+82">🇰🇷 +82</option>
-                    <option value="+1">🇺🇸 +1</option>
-                    <option value="+81">🇯🇵 +81</option>
-                    <option value="+44">🇬🇧 +44</option>
-                  </select>
+                {/* 인증코드 */}
+                <div>
                   <input
-                    type="tel"
-                    placeholder="전화번호"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-gray-400 transition-colors text-sm"
+                    type="text"
+                    placeholder="인증코드"
+                    value={formData.verificationCode || ''}
+                    onChange={(e) => setFormData({ ...formData, verificationCode: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-gray-400 transition-colors text-sm"
                   />
                 </div>
 
