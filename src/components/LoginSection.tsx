@@ -64,8 +64,8 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
       if (prev.includes(id)) {
         return prev.filter(t => t !== id);
       } else {
-        if (prev.length >= 5) {
-          toast.error('최대 5개까지 선택할 수 있어요.');
+        if (prev.length >= 9) {
+          toast.error('최대 9개까지 선택할 수 있어요.');
           return prev;
         }
         return [...prev, id];
@@ -104,9 +104,9 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
           <span className="text-gray-300 text-lg">›</span>
         </button>
 
-        {/* 메뉴 그리드 — 5개 탭 + 설정 */}
+        {/* 메뉴 그리드 — 9개 탭 + 설정 */}
         <div className="bg-gray-50 grid grid-cols-3 px-2 pt-2 pb-2">
-          {visibleTabs.slice(0, 5).map((item, i) => {
+          {visibleTabs.slice(0, 9).map((item, i) => {
             const showRightBorder = (i % 3) !== 2;
             return (
               <button
@@ -150,7 +150,7 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <div>
                   <p className="font-semibold text-gray-900">바로가기 설정</p>
-                  <p className="text-xs text-gray-400 mt-0.5">최대 5개 선택 · 현재 {tempSelected.length}개</p>
+                  <p className="text-xs text-gray-400 mt-0.5">최대 9개 선택 · 현재 {tempSelected.length}개</p>
                 </div>
                 <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
@@ -193,7 +193,7 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
                   onClick={handleSettingsSave}
                   className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-semibold transition-colors"
                 >
-                  저장 ({tempSelected.length}/5)
+                  저장 ({tempSelected.length}/9)
                 </button>
               </div>
             </div>
