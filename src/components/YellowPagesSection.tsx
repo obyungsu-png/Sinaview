@@ -79,7 +79,7 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
     return [userRegionObj, ...otherRegions];
   }, [userRegion]);
 
-  const subcategories = [
+  const [showAllRegions, setShowAllRegions] = React.useState(false);
     { id: 'all', name: '전체', count: 2450 },
     { id: 'hospital', name: '병원', count: 380 },
     { id: 'restaurant', name: '음식점', count: 650 },
@@ -389,11 +389,11 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
           <h2 className="text-lg font-semibold text-gray-900">{category}</h2>
         </div>
         
-        {/* 지역 선택 탭 */}
+        {/* 지역 선택 */}
         <div className="mb-3">
-          <div className="text-xs text-gray-500 mb-2">지역 선택</div>
-          <div className="flex flex-wrap gap-2">
-            {sortedRegions.map((region) => (
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* 내 지역 + 상위 4개 항상 표시 */}
+            {(showAllRegions ? sortedRegions : sortedRegions.slice(0, 5)).map((region) => (
               <button
                 key={region.id}
                 onClick={() => {
@@ -401,15 +401,31 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
                   setActiveSubcategory('전체');
                   setHoveredBusiness(0);
                 }}
-                className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
                   activeRegion === region.name
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-gray-900 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {region.name}
               </button>
             ))}
+            {/* 더보기 / 접기 버튼 */}
+            {!showAllRegions ? (
+              <button
+                onClick={() => setShowAllRegions(true)}
+                className="px-3 py-1.5 text-xs rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 border border-dashed border-gray-300 transition-colors"
+              >
+                전체 +{sortedRegions.length - 5}
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAllRegions(false)}
+                className="px-3 py-1.5 text-xs rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 border border-dashed border-gray-300 transition-colors"
+              >
+                접기 ↑
+              </button>
+            )}
           </div>
         </div>
         

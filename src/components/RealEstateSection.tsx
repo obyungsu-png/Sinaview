@@ -17,6 +17,7 @@ export function RealEstateSection({ category = '부동산', onMoreClick, userCit
   const [activeCategory, setActiveCategory] = useState('전체');
   const [activeRegion, setActiveRegion] = useState('전체');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAllRegions, setShowAllRegions] = useState(false);
 
   const regions = [
     '전체', '대련', '북경', '상해', '소주', '무석', '난징', '항저우',
@@ -98,8 +99,8 @@ export function RealEstateSection({ category = '부동산', onMoreClick, userCit
           </div>
 
           {/* 지역 선택 */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 flex-wrap" style={{scrollbarWidth:'none'}}>
-            {regions.map(r => (
+          <div className="flex items-center gap-1.5 flex-wrap mb-3">
+            {(showAllRegions ? regions : regions.slice(0, 5)).map(r => (
               <button
                 key={r}
                 onClick={() => setActiveRegion(r)}
@@ -110,6 +111,21 @@ export function RealEstateSection({ category = '부동산', onMoreClick, userCit
                 {r}
               </button>
             ))}
+            {!showAllRegions ? (
+              <button
+                onClick={() => setShowAllRegions(true)}
+                className="px-3 py-1.5 text-xs rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 border border-dashed border-gray-300 transition-colors"
+              >
+                전체 +{regions.length - 5}
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAllRegions(false)}
+                className="px-3 py-1.5 text-xs rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 border border-dashed border-gray-300 transition-colors"
+              >
+                접기 ↑
+              </button>
+            )}
           </div>
 
           {/* 카테고리 필터 */}

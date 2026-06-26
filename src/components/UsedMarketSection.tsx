@@ -39,6 +39,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
   const [activeSubcategory, setActiveSubcategory] = useState('전체');
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showAllRegions, setShowAllRegions] = useState(false);
 
   // 메인 탭/지역/카테고리 변경 시 펼침 상태 초기화
   useEffect(() => {
@@ -974,12 +975,9 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
           </div>
 
           {/* 지역 선택 */}
-          <div className="mb-3 -mx-1">
-            <div
-              className="flex gap-1.5 overflow-x-auto pb-1 px-1 flex-wrap"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {sortedRegions.map((region) => (
+          <div className="mb-3">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {(showAllRegions ? sortedRegions : sortedRegions.slice(0, 5)).map((region) => (
                 <button
                   key={region.id}
                   onClick={() => setActiveRegion(region.name)}
@@ -992,6 +990,21 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
                   {region.name}
                 </button>
               ))}
+              {!showAllRegions ? (
+                <button
+                  onClick={() => setShowAllRegions(true)}
+                  className="px-3 py-1.5 text-xs rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 border border-dashed border-gray-300 transition-colors"
+                >
+                  전체 +{sortedRegions.length - 5}
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAllRegions(false)}
+                  className="px-3 py-1.5 text-xs rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 border border-dashed border-gray-300 transition-colors"
+                >
+                  접기 ↑
+                </button>
+              )}
             </div>
           </div>
 
