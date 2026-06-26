@@ -174,7 +174,7 @@ export function AutoSection({ category, onMoreClick, onDriverLicenseClick }: Aut
                   }}
                   className="px-3 py-1 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-full hover:opacity-90 transition-opacity font-medium"
                 >
-                  🔥 {subcat.name}
+                  {subcat.name}
                 </button>
               ) : (
                 <button
