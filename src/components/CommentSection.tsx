@@ -61,9 +61,14 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
     fetchComments();
   }, [pageType, itemId]);
 
-  // AI 채팅 스크롤 자동 이동
+  // AI 채팅 스크롤 자동 이동 (컨테이너 내부에서만)
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatEndRef.current) {
+      const container = chatEndRef.current.parentElement;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
   }, [chatMessages]);
 
   const fetchComments = async () => {
@@ -639,10 +644,11 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
             </p>
           </CardHeader>
           
-          <CardContent className="flex-1 p-0 flex flex-col h-[400px]">
-            <ScrollArea className="flex-1 p-4 bg-gray-50/50">
+          <CardContent className="p-0 flex flex-col" style={{height: '380px'}}>
+            {/* 메시지 영역 — 고정 높이, 내부 스크롤 */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50 min-h-0">
               {chatMessages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center p-6 text-gray-400 space-y-3 mt-10">
+                <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 space-y-3">
                   <Bot className="w-12 h-12 text-teal-200" />
                   <p className="text-sm">
                     "중국 비자 신청은 어떻게 하나요?"<br/>
@@ -653,7 +659,6 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
               ) : (
                 <div className="flex flex-col space-y-4">
                   {chatMessages.map((msg, idx) => {
-                    // <think>...</think> 태그 제거
                     const cleanContent = msg.content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
                     return (
                       <div key={idx} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -681,7 +686,7 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
                   <div ref={chatEndRef} />
                 </div>
               )}
-            </ScrollArea>
+            </div>
             
             <div className="p-3 border-t bg-white shrink-0">
               <form 
