@@ -956,7 +956,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
               onClick={() => setActiveMainTab('handmade')}
               className={`flex-1 pb-2 text-sm transition-colors ${
                 activeMainTab === 'handmade'
-                  ? 'border-b-2 border-gray-800 text-gray-900 font-semibold'
+                  ? 'border-b-2 border-orange-500 text-orange-600 font-semibold'
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
@@ -966,7 +966,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
               onClick={() => setActiveMainTab('used')}
               className={`flex-1 pb-2 text-sm transition-colors ${
                 activeMainTab === 'used'
-                  ? 'border-b-2 border-gray-800 text-gray-900 font-semibold'
+                  ? 'border-b-2 border-orange-500 text-orange-600 font-semibold'
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
@@ -983,8 +983,8 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
                   onClick={() => setActiveRegion(region.name)}
                   className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors ${
                     activeRegion === region.name
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-orange-500 text-white font-medium'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                 >
                   {region.name}
@@ -993,14 +993,14 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
               {!showAllRegions ? (
                 <button
                   onClick={() => setShowAllRegions(true)}
-                  className="px-3 py-1.5 text-xs rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 border border-dashed border-gray-300 transition-colors"
+                  className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  전체 +{sortedRegions.length - 5}
+                  더보기 ›
                 </button>
               ) : (
                 <button
                   onClick={() => setShowAllRegions(false)}
-                  className="px-3 py-1.5 text-xs rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 border border-dashed border-gray-300 transition-colors"
+                  className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   접기 ↑
                 </button>
@@ -1016,7 +1016,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
                 onClick={() => setActiveSubcategory(subcat.name)}
                 className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
                   activeSubcategory === subcat.name
-                    ? 'bg-gray-800 text-white'
+                    ? 'bg-orange-500 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >

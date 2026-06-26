@@ -414,14 +414,14 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
             {!showAllRegions ? (
               <button
                 onClick={() => setShowAllRegions(true)}
-                className="px-3 py-1.5 text-xs rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 border border-dashed border-gray-300 transition-colors"
+                className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
               >
-                전체 +{sortedRegions.length - 5}
+                더보기 ›
               </button>
             ) : (
               <button
                 onClick={() => setShowAllRegions(false)}
-                className="px-3 py-1.5 text-xs rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 border border-dashed border-gray-300 transition-colors"
+                className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
               >
                 접기 ↑
               </button>
