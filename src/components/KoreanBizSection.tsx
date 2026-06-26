@@ -160,8 +160,6 @@ export function KoreanBizSection() {
                 <div className="flex gap-2">
                   {company.wechat && <span className="text-green-500"><WechatIcon /></span>}
                   {company.tiktok && <span className="text-gray-800"><TiktokIcon /></span>}
-                  {company.xiaohongshu && <span className="text-red-500"><XiaohongshuIcon /></span>}
-                  {company.website && <Globe className="w-4 h-4 text-blue-400" />}
                 </div>
                 <span className="text-[10px] text-gray-300">상세보기 →</span>
               </div>
