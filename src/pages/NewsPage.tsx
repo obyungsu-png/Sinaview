@@ -92,7 +92,7 @@ export function NewsPage({ onBack }: NewsPageProps) {
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="max-w-6xl mx-auto px-4 py-4">
             <div className="flex items-center space-x-4">
               <Button variant="ghost" onClick={handleBackToList} className="p-2">
                 <ArrowLeft className="w-5 h-5" />
@@ -102,202 +102,86 @@ export function NewsPage({ onBack }: NewsPageProps) {
           </div>
         </div>
 
-        {/* Article Detail */}
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <article className="bg-white rounded-lg shadow-lg overflow-hidden">
-            {/* Article Header */}
-            <div className="p-8">
-              <div className="flex items-center space-x-2 mb-4">
-                <span className="bg-blue-100 text-blue-700 px-3 py-1 text-sm font-medium rounded">
-                  {selectedNews.category}
-                </span>
-                {selectedNews.isBreaking && (
-                  <span className="bg-red-600 text-white px-3 py-1 text-sm font-bold rounded">속보</span>
-                )}
+        {/* Article Detail — 비자/서류와 동일한 4열 레이아웃 */}
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* 본문 3/4 */}
+            <div className="lg:col-span-3">
+              <div className="flex items-center space-x-2 mb-3">
+                <span className="bg-blue-100 text-blue-700 px-2 py-1 text-sm font-medium rounded">{selectedNews.category}</span>
+                {selectedNews.isBreaking && <span className="bg-red-600 text-white px-2 py-1 text-sm font-bold rounded">속보</span>}
               </div>
-
-              <h1 className="text-3xl font-bold text-gray-900 mb-4 leading-tight">
-                {selectedNews.title}
-              </h1>
-
-              <div className="flex items-center justify-between text-sm text-gray-500 pb-6 border-b border-gray-200">
-                <div className="flex items-center space-x-4">
-                  <span className="font-medium text-gray-700">{selectedNews.source}</span>
-                  <span>{selectedNews.time}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <span>조회수 {selectedNews.views.toLocaleString()}</span>
-                </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">{selectedNews.title}</h1>
+              <div className="flex items-center text-sm text-gray-500 mb-4 pb-4 border-b border-gray-200">
+                <span className="font-medium text-gray-700 mr-3">{selectedNews.source}</span>
+                <span className="mr-3">{selectedNews.time}</span>
+                <span>조회수 {selectedNews.views.toLocaleString()}</span>
               </div>
-            </div>
-
-            {/* Article Image */}
-            <div className="w-full">
-              <img 
-                src={selectedNews.image} 
-                alt={selectedNews.title}
-                className="w-full h-96 object-cover"
-              />
-            </div>
-
-            {/* Article Content */}
-            <div className="p-8">
-              <div className="prose max-w-none mb-8">
-                <p className="text-gray-700 text-lg leading-relaxed mb-6">
-                  {selectedNews.content}
-                </p>
-                
-                <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">상세 내용</h2>
-                
-                <p className="text-gray-700 leading-relaxed mb-4">
-                  {selectedNews.content}
-                </p>
-
-                {selectedNews.category === "경제" && (
-                  <>
-                    <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">주요 경제 지표</h3>
-                    <ul className="list-disc list-inside space-y-2 text-gray-700 mb-6">
-                      <li>3분기 GDP 성장률: 5.2% (전년 동기 대비)</li>
-                      <li>소비자물가지수(CPI): 전월 대비 0.8% 상승</li>
-                      <li>산업생산지수: 전년 동기 대비 4.6% 증가</li>
-                      <li>외국인직접투자(FDI): 전년 대비 12% 증가</li>
-                      <li>수출입 총액: 전년 동기 대비 8.3% 증가</li>
-                    </ul>
-                  </>
-                )}
-
-                {selectedNews.category === "과학/IT" && (
-                  <>
-                    <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">기술 세부사항</h3>
-                    <ul className="list-disc list-inside space-y-2 text-gray-700 mb-6">
-                      <li>7나노미터 공정 기술 자립 완성</li>
-                      <li>AI 전용 칩셋 성능 30% 향상</li>
-                      <li>전력 효율성 40% 개선</li>
-                      <li>자체 설계 GPU 코어 탑재</li>
-                      <li>양자컴퓨팅 연구 단계 진입</li>
-                    </ul>
-                  </>
-                )}
-
-                {selectedNews.category === "스포츠" && (
-                  <>
-                    <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">주요 성과</h3>
-                    <ul className="list-disc list-inside space-y-2 text-gray-700 mb-6">
-                      <li>빙설 스포츠 참여 인구 3억 명 돌파</li>
-                      <li>전국 스��장 및 빙상장 2,000개소 이상 운영</li>
-                      <li>청소년 동계스포츠 프로그램 확대</li>
-                      <li>국제 대회 유치 및 개최 증가</li>
-                      <li>동계 스포츠 관련 산업 급성장</li>
-                    </ul>
-                  </>
-                )}
-
-                {selectedNews.category === "사회" && (
-                  <>
-                    <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">문화 행사 정보</h3>
-                    <ul className="list-disc list-inside space-y-2 text-gray-700 mb-6">
-                      <li>전통 춘절 축제 전국 500개 도시에서 개최</li>
-                      <li>해외 관광객 전년 대비 180% 증가</li>
-                      <li>전통 공예 체험 프로그램 인기</li>
-                      <li>중국 요리 문화 체험관 확대 운영</li>
-                      <li>전통 음악 및 무용 공연 상설화</li>
-                    </ul>
-                  </>
-                )}
-
-                <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">전문가 분석</h3>
-                <p className="text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg border-l-4 border-green-600">
-                  "이번 발표는 중국이 지속가능한 성장을 유지하고 있음을 보여주는 중요한 지표입니다. 
-                  특히 첨단 기술 분야와 내수 시장의 동반 성장이 주목할 만한 성과이며, 
-                  앞으로도 이러한 추세가 계속될 것으로 전망됩니다."
-                </p>
-
-                <h3 className="text-xl font-semibold text-gray-900 mt-8 mb-3">향후 전망</h3>
-                <p className="text-gray-700 leading-relaxed mb-4">
-                  전문가들은 중국 경제가 안정적인 성장세를 이어갈 것으로 전망하고 있습니다. 
-                  특히 내수 시장 활성화와 기술 혁신이 경제 성장의 주요 동력이 될 것으로 보입니다.
-                </p>
-                <p className="text-gray-700 leading-relaxed">
-                  정부는 지속가능한 발전을 위해 친환경 정책과 디지털 전환을 가속화할 계획이며, 
-                  이는 중장기적으로 경제 구조의 질적 개선을 가져올 것으로 기대됩니다.
+              <img src={selectedNews.image} alt={selectedNews.title} className="w-full rounded-lg object-cover mb-6" style={{maxHeight:"460px"}} />
+              <div className="prose prose-lg max-w-none">
+                <p className="text-gray-700 text-base leading-relaxed mb-4">{selectedNews.content}</p>
+                <h2 className="text-xl font-bold text-gray-900 mt-6 mb-3">상세 내용</h2>
+                <p className="text-gray-700 leading-relaxed mb-4">{selectedNews.content}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">전문가 분석</h3>
+                <p className="text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg border-l-4 border-green-600 mb-4">
+                  "이번 발표는 중국의 지속가능한 성장을 보여주는 중요한 지표입니다."
                 </p>
               </div>
-
-              {/* Key Points Summary */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">핵심 요약</h3>
-                <ul className="space-y-2 text-gray-700">
-                  <li className="flex items-start">
-                    <span className="text-blue-600 mr-2">•</span>
-                    <span>{selectedNews.content}</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-600 mr-2">•</span>
-                    <span>전문가들은 향후 지속적인 성장세를 전망</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-600 mr-2">•</span>
-                    <span>정부의 적극적인 정책 지원이 뒷받침</span>
-                  </li>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                <h3 className="text-base font-semibold text-gray-900 mb-2">핵심 요약</h3>
+                <ul className="space-y-1.5 text-sm text-gray-700">
+                  <li className="flex items-start"><span className="text-blue-600 mr-2">•</span><span>{selectedNews.content}</span></li>
+                  <li className="flex items-start"><span className="text-blue-600 mr-2">•</span><span>전문가들은 향후 지속적인 성장세를 전망</span></li>
                 </ul>
               </div>
-
-              {/* Share and Action Buttons */}
-              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-                <div className="flex items-center space-x-3">
-                  <Button variant="outline" size="sm">
-                    공유하기
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    북마크
-                  </Button>
+              <div className="flex items-center justify-between pt-6 border-t border-gray-200 mt-6">
+                <div className="flex items-center space-x-2">
+                  <Button variant="outline" size="sm">공유하기</Button>
+                  <Button variant="outline" size="sm">북마크</Button>
                 </div>
-                <Button 
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={handleBackToList}
-                >
-                  목록으로
-                </Button>
+                <Button className="bg-green-600 hover:bg-green-700" onClick={handleBackToList}>목록으로</Button>
               </div>
             </div>
-          </article>
 
-          {/* Related Articles */}
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">관련 기사</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              {newsItems.filter(news => 
-                news.id !== selectedNews.id && 
-                news.category === selectedNews.category
-              ).slice(0, 2).map((relatedNews) => (
-                <Card 
-                  key={relatedNews.id} 
-                  className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => handleViewDetails(relatedNews)}
-                >
-                  <div className="flex">
-                    <div className="w-1/3">
-                      <img 
-                        src={relatedNews.image} 
-                        alt={relatedNews.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="w-2/3 p-4">
-                      <span className="bg-blue-100 text-blue-700 px-2 py-1 text-xs font-medium rounded">
-                        {relatedNews.category}
-                      </span>
-                      <h3 className="text-sm font-semibold text-gray-900 mt-2 line-clamp-2">
-                        {relatedNews.title}
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-2">{relatedNews.source} · {relatedNews.time}</p>
-                    </div>
+            {/* 사이드바 1/4 */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-6 space-y-4">
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-3 text-sm">관련 기사</h3>
+                  <div className="space-y-2">
+                    {newsItems.filter(n => n.id !== selectedNews.id && n.category === selectedNews.category).slice(0, 3).map(related => (
+                      <div key={related.id} className="cursor-pointer hover:bg-gray-50 p-2 rounded" onClick={() => handleViewDetails(related)}>
+                        <p className="text-xs text-gray-700 line-clamp-2 font-medium">{related.title}</p>
+                        <p className="text-[10px] text-gray-400 mt-1">{related.time}</p>
+                      </div>
+                    ))}
                   </div>
                 </Card>
-              ))}
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-3 text-sm">빠른 서비스</h3>
+                  <div className="space-y-1.5">
+                    {[{icon:"📋", label:"뉴스 알림 설정"}, {icon:"📌", label:"즐겨찾기"}, {icon:"🔗", label:"링크 공유"}].map(s => (
+                      <button key={s.label} className="w-full flex items-center gap-2 p-2 text-xs text-gray-700 border rounded-lg hover:bg-gray-50">
+                        <span>{s.icon}</span><span>{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-3 text-sm">문의하기</h3>
+                  <div className="space-y-2 text-xs text-gray-600">
+                    <div><p className="font-medium text-gray-800">제보·문의</p><p className="text-gray-500">news@chinaup.com</p></div>
+                    <div><p className="font-medium text-gray-800">운영시간</p><p className="text-gray-500">평일 09:00-18:00</p></div>
+                  </div>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
       </div>
     );
   }

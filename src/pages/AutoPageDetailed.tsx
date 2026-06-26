@@ -80,7 +80,7 @@ export function AutoPage({ onBack }: AutoPageProps) {
       <div className="min-h-screen bg-white">
         {/* Header */}
         <div className="bg-white border-b">
-          <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="max-w-6xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <Button 
                 onClick={handleBackToList}
@@ -104,7 +104,7 @@ export function AutoPage({ onBack }: AutoPageProps) {
         </div>
 
         {/* Article Content */}
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Main Content */}
             <div className="lg:col-span-3">
