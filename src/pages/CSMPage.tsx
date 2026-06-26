@@ -257,6 +257,93 @@ export function CSMPage({ onBack }: CSMPageProps) {
     }
   };
 
+  // ===== 뷰·기업 관리 =====
+  interface ViewPost {
+    id: string;
+    type: '일상' | '여행' | '생활';
+    title: string;
+    author: string;
+    date: string;
+    image: string;
+    comments: number;
+    views: number;
+    likes: number;
+    status: 'active' | 'draft';
+  }
+
+  interface BizItem {
+    id: string;
+    name: string;
+    slogan: string;
+    category: string;
+    region: string;
+    description: string;
+    image: string;
+    wechat?: string;
+    tiktok?: string;
+    xiaohongshu?: string;
+    website?: string;
+    videoUrl?: string;
+    tags: string;
+    status: 'active' | 'draft';
+  }
+
+  const [viewPosts, setViewPosts] = useState<ViewPost[]>(() => {
+    try {
+      const saved = localStorage.getItem('csm_view_posts');
+      return saved ? JSON.parse(saved) : [
+        { id: 'v1', type: '일상', title: '베이징 왕징 가을 단풍 산책 — 주말 나들이 후기', author: '왕징댁', date: '6월 20일', image: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=400&h=300&fit=crop', comments: 31, views: 1842, likes: 114, status: 'active' },
+        { id: 'v2', type: '여행', title: '상하이 → 계림 기차 여행 3박 4일 완전 정복', author: '푸동여행자', date: '6월 19일', image: 'https://images.unsplash.com/photo-1537495329792-41ae41ad3bf0?w=400&h=300&fit=crop', comments: 47, views: 3241, likes: 228, status: 'active' },
+        { id: 'v3', type: '생활', title: '중국에서 아이 학교 보내기 — 한국학교 vs 현지학교', author: '베이징학부모', date: '6월 18일', image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop', comments: 63, views: 4512, likes: 301, status: 'active' },
+        { id: 'v4', type: '여행', title: '윈난성 리장 고성 — 한인 부부 자유여행 사진 일기', author: '리장커플', date: '6월 17일', image: 'https://images.unsplash.com/photo-1555921015-5532091f6026?w=400&h=300&fit=crop', comments: 28, views: 2187, likes: 193, status: 'active' },
+      ];
+    } catch { return []; }
+  });
+
+  const [bizItems, setBizItems] = useState<BizItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('csm_biz_items');
+      return saved ? JSON.parse(saved) : [
+        { id: 'b1', name: 'BRIDGE CO.', slogan: '중국과 한국을 잇는 다리', category: '무역·컨설팅', region: '베이징', description: '한중 무역 및 현지 비즈니스 컨설팅 전문.', image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=400&fit=crop', wechat: 'bridgecokr', tiktok: '@bridgeco_china', xiaohongshu: 'bridgeco', website: '', videoUrl: '', tags: '무역,법인설립,컨설팅', status: 'active' },
+        { id: 'b2', name: 'SEOUL KITCHEN', slogan: '베이징 한가운데 서울의 맛', category: '요식업', region: '베이징 왕징', description: '왕징 한인타운 정통 한식당.', image: 'https://images.unsplash.com/photo-1498579150354-977475b7ea0b?w=600&h=400&fit=crop', wechat: 'seoulkitchen_bj', tiktok: '', xiaohongshu: 'seoulkitchen', website: '', videoUrl: '', tags: '한식당,왕징,배달가능', status: 'active' },
+      ];
+    } catch { return []; }
+  });
+
+  const [mediaTab, setMediaTab] = useState<'view' | 'biz'>('view');
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isBizDialogOpen, setIsBizDialogOpen] = useState(false);
+  const [editingView, setEditingView] = useState<ViewPost | null>(null);
+  const [editingBiz, setEditingBiz] = useState<BizItem | null>(null);
+
+  const saveViewPosts = (posts: ViewPost[]) => { localStorage.setItem('csm_view_posts', JSON.stringify(posts)); setViewPosts(posts); };
+  const saveBizItems = (items: BizItem[]) => { localStorage.setItem('csm_biz_items', JSON.stringify(items)); setBizItems(items); };
+
+  const handleViewDelete = (id: string) => { if (confirm('삭제하시겠습니까?')) saveViewPosts(viewPosts.filter(p => p.id !== id)); };
+  const handleBizDelete = (id: string) => { if (confirm('삭제하시겠습니까?')) saveBizItems(bizItems.filter(b => b.id !== id)); };
+
+  const handleViewSave = () => {
+    if (!editingView) return;
+    if (viewPosts.find(p => p.id === editingView.id)) {
+      saveViewPosts(viewPosts.map(p => p.id === editingView.id ? editingView : p));
+    } else {
+      saveViewPosts([...viewPosts, editingView]);
+    }
+    setIsViewDialogOpen(false);
+    setEditingView(null);
+  };
+
+  const handleBizSave = () => {
+    if (!editingBiz) return;
+    if (bizItems.find(b => b.id === editingBiz.id)) {
+      saveBizItems(bizItems.map(b => b.id === editingBiz.id ? editingBiz : b));
+    } else {
+      saveBizItems([...bizItems, editingBiz]);
+    }
+    setIsBizDialogOpen(false);
+    setEditingBiz(null);
+  };
+
   const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-c6687586`;
 
   // Supabase에서 데이터 로드
@@ -506,22 +593,26 @@ export function CSMPage({ onBack }: CSMPageProps) {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white">
+          <TabsList className="grid w-full grid-cols-5 bg-white">
             <TabsTrigger value="legal" className="flex items-center space-x-2">
               <Scale className="w-4 h-4" />
-              <span>법적 고지 & 정책</span>
+              <span>법적 고지</span>
             </TabsTrigger>
             <TabsTrigger value="content" className="flex items-center space-x-2">
               <FileText className="w-4 h-4" />
-              <span>일반 콘텐츠</span>
+              <span>콘텐츠</span>
             </TabsTrigger>
             <TabsTrigger value="community" className="flex items-center space-x-2">
               <Pin className="w-4 h-4" />
-              <span>필독 & 공지 관리</span>
+              <span>필독·공지</span>
             </TabsTrigger>
             <TabsTrigger value="members" className="flex items-center space-x-2">
               <Users className="w-4 h-4" />
-              <span>회원 등급 관리</span>
+              <span>회원 관리</span>
+            </TabsTrigger>
+            <TabsTrigger value="media" className="flex items-center space-x-2">
+              <Star className="w-4 h-4" />
+              <span>뷰·기업</span>
             </TabsTrigger>
           </TabsList>
 
@@ -934,9 +1025,189 @@ export function CSMPage({ onBack }: CSMPageProps) {
               </CardContent>
             </Card>
           </TabsContent>
+          {/* 뷰·기업 관리 탭 */}
+          <TabsContent value="media" className="space-y-6">
+
+            {/* 내부 탭 토글 */}
+            <div className="flex gap-2">
+              <button onClick={() => setMediaTab('view')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mediaTab === 'view' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                📸 뷰(VIEW) 게시물
+              </button>
+              <button onClick={() => setMediaTab('biz')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mediaTab === 'biz' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                🏢 재중 한인 기업
+              </button>
+            </div>
+
+            {/* 뷰 게시물 관리 */}
+            {mediaTab === 'view' && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">뷰(VIEW) 게시물 관리</CardTitle>
+                    <Button size="sm" onClick={() => { setEditingView({ id: Date.now().toString(), type: '일상', title: '', author: '', date: new Date().toLocaleDateString('ko-KR', {month:'long', day:'numeric'}), image: '', comments: 0, views: 0, likes: 0, status: 'active' }); setIsViewDialogOpen(true); }} className="bg-gray-900 hover:bg-gray-700">
+                      <Plus className="w-4 h-4 mr-1" /> 새 게시물
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {viewPosts.map(post => (
+                      <div key={post.id} className={`flex items-center gap-3 border rounded-lg p-3 ${post.status === 'draft' ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
+                        <img src={post.image} alt={post.title} className="w-16 h-12 object-cover rounded shrink-0" onError={e => (e.currentTarget.style.display='none')} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${post.type === '여행' ? 'bg-blue-100 text-blue-600' : post.type === '생활' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{post.type}</span>
+                            <span className="text-sm font-medium text-gray-900 truncate">{post.title}</span>
+                          </div>
+                          <div className="text-xs text-gray-400 mt-0.5">{post.author} · {post.date}</div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button size="sm" variant="outline" onClick={() => { setEditingView(post); setIsViewDialogOpen(true); }}><Edit className="w-3 h-3" /></Button>
+                          <Button size="sm" variant="outline" onClick={() => saveViewPosts(viewPosts.map(p => p.id === post.id ? { ...p, status: p.status === 'active' ? 'draft' : 'active' } : p))} className={post.status === 'active' ? 'text-orange-500' : 'text-green-500'}>{post.status === 'active' ? '숨김' : '공개'}</Button>
+                          <Button size="sm" variant="outline" className="text-red-500 border-red-200" onClick={() => handleViewDelete(post.id)}><Trash2 className="w-3 h-3" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                    {viewPosts.length === 0 && <p className="text-center py-8 text-gray-400 text-sm">게시물이 없습니다.</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 기업 관리 */}
+            {mediaTab === 'biz' && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">재중 한인 기업 관리</CardTitle>
+                    <Button size="sm" onClick={() => { setEditingBiz({ id: Date.now().toString(), name: '', slogan: '', category: '기타', region: '베이징', description: '', image: '', wechat: '', tiktok: '', xiaohongshu: '', website: '', videoUrl: '', tags: '', status: 'active' }); setIsBizDialogOpen(true); }} className="bg-gray-900 hover:bg-gray-700">
+                      <Plus className="w-4 h-4 mr-1" /> 기업 등록
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {bizItems.map(biz => (
+                      <div key={biz.id} className={`flex items-center gap-3 border rounded-lg p-3 ${biz.status === 'draft' ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
+                        <img src={biz.image} alt={biz.name} className="w-16 h-12 object-cover rounded shrink-0" onError={e => (e.currentTarget.style.display='none')} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{biz.category}</span>
+                            <span className="text-sm font-bold text-gray-900 truncate">{biz.name}</span>
+                          </div>
+                          <div className="text-xs text-gray-400 mt-0.5">{biz.slogan} · {biz.region}</div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button size="sm" variant="outline" onClick={() => { setEditingBiz(biz); setIsBizDialogOpen(true); }}><Edit className="w-3 h-3" /></Button>
+                          <Button size="sm" variant="outline" onClick={() => saveBizItems(bizItems.map(b => b.id === biz.id ? { ...b, status: b.status === 'active' ? 'draft' : 'active' } : b))} className={biz.status === 'active' ? 'text-orange-500' : 'text-green-500'}>{biz.status === 'active' ? '숨김' : '공개'}</Button>
+                          <Button size="sm" variant="outline" className="text-red-500 border-red-200" onClick={() => handleBizDelete(biz.id)}><Trash2 className="w-3 h-3" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                    {bizItems.length === 0 && <p className="text-center py-8 text-gray-400 text-sm">등록된 기업이 없습니다.</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
         </Tabs>
 
-        {/* 회원 편집 다이얼로그 */}
+        {/* 뷰 게시물 편집 다이얼로그 */}
+        <Dialog open={isViewDialogOpen} onOpenChange={open => { setIsViewDialogOpen(open); if (!open) setEditingView(null); }}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>뷰(VIEW) 게시물 {viewPosts.find(p => p.id === editingView?.id) ? '수정' : '추가'}</DialogTitle>
+            </DialogHeader>
+            {editingView && (
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>유형</Label>
+                    <select value={editingView.type} onChange={e => setEditingView({...editingView, type: e.target.value as any})} className="w-full border rounded px-3 py-2 mt-1 text-sm">
+                      <option value="일상">일상</option>
+                      <option value="여행">여행</option>
+                      <option value="생활">생활</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label>상태</Label>
+                    <select value={editingView.status} onChange={e => setEditingView({...editingView, status: e.target.value as any})} className="w-full border rounded px-3 py-2 mt-1 text-sm">
+                      <option value="active">공개</option>
+                      <option value="draft">숨김</option>
+                    </select>
+                  </div>
+                </div>
+                <div><Label>제목</Label><Input value={editingView.title} onChange={e => setEditingView({...editingView, title: e.target.value})} className="mt-1" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>작성자</Label><Input value={editingView.author} onChange={e => setEditingView({...editingView, author: e.target.value})} className="mt-1" /></div>
+                  <div><Label>날짜</Label><Input value={editingView.date} onChange={e => setEditingView({...editingView, date: e.target.value})} placeholder="6월 20일" className="mt-1" /></div>
+                </div>
+                <div>
+                  <Label>이미지 URL</Label>
+                  <Input value={editingView.image} onChange={e => setEditingView({...editingView, image: e.target.value})} placeholder="https://..." className="mt-1" />
+                  {editingView.image && <img src={editingView.image} className="mt-2 w-full h-28 object-cover rounded border" />}
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <Button variant="outline" onClick={() => { setIsViewDialogOpen(false); setEditingView(null); }}>취소</Button>
+                  <Button onClick={handleViewSave} className="bg-gray-900 hover:bg-gray-700" disabled={!editingView.title}><Save className="w-4 h-4 mr-1" />저장</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* 기업 편집 다이얼로그 */}
+        <Dialog open={isBizDialogOpen} onOpenChange={open => { setIsBizDialogOpen(open); if (!open) setEditingBiz(null); }}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>기업 {bizItems.find(b => b.id === editingBiz?.id) ? '수정' : '등록'}</DialogTitle>
+            </DialogHeader>
+            {editingBiz && (
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>기업명</Label><Input value={editingBiz.name} onChange={e => setEditingBiz({...editingBiz, name: e.target.value})} className="mt-1" /></div>
+                  <div>
+                    <Label>카테고리</Label>
+                    <select value={editingBiz.category} onChange={e => setEditingBiz({...editingBiz, category: e.target.value})} className="w-full border rounded px-3 py-2 mt-1 text-sm">
+                      {['무역·컨설팅','요식업','교육','의료·뷰티','IT','부동산','기타'].map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div><Label>슬로건</Label><Input value={editingBiz.slogan} onChange={e => setEditingBiz({...editingBiz, slogan: e.target.value})} className="mt-1" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>지역</Label><Input value={editingBiz.region} onChange={e => setEditingBiz({...editingBiz, region: e.target.value})} className="mt-1" /></div>
+                  <div>
+                    <Label>상태</Label>
+                    <select value={editingBiz.status} onChange={e => setEditingBiz({...editingBiz, status: e.target.value as any})} className="w-full border rounded px-3 py-2 mt-1 text-sm">
+                      <option value="active">공개</option><option value="draft">숨김</option>
+                    </select>
+                  </div>
+                </div>
+                <div><Label>소개글</Label><textarea value={editingBiz.description} onChange={e => setEditingBiz({...editingBiz, description: e.target.value})} rows={3} className="w-full border rounded px-3 py-2 mt-1 text-sm resize-none" /></div>
+                <div>
+                  <Label>대표 이미지 URL</Label>
+                  <Input value={editingBiz.image} onChange={e => setEditingBiz({...editingBiz, image: e.target.value})} placeholder="https://..." className="mt-1" />
+                  {editingBiz.image && <img src={editingBiz.image} className="mt-2 w-full h-28 object-cover rounded border" />}
+                </div>
+                <div><Label>소개 동영상 URL (YouTube embed 등)</Label><Input value={editingBiz.videoUrl || ''} onChange={e => setEditingBiz({...editingBiz, videoUrl: e.target.value})} placeholder="https://youtube.com/embed/..." className="mt-1" /></div>
+                <div>
+                  <Label>SNS</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <Input value={editingBiz.wechat || ''} onChange={e => setEditingBiz({...editingBiz, wechat: e.target.value})} placeholder="WeChat ID" />
+                    <Input value={editingBiz.tiktok || ''} onChange={e => setEditingBiz({...editingBiz, tiktok: e.target.value})} placeholder="TikTok @계정" />
+                    <Input value={editingBiz.xiaohongshu || ''} onChange={e => setEditingBiz({...editingBiz, xiaohongshu: e.target.value})} placeholder="小红书 ID" />
+                    <Input value={editingBiz.website || ''} onChange={e => setEditingBiz({...editingBiz, website: e.target.value})} placeholder="웹사이트 URL" />
+                  </div>
+                </div>
+                <div><Label>태그 (쉼표로 구분)</Label><Input value={editingBiz.tags} onChange={e => setEditingBiz({...editingBiz, tags: e.target.value})} placeholder="무역,컨설팅,법인설립" className="mt-1" /></div>
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <Button variant="outline" onClick={() => { setIsBizDialogOpen(false); setEditingBiz(null); }}>취소</Button>
+                  <Button onClick={handleBizSave} className="bg-gray-900 hover:bg-gray-700" disabled={!editingBiz.name}><Save className="w-4 h-4 mr-1" />저장</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
         <Dialog open={isMemberDialogOpen} onOpenChange={(open) => { setIsMemberDialogOpen(open); if (!open) setEditingMember(null); }}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>

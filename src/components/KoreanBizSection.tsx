@@ -117,15 +117,13 @@ export function KoreanBizSection() {
         </div>
 
         {/* 필터 */}
-        <div className="flex gap-1.5 flex-wrap mb-3">
+        <div className="flex gap-1.5 flex-wrap mb-4">
           {filters.map(f => (
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
-                activeFilter === f
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                activeFilter === f ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               {f}
@@ -133,44 +131,39 @@ export function KoreanBizSection() {
           ))}
         </div>
 
-        {/* 카드 그리드 */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* 뷰(VIEW)와 동일한 2열 카드 그리드 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {filtered.map(company => (
             <div
               key={company.id}
-              className="group cursor-pointer rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition-all"
+              className="group cursor-pointer border rounded-lg p-3 hover:shadow-md transition-shadow"
               onClick={() => setSelectedCompany(company)}
             >
-              {/* 이미지 */}
-              <div className="relative aspect-video overflow-hidden">
+              <div className="flex space-x-3">
                 <img
                   src={company.image}
                   alt={company.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-16 sm:w-20 h-12 sm:h-16 object-cover rounded flex-shrink-0"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-2">
-                  <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded backdrop-blur-sm">
-                    {company.category}
-                  </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-gray-500 mb-1">{company.category}</div>
+                  <h3 className="text-sm text-gray-900 font-semibold line-clamp-1 group-hover:text-gray-600">
+                    {company.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{company.slogan}</p>
+                  <div className="text-xs text-gray-400 mt-1.5">{company.region}</div>
                 </div>
               </div>
 
-              {/* 텍스트 */}
-              <div className="p-2.5">
-                <p className="text-sm font-bold text-gray-900 tracking-tight">{company.name}</p>
-                <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{company.slogan}</p>
-                <div className="flex items-center gap-1 mt-1.5">
-                  <MapPin className="w-2.5 h-2.5 text-gray-400 shrink-0" />
-                  <span className="text-[10px] text-gray-400">{company.region}</span>
-                </div>
-                {/* SNS 아이콘 */}
-                <div className="flex gap-2 mt-2">
+              {/* SNS 아이콘 + 하단 */}
+              <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-100">
+                <div className="flex gap-2">
                   {company.wechat && <span className="text-green-500"><WechatIcon /></span>}
                   {company.tiktok && <span className="text-gray-800"><TiktokIcon /></span>}
                   {company.xiaohongshu && <span className="text-red-500"><XiaohongshuIcon /></span>}
-                  {company.website && <Globe className="w-4 h-4 text-blue-500" />}
+                  {company.website && <Globe className="w-4 h-4 text-blue-400" />}
                 </div>
+                <span className="text-[10px] text-gray-300">상세보기 →</span>
               </div>
             </div>
           ))}
