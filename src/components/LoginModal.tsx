@@ -208,16 +208,6 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
       return;
     }
     
-    if (!formData.phone) {
-      toast.error('전화번호를 입력해주세요.');
-      return;
-    }
-    
-    if (formData.verificationCode !== '123456') {
-      toast.error('핸드폰 인증 코드가 올바르지 않습니다.');
-      return;
-    }
-    
     setIsSubmitting(true);
     
     setTimeout(() => {
@@ -232,7 +222,6 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
         const newUser = {
           username: formData.username,
           password: formData.password,
-          phone: countryCode + formData.phone,
           region: formData.region,
           loginMethod: 'password',
           createdAt: new Date().toISOString()
@@ -566,56 +555,6 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
                         🔒
                       </div>
-                    </div>
-
-                    {/* 핸드폰 인증 */}
-                    <div className="relative">
-                      <select
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 bg-transparent border-none text-gray-700 font-semibold focus:outline-none z-10 cursor-pointer text-sm"
-                        style={{ width: '75px' }}
-                      >
-                        <option value="+86">🇨🇳 +86</option>
-                        <option value="+1">🇺🇸 +1</option>
-                        <option value="+82">🇰🇷 +82</option>
-                        <option value="+81">🇯🇵 +81</option>
-                        <option value="+44">🇬🇧 +44</option>
-                      </select>
-                      <input
-                        type="tel"
-                        placeholder="전화번호"
-                        required
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full px-4 py-2.5 pl-24 rounded-lg bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      />
-                      <div className="absolute left-[78px] top-1/2 -translate-y-1/2 text-gray-300">
-                        |
-                      </div>
-                    </div>
-
-                    {/* 핸드폰 인증 코드 */}
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="인증 코드 (123456)"
-                        required
-                        value={formData.verificationCode}
-                        onChange={(e) => setFormData({ ...formData, verificationCode: e.target.value })}
-                        className="w-full px-4 py-2.5 pl-11 pr-20 rounded-lg bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      />
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
-                        📱
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleSendCode}
-                        disabled={countdown > 0}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-2.5 py-1 rounded text-xs cursor-pointer hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                      >
-                        {countdown > 0 ? `${countdown}초` : '코드전송'}
-                      </button>
                     </div>
 
                     {/* 지역 선택 */}

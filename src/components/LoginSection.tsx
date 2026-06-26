@@ -78,7 +78,6 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
         <div className="bg-gray-50 grid grid-cols-3 px-2 pt-2 pb-2">
           {menuItems.map((item, i) => {
             const isActive = i === activeIdx;
-            // 세로 구분선: 마지막 열이 아닌 경우
             const showRightBorder = (i % 3) !== 2;
             return (
               <button
@@ -98,6 +97,16 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
               </button>
             );
           })}
+        </div>
+
+        {/* 로그아웃 */}
+        <div className="px-4 py-2.5 border-t border-gray-100">
+          <button
+            onClick={onLogout}
+            className="w-full text-xs text-gray-400 hover:text-red-500 transition-colors text-right"
+          >
+            로그아웃
+          </button>
         </div>
       </div>
     );
