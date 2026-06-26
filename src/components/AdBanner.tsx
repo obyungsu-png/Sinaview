@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
+import { AdModal, AdContent } from './AdModal';
 
 interface Ad {
   id: string;
@@ -14,6 +15,7 @@ interface Ad {
 
 export function AdBanner() {
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [selectedAd, setSelectedAd] = useState<AdContent | null>(null);
 
   const ads: Ad[] = [
     {
@@ -60,7 +62,10 @@ export function AdBanner() {
       <div className="max-w-7xl mx-auto px-4 py-2">
         <div className="flex items-center justify-between">
           {/* Left Side - Advertisement */}
-          <div className="flex items-center w-full max-w-4xl bg-gray-100 border border-gray-200 rounded-lg p-3 mr-4">
+          <div
+            className="flex items-center w-full max-w-4xl bg-gray-100 border border-gray-200 rounded-lg p-3 mr-4 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => setSelectedAd({ id: currentAd.id, title: currentAd.title, description: currentAd.description, company: currentAd.company, imageUrl: currentAd.image, link: currentAd.link })}
+          >
             <div className="flex items-center flex-1">
               {/* Ad Image - 40% */}
               <div className="w-2/5 pr-3">
@@ -111,5 +116,6 @@ export function AdBanner() {
         </div>
       </div>
     </div>
+    {selectedAd && <AdModal ad={selectedAd} onClose={() => setSelectedAd(null)} />}
   );
 }

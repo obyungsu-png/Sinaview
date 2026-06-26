@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
-
+import { AdModal, AdContent } from './AdModal';
 interface Ad {
   id: string;
   title: string;
@@ -13,6 +13,7 @@ interface Ad {
 
 export function CenterAdBanner() {
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [selectedAd, setSelectedAd] = useState<AdContent | null>(null);
 
   const ads: Ad[] = [
     {
@@ -100,5 +101,6 @@ export function CenterAdBanner() {
         </div>
       </div>
     </div>
+    {selectedAd && <AdModal ad={selectedAd} onClose={() => setSelectedAd(null)} />}
   );
 }

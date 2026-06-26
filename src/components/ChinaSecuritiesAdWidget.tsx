@@ -1,13 +1,20 @@
+import { useState } from 'react';
+import { AdModal, AdContent } from './AdModal';
 import { TrendingUp, Gift } from 'lucide-react';
 import { Card } from './ui/card';
 
 export function ChinaSecuritiesAdWidget() {
-  const handleLearnMore = () => {
-    window.open('https://www.daishin.com', '_blank');
+  const [selectedAd, setSelectedAd] = useState<AdContent | null>(null);
+  const adData: AdContent = {
+    id: 'sec-1', title: '대신증권 중국주식 특별 혜택', company: '대신증권',
+    description: '중국 주식 거래 수수료 0원! 신규 계좌 개설 시 특별 혜택.',
+    imageUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&h=400&fit=crop',
+    link: 'https://www.daishin.com', linkLabel: '대신증권 바로가기',
   };
 
   return (
-    <Card className="overflow-hidden border border-gray-200">
+    <>
+    <Card className="overflow-hidden border border-gray-200 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedAd(adData)}>
       <div className="relative">
         <img 
           src="https://images.unsplash.com/photo-1588592378201-4a1aee5ab493?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmaW5hbmNpYWwlMjBpbnZlc3RtZW50JTIwb2ZmaWNlfGVufDF8fHx8MTc1OTEyODgwN3ww&ixlib=rb-4.1.0&q=80&utm_source=figma&utm_medium=referral"
@@ -50,7 +57,7 @@ export function ChinaSecuritiesAdWidget() {
         </div>
         
         <button 
-          onClick={handleLearnMore}
+          onClick={() => setSelectedAd(adData)}
           className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center space-x-1"
         >
           <span>더 알아보기</span>
@@ -58,5 +65,7 @@ export function ChinaSecuritiesAdWidget() {
         </button>
       </div>
     </Card>
+    {selectedAd && <AdModal ad={selectedAd} onClose={() => setSelectedAd(null)} />}
+    </>
   );
 }
