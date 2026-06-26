@@ -61,15 +61,12 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
     fetchComments();
   }, [pageType, itemId]);
 
-  // AI 채팅 스크롤 자동 이동 (컨테이너 내부에서만)
+  // AI 채팅 스크롤 — 새 메시지 오면 항상 맨 아래로
   useEffect(() => {
     if (chatEndRef.current) {
-      const container = chatEndRef.current.parentElement;
-      if (container) {
-        container.scrollTop = container.scrollHeight;
-      }
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
-  }, [chatMessages]);
+  }, [chatMessages, isAiLoading]);
 
   const fetchComments = async () => {
     try {
@@ -401,7 +398,7 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
   };
 
   return (
-    <div className="comments-section-container grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+    <div className="comments-section-container grid grid-cols-1 lg:grid-cols-4 gap-6 mt-8" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
       <style>{`
         .comment-avatar {
           width: 36px;
@@ -632,7 +629,7 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
       </div>
 
       {/* 오른쪽: AI 채팅 위젯 (1/3) */}
-      <div className="ai-chat-widget lg:col-span-1">
+      <div className="ai-chat-widget lg:col-span-2">
         <Card className="h-full max-h-[600px] flex flex-col border-2 border-teal-100 shadow-md">
           <CardHeader className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white py-4 px-5 rounded-t-lg shrink-0">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -644,7 +641,7 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
             </p>
           </CardHeader>
           
-          <CardContent className="p-0 flex flex-col" style={{height: '380px'}}>
+          <CardContent className="p-0 flex flex-col" style={{height: '480px'}}>
             {/* 메시지 영역 — 고정 높이, 내부 스크롤 */}
             <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50 min-h-0">
               {chatMessages.length === 0 ? (

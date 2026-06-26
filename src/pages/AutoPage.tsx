@@ -352,170 +352,69 @@ export function AutoPage({ onBack, currentUser, isAdmin }: AutoPageProps) {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Quick Stats */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">중국 자동차 시장 현황</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-4 text-center">
-              <Car className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-              <h3 className="font-medium text-sm">월간 판매량</h3>
-              <p className="text-lg font-bold text-blue-600">2.8M대</p>
-              <p className="text-xs text-green-600">↑15.2%</p>
-            </Card>
-            <Card className="p-4 text-center">
-              <Zap className="w-8 h-8 mx-auto mb-2 text-green-600" />
-              <h3 className="font-medium text-sm">전기차 비율</h3>
-              <p className="text-lg font-bold text-green-600">35.6%</p>
-              <p className="text-xs text-green-600">↑8.3%</p>
-            </Card>
-            <Card className="p-4 text-center">
-              <Star className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-              <h3 className="font-medium text-sm">인기 브랜드</h3>
-              <p className="text-lg font-bold text-purple-600">BYD</p>
-              <p className="text-xs text-purple-600">점유율 1위</p>
-            </Card>
-            <Card className="p-4 text-center">
-              <TrendingUp className="w-8 h-8 mx-auto mb-2 text-orange-600" />
-              <h3 className="font-medium text-sm">수출 증가율</h3>
-              <p className="text-lg font-bold text-orange-600">+67%</p>
-              <p className="text-xs text-orange-600">전년 대비</p>
-            </Card>
+        {/* Quick Services — 원형 아이콘 */}
+        <div className="mb-6">
+          <h2 className="text-base font-semibold mb-4">빠른 서비스</h2>
+          <div className="flex gap-4 overflow-x-auto pb-2" style={{scrollbarWidth:'none'}}>
+            {[
+              { icon: <Car className="w-5 h-5" />, label: '신차 검색' },
+              { icon: <Zap className="w-5 h-5" />, label: '전기차 정보' },
+              { icon: <Star className="w-5 h-5" />, label: '중고차 시세' },
+              { icon: <TrendingUp className="w-5 h-5" />, label: '시승 예약' },
+              { icon: <Filter className="w-5 h-5" />, label: '정비 서비스' },
+              { icon: <Search className="w-5 h-5" />, label: '면허 안내' },
+              { icon: <Car className="w-5 h-5" />, label: '자동차 상담' },
+            ].map(item => (
+              <button key={item.label} className="flex flex-col items-center gap-2 shrink-0 group">
+                <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 bg-white group-hover:border-teal-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-all">
+                  {item.icon}
+                </div>
+                <p className="text-xs text-gray-700 whitespace-nowrap">{item.label}</p>
+              </button>
+            ))}
           </div>
         </div>
-
         {/* Category Filters */}
         <div className="mb-6">
-          <div className="flex items-center space-x-2 mb-4">
+          <div className="flex items-center space-x-2 mb-3">
             <Filter className="w-4 h-4 text-gray-500" />
             <span className="text-sm font-medium text-gray-700">카테고리</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? "default" : "outline"}
-                size="sm"
+              <Button key={category} variant={selectedCategory === category ? "default" : "outline"} size="sm"
                 onClick={() => setSelectedCategory(category)}
                 className={selectedCategory === category ? "bg-green-600 hover:bg-green-700" : ""}
-              >
-                {category}
-              </Button>
+              >{category}</Button>
             ))}
           </div>
-          <div className="mt-2 text-sm text-gray-600">
-            총 {filteredNews.length}개 뉴스
-          </div>
+          <div className="mt-2 text-sm text-gray-500">총 {filteredNews.length}개</div>
         </div>
-
-        {/* Featured Article */}
-        {filteredNews.length > 0 && filteredNews[0].isHot && (
-          <div className="mb-8">
-            <Card className="overflow-hidden">
-              <div className="md:flex">
-                <div className="md:w-1/5">
-                  <img 
-                    src={filteredNews[0].image} 
-                    alt={filteredNews[0].title}
-                    className="w-full h-32 md:h-full object-cover"
-                  />
-                </div>
-                <div className="md:w-4/5 p-6">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="bg-red-600 text-white px-2 py-1 text-xs font-bold rounded">HOT</span>
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 text-xs font-medium rounded">
-                      {filteredNews[0].category}
-                    </span>
+        {/* News List — compact */}
+        <div className="space-y-2">
+          {filteredNews.map((news) => (
+            <Card key={news.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+              <div className="flex gap-3 p-3">
+                <img src={news.image} alt={news.title} className="w-20 h-16 object-cover rounded shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-medium rounded">{news.category}</span>
+                    {news.isHot && <span className="bg-red-100 text-red-700 px-1.5 py-0.5 text-[10px] font-bold rounded">HOT</span>}
+                    {news.price !== "-" && <span className="text-green-600 text-[10px] font-bold">{news.price}</span>}
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-3">
-                    {filteredNews[0].title}
-                  </h2>
-                  <p className="text-gray-600 mb-4 line-clamp-3">
-                    {filteredNews[0].description}
-                  </p>
-                  {filteredNews[0].price !== "-" && (
-                    <div className="mb-4">
-                      <span className="text-lg font-bold text-green-600">{filteredNews[0].price}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <div className="flex items-center space-x-4">
-                      <span>{filteredNews[0].source}</span>
-                      <span>{filteredNews[0].time}</span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <span>조회수: {filteredNews[0].views.toLocaleString()}</span>
-                      <span>좋아요: {filteredNews[0].likes}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* News List */}
-        <div className="grid gap-6">
-          {filteredNews.slice(1).map((news) => (
-            <Card key={news.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="md:flex">
-                <div className="md:w-1/6">
-                  <img 
-                    src={news.image} 
-                    alt={news.title}
-                    className="w-full h-28 md:h-full object-cover"
-                  />
-                </div>
-                <div className="md:w-5/6 p-6">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 text-xs font-medium rounded">
-                      {news.category}
-                    </span>
-                    {news.isHot && (
-                      <span className="bg-red-100 text-red-700 px-2 py-1 text-xs font-bold rounded">HOT</span>
-                    )}
-                  </div>
-                  
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {news.title}
-                  </h3>
-                  
-                  <p className="text-gray-600 mb-3 line-clamp-2">
-                    {news.description}
-                  </p>
-                  
-                  {news.price !== "-" && (
-                    <div className="mb-3">
-                      <span className="text-lg font-bold text-green-600">{news.price}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {news.tags.map((tag, index) => (
-                      <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 text-xs rounded">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                  
+                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 mb-0.5">{news.title}</h3>
+                  <p className="text-xs text-gray-500 line-clamp-1 mb-1">{news.description}</p>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>{news.source}</span>
-                      <span>{news.time}</span>
-                      <span>조회수: {news.views.toLocaleString()}</span>
-                      <span>좋아요: {news.likes}</span>
+                    <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                      <span>{news.source}</span><span>·</span><span>{news.time}</span><span>· 조회 {news.views.toLocaleString()}</span>
                     </div>
-                    <Button 
-                      size="sm" 
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => handleViewDetails(news)}
-                    >
-                      자세히 보기
-                    </Button>
+                    <Button size="sm" className="h-6 text-[10px] px-2 bg-green-600 hover:bg-green-700" onClick={() => handleViewDetails(news)}>자세히 보기</Button>
                   </div>
                 </div>
               </div>
             </Card>
           ))}
+          {filteredNews.length === 0 && <div className="text-center py-8 text-gray-400 text-sm">검색 결과가 없습니다.</div>}
         </div>
 
         {filteredNews.length === 0 && (
