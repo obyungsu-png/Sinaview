@@ -58,22 +58,29 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
   }, [userRegion]);
 
   const regions = [
-    { id: 'all', name: '전체', count: 2450 },
-    { id: 'dalian', name: '대련', count: 450 },
-    { id: 'beijing', name: '베이징', count: 680 },
-    { id: 'shanghai', name: '상하이', count: 520 },
-    { id: 'guangzhou', name: '광저우', count: 350 },
-    { id: 'shenzhen', name: '심천', count: 450 },
-    { id: 'wuhan', name: '우한', count: 280 }
+    { id: 'all',       name: '전체',   emoji: '🇨🇳' },
+    { id: 'beijing',   name: '베이징', emoji: '🏛️' },
+    { id: 'shanghai',  name: '상하이', emoji: '🌆' },
+    { id: 'guangzhou', name: '광저우', emoji: '🌸' },
+    { id: 'shenzhen',  name: '심천',   emoji: '🏙️' },
+    { id: 'dalian',    name: '대련',   emoji: '🌊' },
+    { id: 'tianjin',   name: '톈진',   emoji: '🏗️' },
+    { id: 'chengdu',   name: '청두',   emoji: '🐼' },
+    { id: 'wuhan',     name: '우한',   emoji: '🌉' },
+    { id: 'qingdao',   name: '칭다오', emoji: '🍺' },
+    { id: 'shenyang',  name: '선양',   emoji: '❄️' },
+    { id: 'suzhou',    name: '쑤저우', emoji: '🏯' },
+    { id: 'hangzhou',  name: '항저우', emoji: '🍵' },
+    { id: 'xian',      name: '시안',   emoji: '🗿' },
+    { id: 'chongqing', name: '충칭',   emoji: '🌶️' },
+    { id: 'other',     name: '기타',   emoji: '📍' },
   ];
 
   // 사용자 지역을 맨 앞으로 정렬 (전체 제외)
   const sortedRegions = useMemo(() => {
     if (!userRegion) return regions;
-    
     const userRegionObj = regions.find(r => r.name === userRegion);
     if (!userRegionObj || userRegion === '전체') return regions;
-    
     const allRegion = regions.find(r => r.name === '전체');
     const otherRegions = regions.filter(r => r.name !== userRegion && r.name !== '전체');
     return [allRegion!, userRegionObj, ...otherRegions];
@@ -963,25 +970,25 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
             </button>
           </div>
 
-          {/* 지역 선택 탭 */}
-          <div className="mb-3">
-            <div className="flex items-center space-x-1 text-sm text-gray-600 flex-wrap">
-              {sortedRegions.map((region, index) => (
-                <div key={region.id} className="contents">
-                  <button
-                    onClick={() => setActiveRegion(region.name)}
-                    className={`hover:text-orange-600 transition-colors ${
-                      activeRegion === region.name
-                        ? 'text-orange-600 font-medium'
-                        : 'text-gray-600'
-                    }`}
-                  >
-                    {region.name}
-                  </button>
-                  {index < sortedRegions.length - 1 && (
-                    <span className="text-gray-300">|</span>
-                  )}
-                </div>
+          {/* 지역 선택 — 가로 스크롤 pill 탭 */}
+          <div className="mb-3 -mx-1">
+            <div
+              className="flex gap-1.5 overflow-x-auto pb-1 px-1"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {sortedRegions.map((region) => (
+                <button
+                  key={region.id}
+                  onClick={() => setActiveRegion(region.name)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all shrink-0 ${
+                    activeRegion === region.name
+                      ? 'bg-orange-500 text-white font-semibold shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-orange-600'
+                  }`}
+                >
+                  <span>{region.emoji}</span>
+                  <span>{region.name}</span>
+                </button>
               ))}
             </div>
           </div>
