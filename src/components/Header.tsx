@@ -350,12 +350,6 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
               교육
             </button>
             <button 
-              onClick={() => onNavigate?.('realestate')}
-              className="hover:text-green-600 whitespace-nowrap font-medium"
-            >
-              부동산
-            </button>
-            <button 
               onClick={() => {
                 onYellowPagesSelect('엘로우페이지');
                 scrollToSection('yellowpages', 'yellowpages-mobile');
@@ -390,6 +384,12 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
               className="hover:text-green-600 whitespace-nowrap"
             >
               중국 증권
+            </button>
+            <button 
+              onClick={() => onNavigate?.('realestate')}
+              className="hover:text-green-600 whitespace-nowrap"
+            >
+              부동산
             </button>
             <button 
               onClick={() => onNavigate?.('chinalife')}
