@@ -26,6 +26,7 @@ const CalendarWidget = lazy(() => import('./CalendarWidget').then(m => ({ defaul
 const ChinaAutoAdWidget = lazy(() => import('./ChinaAutoAdWidget').then(m => ({ default: m.ChinaAutoAdWidget })));
 const ChinaSecuritiesAdWidget = lazy(() => import('./ChinaSecuritiesAdWidget').then(m => ({ default: m.ChinaSecuritiesAdWidget })));
 const BlogSection = lazy(() => import('./BlogSection').then(m => ({ default: m.BlogSection })));
+const MobileHome = lazy(() => import('./MobileHome').then(m => ({ default: m.MobileHome })));
 
 // Lazy load page components
 const NewsPage = lazy(() => import('../pages/NewsPage').then(m => ({ default: m.NewsPage })));
@@ -374,126 +375,21 @@ export function Portal() {
         </div>
 
         {/* Mobile Layout */}
-        <div className="lg:hidden space-y-6">
-          {visibleSections >= 1 && (
-            <div className="space-y-4">
-              <LoginSection 
-                onLoginClick={() => setIsLoginModalOpen(true)}
-                onSignupClick={() => setIsSignupModalOpen(true)}
-                currentUser={currentUser}
-                onLogout={() => { localStorage.removeItem('currentUser'); window.location.reload(); }}
-                onNavigate={handleNavigate}
-              />
-              <Suspense fallback={<LoadingSpinner />}>
-                <RegionalNewsWidget />
-              </Suspense>
-            </div>
-          )}
-          
-          {visibleSections >= 2 && (
-            <div className="space-y-4">
-              <Suspense fallback={<LoadingSpinner />}>
-                <WeatherWidget />
-              </Suspense>
-              <Suspense fallback={<LoadingSpinner />}>
-                <WeatherAdWidget />
-              </Suspense>
-              <Suspense fallback={<LoadingSpinner />}>
-                <StockWidget />
-              </Suspense>
-            </div>
-          )}
-          
-          {visibleSections >= 3 && (
-            <>
-              <Suspense fallback={<LoadingSpinner />}>
-                <NewsSection category={activeNewsCategory} onMoreClick={handleGoToNewsPage} />
-              </Suspense>
-              <Suspense fallback={<LoadingSpinner />}>
-                <EducationSection 
-                  category="교육" 
-                  onMoreClick={handleGoToEducationPage}
-                  onArticleClick={handleEducationArticleClick}
-                  userRegion={currentUser?.region}
-                />
-              </Suspense>
-            </>
-          )}
-          
-          {visibleSections >= 4 && (
-            <>
-              <Suspense fallback={<LoadingSpinner />}>
-                <SmallAdBanner />
-              </Suspense>
-              <Suspense fallback={<LoadingSpinner />}>
-                <YellowPagesSection category={activeYellowPagesCategory} />
-              </Suspense>
-            </>
-          )}
-          
-          {visibleSections >= 5 && (
-            <>
-              <Suspense fallback={<LoadingSpinner />}>
-                <AutoSection 
-                  category="자동차" 
-                  onMoreClick={handleGoToAutoPage}
-                  onDriverLicenseClick={handleGoToDriverLicensePage}
-                />
-              </Suspense>
-              <Suspense fallback={<LoadingSpinner />}>
-                <SecuritiesSection category="증권" onMoreClick={handleGoToSecuritiesPage} />
-              </Suspense>
-            </>
-          )}
-          
-          {visibleSections >= 6 && (
-            <>
-              <Suspense fallback={<LoadingSpinner />}>
-                <UsedMarketSection category="화개장터" onMoreClick={handleGoToUsedMarketPage} userRegion={currentUser?.region} />
-              </Suspense>
-              <Suspense fallback={<LoadingSpinner />}>
-                <RealEstateSection
-                  category="부동산"
-                  onMoreClick={handleGoToRealEstatePage}
-                  userCity={currentUser?.city || '베이징'}
-                />
-              </Suspense>
-              <Suspense fallback={<LoadingSpinner />}>
-                <VisaDocumentSection 
-                  category="비자/서류" 
-                  onMoreClick={handleGoToVisaDocumentPage}
-                  onArticleClick={handleVisaArticleClick}
-                />
-              </Suspense>
-            </>
-          )}
-          
-          {visibleSections >= 7 && (
-            <>
-              {showCalendar && (
-                <Suspense fallback={<LoadingSpinner />}>
-                  <CalendarWidget />
-                </Suspense>
-              )}
-              <div className="space-y-4">
-                <Suspense fallback={<LoadingSpinner />}>
-                  <ChinaAutoAdWidget />
-                </Suspense>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <ChinaSecuritiesAdWidget />
-                </Suspense>
-              </div>
-            </>
-          )}
+        <div className="lg:hidden">
+          <Suspense fallback={<LoadingSpinner />}>
+            <MobileHome
+              currentUser={currentUser}
+              isAdmin={isAdmin}
+              onLoginClick={() => setIsLoginModalOpen(true)}
+              onSignupClick={() => setIsSignupModalOpen(true)}
+              onLogout={() => { localStorage.removeItem('currentUser'); window.location.reload(); }}
+              onNavigate={handleNavigate}
+              onVisaArticleClick={handleVisaArticleClick}
+              onEducationArticleClick={handleEducationArticleClick}
+              onDriverLicenseClick={handleGoToDriverLicensePage}
+            />
+          </Suspense>
         </div>
-
-        {visibleSections >= 7 && (
-          <div className="mt-8 lg:hidden">
-            <Suspense fallback={<LoadingSpinner />}>
-              <HospitalWidget userCity={currentUser?.city || '베이징'} />
-            </Suspense>
-          </div>
-        )}
 
         {visibleSections >= 8 && (
           <div className="mt-8">
