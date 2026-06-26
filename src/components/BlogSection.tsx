@@ -10,55 +10,55 @@ export function BlogSection({ onViewHomeClick }: BlogSectionProps) {
   const blogPosts = [
     {
       id: 1,
-      title: "가을 여행지 추천 - 단풍명소 BEST 10",
-      author: "여행블로거",
-      date: "9월 28일",
-      image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=150&h=100&fit=crop",
-      comments: 24,
-      views: 1234,
-      likes: 89,
-      type: "블로그"
+      title: "베이징 왕징 가을 단풍 산책 — 주말 나들이 후기",
+      author: "왕징댁",
+      date: "6월 20일",
+      image: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=150&h=100&fit=crop",
+      comments: 31,
+      views: 1842,
+      likes: 114,
+      type: "일상"
     },
     {
       id: 2,
-      title: "집에서 만드는 간단한 한식 레시피",
-      author: "요리연구가",
-      date: "9월 28일",
-      image: "https://images.unsplash.com/photo-1641735883611-e2bbcde5b903?w=150&h=100&fit=crop",
-      comments: 18,
-      views: 892,
-      likes: 156,
-      type: "블로그"
+      title: "상하이 → 계림 기차 여행 3박 4일 완전 정복",
+      author: "푸동여행자",
+      date: "6월 19일",
+      image: "https://images.unsplash.com/photo-1537495329792-41ae41ad3bf0?w=150&h=100&fit=crop",
+      comments: 47,
+      views: 3241,
+      likes: 228,
+      type: "여행"
     },
     {
       id: 3,
-      title: "2024 K-뷰티 트렌드 분석",
-      author: "뷰티인플루언서",
-      date: "9월 27일",
-      image: "https://images.unsplash.com/photo-1741896135490-4062a3b21abf?w=150&h=100&fit=crop",
-      comments: 45,
-      views: 2156,
-      likes: 234,
-      type: "카페"
+      title: "중국에서 아이 학교 보내기 — 한국학교 vs 현지학교 솔직 후기",
+      author: "베이징학부모",
+      date: "6월 18일",
+      image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=150&h=100&fit=crop",
+      comments: 63,
+      views: 4512,
+      likes: 301,
+      type: "생활"
     },
     {
       id: 4,
-      title: "효율적인 재택근무를 위한 홈오피스 꾸미기",
-      author: "인테리어디자이너",
-      date: "9월 27일",
-      image: "https://images.unsplash.com/photo-1615529182904-14819c35db37?w=150&h=100&fit=crop",
-      comments: 32,
-      views: 1567,
-      likes: 187,
-      type: "블로그"
+      title: "윈난성 리장 고성 — 한인 부부 자유여행 사진 일기",
+      author: "리장커플",
+      date: "6월 17일",
+      image: "https://images.unsplash.com/photo-1555921015-5532091f6026?w=150&h=100&fit=crop",
+      comments: 28,
+      views: 2187,
+      likes: 193,
+      type: "여행"
     }
   ];
 
   const popularCafes = [
-    { name: "요리조리카페", members: "32만명", category: "요리·레시피" },
-    { name: "인테리어소품", members: "28만명", category: "인테리어" },
-    { name: "뷰티토크", members: "45만명", category: "화장품·미용" },
-    { name: "재중 기업 소식", members: "54만명", category: "비즈니스·취업" }
+    { name: "재중한인일상", members: "4.2만명", category: "일상·생활" },
+    { name: "중국여행정보", members: "6.8만명", category: "여행·명소" },
+    { name: "재중한인맘카페", members: "3.1만명", category: "육아·교육" },
+    { name: "중국생활꿀팁", members: "5.4만명", category: "생활정보" }
   ];
 
   return (
@@ -91,7 +91,11 @@ export function BlogSection({ onViewHomeClick }: BlogSectionProps) {
                   className="w-16 sm:w-20 h-12 sm:h-16 object-cover rounded flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs text-green-600 font-medium mb-1">{post.type}</div>
+                  <div className={`text-xs font-medium mb-1 ${
+                    post.type === '여행' ? 'text-blue-500' :
+                    post.type === '생활' ? 'text-orange-500' :
+                    'text-green-600'
+                  }`}>{post.type}</div>
                   <h3 className="text-sm text-gray-900 line-clamp-2 group-hover:text-green-600">
                     {post.title}
                   </h3>
