@@ -393,7 +393,7 @@ export function MobileHome({
             </div>
           </div>
 
-          {/* ─ 로그인 유도 ─ */}
+          {/* ─ 로그인 유도 (비로그인만) ─ */}
           {!currentUser && !showLoginForm && (
             <div className="mx-3 mb-3 bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl border border-teal-100 px-4 py-3 flex items-center justify-between">
               <div>
@@ -431,6 +431,34 @@ export function MobileHome({
               </form>
             </div>
           )}
+
+          {/* ─ 광고 (로그인/비로그인 무관하게 항상 표시) ─ */}
+          <div className="px-3 mb-3">
+            <button
+              onClick={()=>{ if(ad.link) window.open(ad.link,'_blank'); }}
+              className="w-full relative overflow-hidden active:scale-[0.98] transition-all"
+              style={{background:'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)', borderRadius:'24px', boxShadow:'0 2px 20px rgba(0,0,0,0.06)', padding:'14px 14px 12px'}}>
+              <div style={{position:'absolute', top:-20, right:-20, width:100, height:100, borderRadius:'50%', background:'rgba(3,199,90,0.08)', pointerEvents:'none'}}/>
+              <div style={{position:'absolute', bottom:-15, right:60, width:60, height:60, borderRadius:'50%', background:'rgba(3,199,90,0.05)', pointerEvents:'none'}}/>
+              <div className="flex items-center gap-3 relative z-10">
+                <div style={{position:'relative'}}>
+                  <img src={ad.img} alt="" style={{width:64, height:64, borderRadius:'20px', objectFit:'cover', display:'block'}}/>
+                  <span style={{position:'absolute', top:-6, left:-6, background:'#03c75a', color:'white', fontSize:9, fontWeight:800, padding:'2px 6px', borderRadius:20, boxShadow:'0 2px 8px rgba(3,199,90,0.4)'}}>AD</span>
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p style={{fontSize:10, color:'#aaa', marginBottom:3}}>{ad.sub}</p>
+                  <p style={{fontSize:14, fontWeight:800, color:'#1a1a1a', lineHeight:1.3, marginBottom:4}} className="line-clamp-2">{ad.title}</p>
+                  <p style={{fontSize:11, color:'#888', lineHeight:1.4}} className="line-clamp-1">{ad.desc}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 shrink-0" style={{color:'#ccc'}}/>
+              </div>
+              <div className="flex items-center gap-1 mt-3 justify-center relative z-10">
+                {adBanners.map((_,i)=>(
+                  <span key={i} style={{height:4, borderRadius:99, width:i===adIdx?16:4, background:i===adIdx?'#03c75a':'#e0e0e0', transition:'all 0.3s', display:'inline-block'}}/>
+                ))}
+              </div>
+            </button>
+          </div>
 
           <div className="px-3 pb-4 text-center">
             <p className="text-[10px] text-gray-300">© Sina View Corp. All Rights Reserved.</p>
