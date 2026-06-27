@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import {
   FileText, GraduationCap, Building2, Car, BookOpen, ShoppingBag,
-  TrendingUp, MessageCircle, Stethoscope, Plane, Settings, X, Check,
+  TrendingUp, MessageCircle, Stethoscope, Plane, X, Check,
   ChevronRight, Newspaper, Home, Grid3X3, User,
   Eye, EyeOff, ArrowLeft, ExternalLink, Search
 } from 'lucide-react';
@@ -14,8 +14,6 @@ const NewsSection           = lazy(() => import('./NewsSection').then(m=>({defau
 const UsedMarketSection     = lazy(() => import('./UsedMarketSection').then(m=>({default:m.UsedMarketSection})));
 const SecuritiesSection     = lazy(() => import('./SecuritiesSection').then(m=>({default:m.SecuritiesSection})));
 const RealEstateSection     = lazy(() => import('./RealEstateSection').then(m=>({default:m.RealEstateSection})));
-const ChinaAutoAdWidget     = lazy(() => import('./ChinaAutoAdWidget').then(m=>({default:m.ChinaAutoAdWidget})));
-const ChinaSecuritiesAdWidget = lazy(() => import('./ChinaSecuritiesAdWidget').then(m=>({default:m.ChinaSecuritiesAdWidget})));
 const KoreanBizSection      = lazy(() => import('./KoreanBizSection').then(m=>({default:m.KoreanBizSection})));
 const WeatherWidget         = lazy(() => import('./WeatherWidget').then(m=>({default:m.WeatherWidget})));
 const HospitalWidget        = lazy(() => import('./HospitalWidget').then(m=>({default:m.HospitalWidget})));
@@ -36,7 +34,7 @@ const NEWS_DATA = {
     {title:'대련한국학교 2025학년도 신입생 모집',    cat:'교육'},
   ],
   '북경': [
-    {title:'조양구 한국타운, 연말 특별 할인행사',  cat:'생활'},
+    {title:'조양구 한국타운, 연말 특별 할인행사',   cat:'생활'},
     {title:'베이징한국국제학교 입학설명회 개최',    cat:'교육'},
     {title:'북경 한인사회 송년의 밤 준비 한창',    cat:'행사'},
   ],
@@ -54,31 +52,54 @@ const CAT_COLORS = {
   문화:'bg-pink-100 text-pink-600',
 };
 
-/* 서비스 아이콘 8개 */
+/* 서비스 아이콘 8개 - 더 부드러운 톤 */
 const SERVICE_ICONS = [
-  {id:'visa',       label:'비자/서류', icon:'📋', tab:'visa',       bg:'bg-blue-50',   border:'border-blue-100'},
-  {id:'education',  label:'교육',      icon:'🎓', tab:'education',  bg:'bg-green-50',  border:'border-green-100'},
-  {id:'yellow',     label:'업소록',    icon:'📖', tab:'yellow',     bg:'bg-yellow-50', border:'border-yellow-100'},
-  {id:'auto',       label:'자동차',    icon:'🚗', tab:'auto',       bg:'bg-red-50',    border:'border-red-100'},
-  {id:'market',     label:'중고장터',  icon:'🛒', tab:'market',     bg:'bg-orange-50', border:'border-orange-100'},
-  {id:'securities', label:'증권',      icon:'📈', tab:'securities', bg:'bg-indigo-50', border:'border-indigo-100'},
-  {id:'realestate', label:'부동산',    icon:'🏠', tab:'realestate', bg:'bg-teal-50',   border:'border-teal-100'},
-  {id:'community',  label:'커뮤니티',  icon:'💬', tab:'community',  bg:'bg-purple-50', border:'border-purple-100', page:'chinalife'},
+  {id:'visa',       label:'비자/서류', icon:'📋', tab:'visa',       bg:'bg-blue-50'},
+  {id:'education',  label:'교육',      icon:'🎓', tab:'education',  bg:'bg-green-50'},
+  {id:'yellow',     label:'업소록',    icon:'📖', tab:'yellow',     bg:'bg-yellow-50'},
+  {id:'auto',       label:'자동차',    icon:'🚗', tab:'auto',       bg:'bg-red-50'},
+  {id:'market',     label:'중고장터',  icon:'🛍️', tab:'market',     bg:'bg-orange-50'},
+  {id:'securities', label:'증권',      icon:'📊', tab:'securities', bg:'bg-indigo-50'},
+  {id:'realestate', label:'부동산',    icon:'🏘️', tab:'realestate', bg:'bg-teal-50'},
+  {id:'community',  label:'커뮤니티',  icon:'💬', tab:'community',  bg:'bg-purple-50', page:'chinalife'},
 ];
 
-/* 사진1 스타일 2×2 카드 (재중한인기업 / 뷰 / 날씨 / 병원정보) */
+/* 주요 서비스 5개 카드 - 사진6 스타일 (대형 + 캐릭터 + HOT 태그) */
 const FEATURE_CARDS = [
-  {id:'koreanbiz', label:'재중 한인기업', icon:'🏢', color:'from-blue-400 to-blue-600',   tab:'koreanbiz'},
-  {id:'blog',      label:'뷰 (View)',     icon:'✍️', color:'from-purple-400 to-purple-600', tab:'blog'},
-  {id:'weather',   label:'날씨',          icon:'🌤️', color:'from-sky-400 to-sky-600',     tab:'weather'},
-  {id:'hospital',  label:'병원정보',      icon:'🏥', color:'from-green-400 to-green-600',  tab:'hospital'},
+  {
+    id:'koreanbiz', title:'재중 한국기업', sub:'5,000+ 기업 정보',
+    emoji:'🏢', bg:'#A5E5D8', tag:'NEW', tagBg:'#FFB800', tabId:'koreanbiz',
+  },
+  {
+    id:'blog', title:'뷰 (View)', sub:'한인 스토리·일상',
+    emoji:'✍️', bg:'#FFD3D3', tag:'HOT', tagBg:'#FF4444', tabId:'blog',
+  },
+  {
+    id:'daechi', title:'대치동 학원', sub:'유학·입시 컨설팅',
+    emoji:'📚', bg:'#FFF4B8', tag:'추천', tagBg:'#FF8C42', tabId:'daechi',
+  },
+  {
+    id:'realestate', title:'부동산', sub:'매물·전월세 정보',
+    emoji:'🏠', bg:'#D4E5FF', tag:'AI', tagBg:'#5B9BFF', tabId:'realestate',
+  },
+  {
+    id:'hospital', title:'병원정보', sub:'한국어 진료 가능',
+    emoji:'🏥', bg:'#E0D4FF', tag:'24h', tagBg:'#9B6CFF', tabId:'hospital',
+  },
 ];
 
-/* 배너 */
+/* 메인 배너 - 단일 톤 (teal) */
 const BANNERS = [
-  {title:'차이나뷰 서비스', sub:'재중 한인을 위한 종합 정보 플랫폼', bg:'from-teal-500 to-teal-700', emoji:'🇨🇳'},
-  {title:'부동산 상담',    sub:'중국 현지 부동산 1:1 전문 상담',    bg:'from-blue-500 to-blue-700', emoji:'🏠'},
-  {title:'비자/서류 안내', sub:'비자 연장·서류 발급 완벽 가이드',   bg:'from-purple-500 to-purple-700', emoji:'📋'},
+  {title:'차이나뷰 서비스',   sub:'재중 한인을 위한 종합 정보 플랫폼', emoji:'🇨🇳'},
+  {title:'부동산 1:1 상담', sub:'중국 현지 부동산 전문 컨설팅',     emoji:'🏠'},
+  {title:'비자/서류 안내',   sub:'비자 연장·서류 발급 완벽 가이드', emoji:'📋'},
+];
+
+/* 광고 슬라이드 */
+const AD_BANNERS = [
+  {tag:'AD', sub:'코리아Up 비즈니스 아카데미', title:'중국 비즈니스 전문가 양성과정 모집', img:'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=400&h=400&fit=crop', link:''},
+  {tag:'AD', sub:'한성자동차 강남전시장',     title:'BYD 한 EV 출시 · 600만원 할인',         img:'https://images.unsplash.com/photo-1705747401901-28363172fe7e?w=400&h=400&fit=crop', link:''},
+  {tag:'AD', sub:'베이커 부동산',             title:'베이징 한인 아파트 · 풀옵션 매물',       img:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=400&fit=crop', link:''},
 ];
 
 /* 바로가기 */
@@ -95,7 +116,7 @@ const SHORTCUT_ITEMS = [
   {id:'community',  label:'커뮤니티', Icon:MessageCircle,  page:'chinalife'},
 ];
 
-/* 학습센터 링크 */
+/* 학습센터 */
 const STUDY_LINKS = [
   {label:'HSK',         sub:'중국어 능력 시험',  url:() => localStorage.getItem('hskLinkUrl') || 'https://www.hsk.org.cn', emoji:'🇨🇳'},
   {label:'SAT/ACT',     sub:'SAT & ACT 준비',    url:() => 'https://your-sat-site.com',   emoji:'📝'},
@@ -106,7 +127,8 @@ const STUDY_LINKS = [
 const CONTENT_LABELS = {
   news:'중국소식', visa:'비자/서류', education:'교육', yellow:'업소록',
   auto:'자동차', market:'중고장터', securities:'증권', realestate:'부동산',
-  koreanbiz:'재중 한인기업', blog:'뷰 (View)', weather:'날씨', hospital:'병원정보',
+  koreanbiz:'재중 한국기업', blog:'뷰 (View)', weather:'날씨', hospital:'병원정보',
+  daechi:'대치동 학원',
 };
 
 /* ══════════════════════════════════════════════ */
@@ -117,17 +139,27 @@ export function MobileHome({
 }) {
   const [bottomTab, setBottomTab] = useState('home');
   const [contentTab, setContentTab] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const goContent = (tab, page) => {
     if (page) { onNavigate?.(page); return; }
+    if (tab==='daechi') { onNavigate?.('education'); return; }
     setContentTab(tab); setBottomTab('service');
     window.scrollTo({top:0});
   };
   const goHome = () => { setContentTab(''); setBottomTab('home'); window.scrollTo({top:0}); };
 
+  /* 배너 슬라이드 */
   const [bannerIdx, setBannerIdx] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setBannerIdx(i=>(i+1)%BANNERS.length), 3500);
+    const t = setInterval(() => setBannerIdx(i=>(i+1)%BANNERS.length), 4000);
+    return () => clearInterval(t);
+  }, []);
+
+  /* 광고 슬라이드 */
+  const [adIdx, setAdIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setAdIdx(i=>(i+1)%AD_BANNERS.length), 3500);
     return () => clearInterval(t);
   }, []);
 
@@ -166,6 +198,7 @@ export function MobileHome({
   const visibleShortcuts = SHORTCUT_ITEMS.filter(s => selectedShortcuts.includes(s.id));
 
   const banner = BANNERS[bannerIdx];
+  const ad = AD_BANNERS[adIdx];
 
   /* ── 콘텐츠 화면 ── */
   if (contentTab) return (
@@ -195,65 +228,98 @@ export function MobileHome({
   );
 
   return (
-    <div className="pb-20">
+    <div className="pb-20 bg-gray-50/50">
 
       {/* ══ 홈 ══ */}
       {bottomTab==='home' && (
         <div>
 
-          {/* 배너 슬라이더 */}
-          <div className={`relative bg-gradient-to-r ${banner.bg} px-5 py-6`} style={{minHeight:120}}>
-            <div className="relative z-10">
-              <div className="text-3xl mb-1.5">{banner.emoji}</div>
-              <p className="text-white font-bold text-lg leading-tight">{banner.title}</p>
-              <p className="text-white/80 text-[12px] mt-0.5">{banner.sub}</p>
-            </div>
-            <div className="absolute right-4 top-4 w-16 h-16 rounded-full bg-white/10"/>
-            <div className="absolute right-10 bottom-2 w-10 h-10 rounded-full bg-white/10"/>
-            <div className="absolute bottom-3 right-4 flex gap-1">
+          {/* ─ 메인 배너 (단일 톤 teal) ─ */}
+          <div className="relative bg-teal-500 px-5 pt-5 pb-6">
+            <div className="text-white/80 text-[11px] font-bold tracking-widest mb-1">CN</div>
+            <p className="text-white font-extrabold text-[22px] leading-tight">{banner.title}</p>
+            <p className="text-white/85 text-[12px] mt-1">{banner.sub}</p>
+            {/* 배경 장식 원 */}
+            <div className="absolute right-6 top-6 w-20 h-20 rounded-full bg-white/15"/>
+            <div className="absolute right-2 bottom-8 w-12 h-12 rounded-full bg-white/15"/>
+            {/* 인디케이터 - 사진2처럼 막대 */}
+            <div className="absolute bottom-4 right-5 flex gap-1.5 items-center">
               {BANNERS.map((_,i)=>(
                 <button key={i} onClick={()=>setBannerIdx(i)}
-                  className={`h-1.5 rounded-full transition-all ${i===bannerIdx?'w-5 bg-white':'w-1.5 bg-white/50'}`}/>
+                  className={`transition-all rounded-full ${
+                    i===bannerIdx
+                      ? 'w-6 h-1.5 bg-white'
+                      : 'w-1.5 h-1.5 bg-white/40'
+                  }`}/>
               ))}
+            </div>
+          </div>
+
+          {/* ─ 검색바 (배너에 자연스럽게 연결) ─ */}
+          <div className="px-3 -mt-3 mb-3 relative z-10">
+            <div className="bg-white rounded-2xl shadow-md flex items-center gap-2 px-4 py-2.5 border border-gray-100">
+              <Search className="w-4 h-4 text-gray-400 shrink-0"/>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e=>setSearchQuery(e.target.value)}
+                placeholder="검색어를 입력하세요"
+                className="flex-1 text-[13px] bg-transparent outline-none placeholder:text-gray-400"
+              />
             </div>
           </div>
 
           {/* ─ 서비스 아이콘 8개 ─ */}
-          <div className="bg-white px-3 pt-4 pb-3">
+          <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-100 shadow-sm px-3 pt-4 pb-3">
             <div className="grid grid-cols-4 gap-y-1">
               {SERVICE_ICONS.map(svc=>(
                 <button key={svc.id} onClick={()=>goContent(svc.tab, svc.page)}
-                  className="flex flex-col items-center gap-1.5 py-3 rounded-xl active:bg-gray-50">
-                  <div className={`w-12 h-12 ${svc.bg} ${svc.border} border rounded-2xl flex items-center justify-center text-2xl`}>
+                  className="flex flex-col items-center gap-1.5 py-2.5 rounded-xl active:bg-gray-50">
+                  <div className={`w-12 h-12 ${svc.bg} rounded-2xl flex items-center justify-center text-[22px]`}>
                     {svc.icon}
                   </div>
-                  <span className="text-[11px] text-gray-600 font-medium">{svc.label}</span>
+                  <span className="text-[11px] text-gray-700 font-medium">{svc.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* ─ 사진1 스타일: 2×2 특별 기능 카드 ─ */}
-          <div className="px-3 pb-3">
-            <p className="text-[11px] text-gray-400 font-medium mb-2 px-1">주요 서비스</p>
-            <div className="grid grid-cols-2 gap-2.5">
-              {FEATURE_CARDS.map(card=>(
-                <button key={card.id} onClick={()=>goContent(card.tab, null)}
-                  className="relative overflow-hidden rounded-2xl p-4 text-left active:scale-95 transition-transform"
-                  style={{background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
-                          minHeight: 90}}>
-                  {/* 그라데이션 배경 */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${card.color} opacity-90`}/>
-                  {/* 배경 장식 원 */}
-                  <div className="absolute -right-3 -top-3 w-14 h-14 rounded-full bg-white/20"/>
-                  <div className="absolute -right-1 -bottom-4 w-10 h-10 rounded-full bg-white/15"/>
-                  <div className="relative z-10">
-                    <div className="text-2xl mb-2">{card.icon}</div>
-                    <p className="text-white font-bold text-[14px] leading-tight">{card.label}</p>
-                  </div>
-                </button>
-              ))}
+          {/* ─ 광고 슬라이더 (세로 2/3로 축소, 가로형) ─ */}
+          <div className="px-3 mb-3">
+            <button className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex items-center gap-3 p-3 active:scale-[0.98] transition-transform">
+              <img src={ad.img} alt={ad.title}
+                className="w-[68px] h-[68px] rounded-xl object-cover shrink-0"/>
+              <div className="flex-1 min-w-0 text-left">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="bg-teal-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">{ad.tag}</span>
+                  <span className="text-[11px] text-gray-500 truncate">{ad.sub}</span>
+                </div>
+                <p className="text-[13px] font-bold text-gray-900 leading-tight line-clamp-2">{ad.title}</p>
+                <div className="flex items-center gap-1 mt-1.5">
+                  {AD_BANNERS.map((_,i)=>(
+                    <span key={i} className={`h-1 rounded-full transition-all ${i===adIdx?'w-3 bg-teal-500':'w-1 bg-gray-200'}`}/>
+                  ))}
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0"/>
+            </button>
+          </div>
+
+          {/* ─ 주요 서비스 5개 (사진6 스타일) ─ */}
+          <div className="px-3 mb-3">
+            <p className="text-[12px] text-gray-500 font-semibold mb-2 px-1">주요 서비스</p>
+            {/* 1번째 줄: 큰 카드 2개 */}
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
+              <FeatureCard card={FEATURE_CARDS[0]} onClick={()=>goContent(FEATURE_CARDS[0].tabId,null)}/>
+              <FeatureCard card={FEATURE_CARDS[1]} onClick={()=>goContent(FEATURE_CARDS[1].tabId,null)}/>
             </div>
+            {/* 2번째 줄: 큰 카드 2개 */}
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
+              <FeatureCard card={FEATURE_CARDS[2]} onClick={()=>goContent(FEATURE_CARDS[2].tabId,null)}/>
+              <FeatureCard card={FEATURE_CARDS[3]} onClick={()=>goContent(FEATURE_CARDS[3].tabId,null)}/>
+            </div>
+            {/* 3번째 줄: 가로형 큰 카드 1개 */}
+            <FeatureCard card={FEATURE_CARDS[4]} wide onClick={()=>goContent(FEATURE_CARDS[4].tabId,null)}/>
           </div>
 
           {/* ─ 지역소식 ─ */}
@@ -282,16 +348,6 @@ export function MobileHome({
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* ─ 광고 (중간 아래 배치) ─ */}
-          <div className="px-3 pb-3 space-y-2 mobile-ad-compact">
-            <Suspense fallback={<div className="h-14 bg-gray-100 rounded-xl animate-pulse"/>}>
-              <ChinaAutoAdWidget/>
-            </Suspense>
-            <Suspense fallback={<div className="h-14 bg-gray-100 rounded-xl animate-pulse"/>}>
-              <ChinaSecuritiesAdWidget/>
-            </Suspense>
           </div>
 
           {/* ─ 로그인 유도 ─ */}
@@ -333,7 +389,6 @@ export function MobileHome({
             </div>
           )}
 
-          {/* ─ 저작권만 (푸터 링크 제거) ─ */}
           <div className="px-3 pb-4 text-center">
             <p className="text-[10px] text-gray-300">© Sina View Corp. All Rights Reserved.</p>
           </div>
@@ -358,33 +413,31 @@ export function MobileHome({
           <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-sm">
             <p className="font-bold text-gray-900 text-[16px]">서비스</p>
           </div>
-          <div className="p-4">
-            <div className="grid grid-cols-4 gap-2">
-              {SERVICE_ICONS.map(svc=>(
-                <button key={svc.id} onClick={()=>goContent(svc.tab, svc.page)}
-                  className="flex flex-col items-center gap-2 py-4 rounded-2xl active:bg-gray-50">
-                  <div className={`w-14 h-14 ${svc.bg} ${svc.border} border rounded-2xl flex items-center justify-center text-2xl`}>
-                    {svc.icon}
-                  </div>
-                  <span className="text-[11px] text-gray-600 font-medium text-center leading-tight">{svc.label}</span>
-                </button>
-              ))}
+          <div className="p-3">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-3 py-4 mb-3">
+              <div className="grid grid-cols-4 gap-2">
+                {SERVICE_ICONS.map(svc=>(
+                  <button key={svc.id} onClick={()=>goContent(svc.tab, svc.page)}
+                    className="flex flex-col items-center gap-2 py-3 rounded-2xl active:bg-gray-50">
+                    <div className={`w-14 h-14 ${svc.bg} rounded-2xl flex items-center justify-center text-2xl`}>
+                      {svc.icon}
+                    </div>
+                    <span className="text-[11px] text-gray-700 font-medium">{svc.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            {/* 특별 기능 카드 */}
-            <p className="text-[11px] text-gray-400 font-medium mt-4 mb-2">주요 서비스</p>
-            <div className="grid grid-cols-2 gap-2.5">
-              {FEATURE_CARDS.map(card=>(
-                <button key={card.id} onClick={()=>goContent(card.tab,null)}
-                  className="relative overflow-hidden rounded-2xl p-4 text-left active:scale-95 transition-transform" style={{minHeight:90}}>
-                  <div className={`absolute inset-0 bg-gradient-to-br ${card.color} opacity-90`}/>
-                  <div className="absolute -right-3 -top-3 w-14 h-14 rounded-full bg-white/20"/>
-                  <div className="relative z-10">
-                    <div className="text-2xl mb-2">{card.icon}</div>
-                    <p className="text-white font-bold text-[14px] leading-tight">{card.label}</p>
-                  </div>
-                </button>
-              ))}
+            {/* 주요 서비스 */}
+            <p className="text-[12px] text-gray-500 font-semibold mb-2 px-1">주요 서비스</p>
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
+              <FeatureCard card={FEATURE_CARDS[0]} onClick={()=>goContent(FEATURE_CARDS[0].tabId,null)}/>
+              <FeatureCard card={FEATURE_CARDS[1]} onClick={()=>goContent(FEATURE_CARDS[1].tabId,null)}/>
             </div>
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
+              <FeatureCard card={FEATURE_CARDS[2]} onClick={()=>goContent(FEATURE_CARDS[2].tabId,null)}/>
+              <FeatureCard card={FEATURE_CARDS[3]} onClick={()=>goContent(FEATURE_CARDS[3].tabId,null)}/>
+            </div>
+            <FeatureCard card={FEATURE_CARDS[4]} wide onClick={()=>goContent(FEATURE_CARDS[4].tabId,null)}/>
           </div>
         </div>
       )}
@@ -397,8 +450,7 @@ export function MobileHome({
           </div>
 
           {currentUser ? (
-            <div className="p-4 space-y-3">
-              {/* 프로필 */}
+            <div className="p-3 space-y-3">
               <div className="bg-gradient-to-r from-teal-500 to-teal-600 rounded-2xl p-5 text-white">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-2xl font-bold">
@@ -411,7 +463,6 @@ export function MobileHome({
                 </div>
               </div>
 
-              {/* 바로가기 */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
                   <span className="text-[13px] font-semibold text-gray-700">나의 바로가기</span>
@@ -428,7 +479,6 @@ export function MobileHome({
                 </div>
               </div>
 
-              {/* 학습센터 (내정보로 이동) */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-50">
                   <p className="text-[13px] font-semibold text-gray-700">🎓 학습센터</p>
@@ -448,12 +498,11 @@ export function MobileHome({
                 ))}
               </div>
 
-              {/* 기타 메뉴 */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
                 {[
                   {label:'게시판',     icon:'💬', action:()=>onNavigate?.('chinalife')},
                   {label:'부동산 상담',icon:'🏠', action:()=>onNavigate?.('realestate')},
-                  {label:'중고장터',   icon:'🛒', action:()=>onNavigate?.('usedmarket')},
+                  {label:'중고장터',   icon:'🛍️', action:()=>onNavigate?.('usedmarket')},
                 ].map((m,i)=>(
                   <button key={i} onClick={m.action} className="w-full flex items-center justify-between px-4 py-3.5">
                     <div className="flex items-center gap-3">
@@ -467,7 +516,7 @@ export function MobileHome({
               <button onClick={onLogout} className="w-full py-3 bg-gray-100 text-gray-500 rounded-2xl text-[13px]">로그아웃</button>
             </div>
           ) : (
-            <div className="p-4 space-y-3">
+            <div className="p-3 space-y-3">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-3xl mx-auto mb-3">👤</div>
                 <p className="font-semibold text-gray-800 mb-1">로그인이 필요해요</p>
@@ -480,7 +529,6 @@ export function MobileHome({
                 </div>
               </div>
 
-              {/* 비로그인도 학습센터 접근 가능 */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-50">
                   <p className="text-[13px] font-semibold text-gray-700">🎓 학습센터</p>
@@ -504,10 +552,8 @@ export function MobileHome({
         </div>
       )}
 
-      {/* ── 하단 탭바 ── */}
       <BottomTabBar active={bottomTab} onSelect={t=>{ setBottomTab(t); setContentTab(''); window.scrollTo({top:0}); }}/>
 
-      {/* ── 바로가기 설정 ── */}
       {showSettings && (
         <div className="fixed inset-0 bg-black/40 flex items-end z-50" onClick={()=>setShowSettings(false)}>
           <div className="bg-white rounded-t-3xl w-full p-5" onClick={e=>e.stopPropagation()}>
@@ -539,6 +585,42 @@ export function MobileHome({
         </div>
       )}
     </div>
+  );
+}
+
+/* ── 주요 서비스 카드 (사진6 스타일) ── */
+function FeatureCard({card, wide, onClick}) {
+  return (
+    <button onClick={onClick}
+      className="relative overflow-hidden rounded-3xl p-4 text-left active:scale-[0.97] transition-transform w-full"
+      style={{
+        background: card.bg,
+        minHeight: wide ? 100 : 120,
+      }}>
+      {/* 태그 (HOT, NEW 등) */}
+      <div className="absolute top-3 right-3 z-10">
+        <span className="text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block"
+          style={{
+            background: card.tagBg,
+            transform: 'rotate(8deg)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+          }}>
+          {card.tag}
+        </span>
+      </div>
+
+      {/* 텍스트 */}
+      <div className="relative z-[5]">
+        <p className="text-gray-900 font-extrabold text-[17px] leading-tight tracking-tight">{card.title}</p>
+        <p className="text-gray-700/70 text-[11px] mt-1">{card.sub}</p>
+      </div>
+
+      {/* 큰 이모지 (우측 하단) */}
+      <div className={`absolute text-[60px] leading-none opacity-95 select-none ${wide ? 'right-6 bottom-0' : 'right-2 bottom-0'}`}
+        style={{filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.12))'}}>
+        {card.emoji}
+      </div>
+    </button>
   );
 }
 
