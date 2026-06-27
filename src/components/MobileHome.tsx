@@ -59,7 +59,7 @@ const SERVICE_ICONS = [
   {id:'yellow',     label:'업소록',    icon:'📖', tab:'yellow',     bg:'bg-yellow-50'},
   {id:'auto',       label:'자동차',    icon:'🚗', tab:'auto',       bg:'bg-red-50'},
   {id:'market',     label:'중고장터',  icon:'🛍️', tab:'market',     bg:'bg-orange-50'},
-  {id:'securities', label:'증권',      icon:'📊', tab:'securities', bg:'bg-indigo-50'},
+  {id:'securities', label:'증권',      icon:'💹', tab:'securities', bg:'bg-indigo-50'},
   {id:'realestate', label:'부동산',    icon:'🏘️', tab:'realestate', bg:'bg-teal-50'},
   {id:'community',  label:'커뮤니티',  icon:'💬', tab:'community',  bg:'bg-purple-50', page:'chinalife'},
 ];
@@ -284,24 +284,24 @@ export function MobileHome({
             </div>
           </div>
 
-          {/* ─ 광고 슬라이더 (세로 2/3로 축소, 가로형) ─ */}
+          {/* ─ 광고 슬라이더 (컴팩트) ─ */}
           <div className="px-3 mb-3">
-            <button className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex items-center gap-3 p-3 active:scale-[0.98] transition-transform">
+            <button className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex items-center gap-2.5 p-2 active:scale-[0.98] transition-transform">
               <img src={ad.img} alt={ad.title}
-                className="w-[68px] h-[68px] rounded-xl object-cover shrink-0"/>
-              <div className="flex-1 min-w-0 text-left">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="bg-teal-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">{ad.tag}</span>
-                  <span className="text-[11px] text-gray-500 truncate">{ad.sub}</span>
+                className="w-14 h-14 rounded-xl object-cover shrink-0"/>
+              <div className="flex-1 min-w-0 text-left py-0.5">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="bg-teal-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded leading-none">{ad.tag}</span>
+                  <span className="text-[10px] text-gray-400 truncate">{ad.sub}</span>
                 </div>
-                <p className="text-[13px] font-bold text-gray-900 leading-tight line-clamp-2">{ad.title}</p>
-                <div className="flex items-center gap-1 mt-1.5">
+                <p className="text-[12px] font-semibold text-gray-900 leading-tight line-clamp-1">{ad.title}</p>
+                <div className="flex items-center gap-1 mt-1">
                   {AD_BANNERS.map((_,i)=>(
-                    <span key={i} className={`h-1 rounded-full transition-all ${i===adIdx?'w-3 bg-teal-500':'w-1 bg-gray-200'}`}/>
+                    <span key={i} className={`h-0.5 rounded-full transition-all ${i===adIdx?'w-3 bg-teal-500':'w-1 bg-gray-200'}`}/>
                   ))}
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0"/>
+              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mr-1"/>
             </button>
           </div>
 

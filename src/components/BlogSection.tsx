@@ -65,17 +65,17 @@ export function BlogSection({ onViewHomeClick }: BlogSectionProps) {
   return (
     <div className="space-y-4">
       <Card className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">뷰(VIEW)</h2>
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
-            <span>블로그</span>
-            <span>|</span>
-            <span>카페</span>
-            <span>|</span>
-            <span>포스트</span>
+        <div className="flex items-center justify-between mb-4 gap-2 flex-nowrap">
+          <h2 className="text-base sm:text-lg font-semibold whitespace-nowrap shrink-0">뷰(VIEW)</h2>
+          <div className="flex items-center gap-1.5 sm:gap-3 text-xs sm:text-sm text-gray-500 whitespace-nowrap flex-nowrap overflow-x-auto scrollbar-hide" style={{writingMode:'horizontal-tb'}}>
+            <span className="whitespace-nowrap">블로그</span>
+            <span className="text-gray-300">|</span>
+            <span className="whitespace-nowrap">카페</span>
+            <span className="text-gray-300">|</span>
+            <span className="whitespace-nowrap">포스트</span>
             <button 
               onClick={onViewHomeClick}
-              className="text-green-600 hover:text-green-700"
+              className="text-green-600 hover:text-green-700 whitespace-nowrap font-medium ml-1"
             >
               뷰 홈 &gt;
             </button>
