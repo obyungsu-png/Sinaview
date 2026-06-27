@@ -88,11 +88,11 @@ const FEATURE_CARDS = [
   },
 ];
 
-/* 메인 배너 - 단일 톤 (teal) */
+/* 메인 배너 - 슬라이드별 다른 그라데이션 */
 const BANNERS = [
-  {title:'차이나뷰 서비스',   sub:'재중 한인을 위한 종합 정보 플랫폼', emoji:'🇨🇳'},
-  {title:'부동산 1:1 상담', sub:'중국 현지 부동산 전문 컨설팅',     emoji:'🏠'},
-  {title:'비자/서류 안내',   sub:'비자 연장·서류 발급 완벽 가이드', emoji:'📋'},
+  {title:'차이나뷰 서비스',   sub:'재중 한인을 위한 종합 정보 플랫폼', from:'#00b09b', to:'#96c93d'},
+  {title:'부동산 1:1 상담', sub:'중국 현지 부동산 전문 컨설팅',     from:'#4facfe', to:'#00f2fe'},
+  {title:'비자/서류 안내',   sub:'비자 연장·서류 발급 완벽 가이드', from:'#a18cd1', to:'#fbc2eb'},
 ];
 
 /* 광고 슬라이드 */
@@ -234,22 +234,19 @@ export function MobileHome({
       {bottomTab==='home' && (
         <div>
 
-          {/* ─ 메인 배너 (단일 톤 teal) ─ */}
-          <div className="relative bg-teal-500 px-5 pt-5 pb-6">
+          {/* ─ 메인 배너 (슬라이드별 그라데이션) ─ */}
+          <div className="relative px-5 pt-5 pb-6"
+            style={{background:`linear-gradient(135deg, ${banner.from}, ${banner.to})`}}>
             <div className="text-white/80 text-[11px] font-bold tracking-widest mb-1">CN</div>
             <p className="text-white font-extrabold text-[22px] leading-tight">{banner.title}</p>
             <p className="text-white/85 text-[12px] mt-1">{banner.sub}</p>
-            {/* 배경 장식 원 */}
             <div className="absolute right-6 top-6 w-20 h-20 rounded-full bg-white/15"/>
             <div className="absolute right-2 bottom-8 w-12 h-12 rounded-full bg-white/15"/>
-            {/* 인디케이터 - 사진2처럼 막대 */}
             <div className="absolute bottom-4 right-5 flex gap-1.5 items-center">
               {BANNERS.map((_,i)=>(
                 <button key={i} onClick={()=>setBannerIdx(i)}
                   className={`transition-all rounded-full ${
-                    i===bannerIdx
-                      ? 'w-6 h-1.5 bg-white'
-                      : 'w-1.5 h-1.5 bg-white/40'
+                    i===bannerIdx ? 'w-6 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40'
                   }`}/>
               ))}
             </div>
