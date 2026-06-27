@@ -82,6 +82,7 @@ export function Portal() {
   const [isNStudyHubOpen, setIsNStudyHubOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState('news');
 
   useEffect(() => {
     // Set page title
@@ -227,6 +228,7 @@ export function Portal() {
         userRegion={currentUser?.region}
         onLoginClick={() => setIsLoginModalOpen(true)}
         currentUser={currentUser}
+        onMobileTabSelect={setMobileTab}
       />
       
       <CenterAdBanner />
@@ -380,6 +382,8 @@ export function Portal() {
             <MobileHome
               currentUser={currentUser}
               isAdmin={isAdmin}
+              activeTab={mobileTab}
+              onTabChange={setMobileTab}
               onLoginClick={() => setIsLoginModalOpen(true)}
               onSignupClick={() => setIsSignupModalOpen(true)}
               onLogout={() => { localStorage.removeItem('currentUser'); window.location.reload(); }}
@@ -431,7 +435,8 @@ export function Portal() {
 
       <footer className="bg-white border-t border-gray-200 mt-12">
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-sm text-gray-600">
+          {/* 데스크탑 푸터 */}
+          <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-8 text-sm text-gray-600">
             <div>
               <h4 className="font-semibold text-gray-900 mb-3">회사소개</h4>
               <ul className="space-y-2">
@@ -469,8 +474,25 @@ export function Portal() {
               </ul>
             </div>
           </div>
+
+          {/* 모바일 푸터 — 컴팩트 가로 링크 */}
+          <div className="sm:hidden">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 text-[11px] text-gray-500 justify-center">
+              <a href="#" className="hover:text-green-600">회사소개</a>
+              <span className="text-gray-200">·</span>
+              <a href="#" className="hover:text-green-600">이용약관</a>
+              <span className="text-gray-200">·</span>
+              <a href="#" className="hover:text-green-600 font-medium text-gray-600">개인정보처리방침</a>
+              <span className="text-gray-200">·</span>
+              <a href="#" className="hover:text-green-600">공지사항</a>
+              <span className="text-gray-200">·</span>
+              <a href="#" className="hover:text-green-600">문의하기</a>
+              <span className="text-gray-200">·</span>
+              <button onClick={handleGoToLSMPage} className="hover:text-green-600">법적고지</button>
+            </div>
+          </div>
           
-          <div className="border-t border-gray-200 mt-8 pt-6 text-center text-sm text-gray-500">
+          <div className="border-t border-gray-200 mt-6 sm:mt-8 pt-4 sm:pt-6 text-center text-[11px] sm:text-sm text-gray-400 sm:text-gray-500">
             <p>&copy; Sina View Corp. All Rights Reserved.</p>
           </div>
         </div>

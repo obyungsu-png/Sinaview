@@ -20,9 +20,10 @@ interface HeaderProps {
   userRegion?: string;
   onLoginClick?: () => void;
   currentUser?: { id: string; name: string; username?: string } | null;
+  onMobileTabSelect?: (tabId: string) => void;
 }
 
-export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, currentPage = 'main', onNStudyHubToggle, isNStudyHubOpen = false, userRegion, onLoginClick, currentUser }: HeaderProps) {
+export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, currentPage = 'main', onNStudyHubToggle, isNStudyHubOpen = false, userRegion, onLoginClick, currentUser, onMobileTabSelect }: HeaderProps) {
   const [searchValue, setSearchValue] = useState('');
   const [showPlaceholder, setShowPlaceholder] = useState(true);
   const [currentUserRegion, setCurrentUserRegion] = useState('');
@@ -101,6 +102,17 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
         behavior: 'smooth',
         block: 'start'
       });
+    }
+  };
+
+  // 모바일이면 탭 전환, 데스크탑이면 스크롤
+  const navTab = (tabId: string, sectionId: string, mobileId: string) => {
+    const isMobile = window.innerWidth < 1024;
+    if (isMobile && onMobileTabSelect) {
+      onMobileTabSelect(tabId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      scrollToSection(sectionId, mobileId);
     }
   };
 
@@ -333,16 +345,16 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
         </div>
 
         {/* Service Navigation - Responsive */}
-        <nav className="mt-3 sm:mt-4 -mx-3 sm:-mx-0 px-3 sm:px-0">
-          <div className="flex items-center space-x-3 sm:space-x-8 text-sm sm:text-base overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+        <nav className="mt-2 sm:mt-4 -mx-3 sm:-mx-0 px-3 sm:px-0">
+          <div className="flex items-center space-x-4 sm:space-x-8 text-[13px] sm:text-base overflow-x-auto pb-1.5 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
             <button 
-              onClick={() => scrollToSection('visa-documents', 'visa-documents-mobile')}
+              onClick={() => navTab('visa', 'visa-documents', 'visa-documents-mobile')}
               className="hover:text-green-600 whitespace-nowrap"
             >
               비자/서류
             </button>
             <button 
-              onClick={() => scrollToSection('education', 'education-mobile')}
+              onClick={() => navTab('education', 'education', 'education-mobile')}
               className="hover:text-green-600 whitespace-nowrap"
             >
               교육
@@ -350,14 +362,14 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
             <button 
               onClick={() => {
                 onYellowPagesSelect('엘로우페이지');
-                scrollToSection('yellowpages', 'yellowpages-mobile');
+                navTab('yellow', 'yellowpages', 'yellowpages-mobile');
               }}
               className="hover:text-green-600 whitespace-nowrap"
             >
-              엘로우 페이지
+              업소록
             </button>
             <button 
-              onClick={() => scrollToSection('auto', 'auto-mobile')}
+              onClick={() => navTab('auto', 'auto', 'auto-mobile')}
               className="hover:text-green-600 whitespace-nowrap"
             >
               자동차
@@ -365,26 +377,26 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
             <button 
               onClick={() => {
                 onCategorySelect('중국소식');
-                scrollToSection('news', 'news-mobile');
+                navTab('news', 'news', 'news-mobile');
               }}
               className="hover:text-green-600 whitespace-nowrap"
             >
               중국소식
             </button>
             <button 
-              onClick={() => scrollToSection('used-market', 'used-market-mobile')}
+              onClick={() => navTab('market', 'used-market', 'used-market-mobile')}
               className="hover:text-green-600 whitespace-nowrap"
             >
-              화개장터
+              중고장터
             </button>
             <button 
-              onClick={() => scrollToSection('securities', 'securities-mobile')}
+              onClick={() => navTab('securities', 'securities', 'securities-mobile')}
               className="hover:text-green-600 whitespace-nowrap"
             >
-              중국 증권
+              증권
             </button>
             <button 
-              onClick={() => onNavigate?.('realestate')}
+              onClick={() => navTab('realestate', 'realestate-section', 'realestate-section')}
               className="hover:text-green-600 whitespace-nowrap"
             >
               부동산
@@ -399,9 +411,9 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
             {/* 학습 센터 드롭다운 */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="hover:text-green-600 whitespace-nowrap flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 hover:shadow-md transition-all">
-                  <span className="text-purple-600 font-semibold">학습 센터</span>
-                  <span className="text-purple-400">▼</span>
+                <button className="hover:text-green-600 whitespace-nowrap flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 hover:shadow-md transition-all">
+                  <span className="text-purple-600 font-semibold">학습센터</span>
+                  <span className="text-purple-400 text-xs">▼</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 bg-white shadow-xl">
