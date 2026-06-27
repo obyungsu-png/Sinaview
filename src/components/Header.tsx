@@ -203,7 +203,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                 
                 {/* Right Icons */}
                 <div className="flex items-center space-x-1 sm:space-x-2 pr-2 sm:pr-4 flex-shrink-0">
-                  <button className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <button className="hidden sm:flex p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors">
                     <Keyboard className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                   </button>
                   <button 
@@ -344,9 +344,9 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
           </div>
         </div>
 
-        {/* Service Navigation - Responsive */}
-        <nav className="mt-2 sm:mt-4 -mx-3 sm:-mx-0 px-3 sm:px-0">
-          <div className="flex items-center space-x-4 sm:space-x-8 text-[13px] sm:text-base overflow-x-auto pb-1.5 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+        {/* Service Navigation - Desktop only */}
+        <nav className="hidden sm:block mt-4">
+          <div className="flex items-center space-x-8 text-base overflow-x-auto pb-1.5 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button 
               onClick={() => navTab('visa', 'visa-documents', 'visa-documents-mobile')}
               className="hover:text-green-600 whitespace-nowrap"
