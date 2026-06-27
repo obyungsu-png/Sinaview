@@ -308,6 +308,64 @@ export function MobileHome({
 
           {/* ─ 주요 서비스 5개 ─ */}
           <div className="px-3 mb-3">
+
+            {/* 트렌디 광고 - 주요 서비스 바로 위 */}
+            <button
+              onClick={()=>{}}
+              className="w-full mb-4 relative overflow-hidden active:scale-[0.98] transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+                borderRadius: '24px',
+                boxShadow: '0 2px 20px rgba(0,0,0,0.06)',
+                padding: '14px 14px 12px',
+              }}>
+              {/* 배경 블롭 장식 */}
+              <div style={{position:'absolute', top:-20, right:-20, width:100, height:100, borderRadius:'50%', background:'rgba(3,199,90,0.08)', pointerEvents:'none'}}/>
+              <div style={{position:'absolute', bottom:-15, right:60, width:60, height:60, borderRadius:'50%', background:'rgba(3,199,90,0.05)', pointerEvents:'none'}}/>
+
+              <div className="flex items-center gap-3 relative z-10">
+                {/* 동그란 이미지 */}
+                <div style={{position:'relative', shrink:0}}>
+                  <img src={ad.img} alt=""
+                    style={{width:64, height:64, borderRadius:'20px', objectFit:'cover', display:'block'}}/>
+                  {/* AD 뱃지 - 이미지 위 */}
+                  <span style={{
+                    position:'absolute', top:-6, left:-6,
+                    background:'#03c75a', color:'white',
+                    fontSize:9, fontWeight:800,
+                    padding:'2px 6px', borderRadius:20,
+                    boxShadow:'0 2px 8px rgba(3,199,90,0.4)',
+                    letterSpacing:'0.5px',
+                  }}>AD</span>
+                </div>
+
+                {/* 텍스트 */}
+                <div className="flex-1 min-w-0 text-left">
+                  <p style={{fontSize:10, color:'#aaa', marginBottom:3}}>{ad.sub}</p>
+                  <p style={{fontSize:14, fontWeight:800, color:'#1a1a1a', lineHeight:1.3, marginBottom:4}}
+                    className="line-clamp-2">{ad.title}</p>
+                  <p style={{fontSize:11, color:'#888', lineHeight:1.4}}
+                    className="line-clamp-1">{ad.desc}</p>
+                </div>
+
+                {/* 화살표 */}
+                <ChevronRight className="w-4 h-4 shrink-0" style={{color:'#ccc'}}/>
+              </div>
+
+              {/* 인디케이터 */}
+              <div className="flex items-center gap-1 mt-3 justify-center relative z-10">
+                {AD_BANNERS.map((_,i)=>(
+                  <span key={i} style={{
+                    height: 4, borderRadius: 99,
+                    width: i===adIdx ? 16 : 4,
+                    background: i===adIdx ? '#03c75a' : '#e0e0e0',
+                    transition: 'all 0.3s',
+                    display: 'inline-block',
+                  }}/>
+                ))}
+              </div>
+            </button>
+
             <p className="text-[12px] text-gray-500 font-semibold mb-2 px-1">주요 서비스</p>
             <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <FeatureCard card={FEATURE_CARDS[0]} onClick={()=>goContent(FEATURE_CARDS[0].tabId,null)}/>
@@ -346,32 +404,6 @@ export function MobileHome({
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* ─ 광고 (지역소식 아래, 사진1 스타일) ─ */}
-          <div className="px-3 mb-3">
-            <button
-              className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white active:scale-[0.98] transition-transform"
-              style={{boxShadow:'0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)'}}>
-              <img src={ad.img} alt={ad.title}
-                className="w-[70px] h-[70px] rounded-xl object-cover shrink-0"/>
-              <div className="flex-1 min-w-0 text-left">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="bg-[#03c75a] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none">AD</span>
-                  <span className="text-[11px] text-gray-400 truncate">{ad.sub}</span>
-                </div>
-                <p className="text-[13px] font-bold text-gray-900 leading-tight line-clamp-2">{ad.title}</p>
-                <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{ad.desc}</p>
-                <div className="flex items-center gap-1 mt-1.5">
-                  {AD_BANNERS.map((_,i)=>(
-                    <span key={i} className={`rounded-full transition-all ${
-                      i===adIdx ? 'w-3 h-1 bg-[#03c75a]' : 'w-1 h-1 bg-gray-200'
-                    }`}/>
-                  ))}
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0"/>
-            </button>
           </div>
 
           {/* ─ 로그인 유도 ─ */}
