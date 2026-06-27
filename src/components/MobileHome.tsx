@@ -95,12 +95,23 @@ const BANNERS = [
   {title:'비자/서류 안내',   sub:'비자 연장·서류 발급 완벽 가이드', from:'#a18cd1', to:'#fbc2eb'},
 ];
 
-/* 광고 슬라이드 */
-const AD_BANNERS = [
-  {tag:'AD', sub:'전국농부들', title:'프리미엄 한우 꽃등심 특가 이벤트', desc:'투벌 한우 꽃등심 1kg + 양념 세트 55% 할인 🥩 무료배송', img:'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=400&h=400&fit=crop'},
-  {tag:'AD', sub:'한성자동차', title:'BYD 한 EV 신차 출시 혜택', desc:'BYD·NIO·샤오펑 공식딜러 · 최대 600만원 할인 🚗', img:'https://images.unsplash.com/photo-1705747401901-28363172fe7e?w=400&h=400&fit=crop'},
-  {tag:'AD', sub:'베이커 부동산', title:'베이징 한인 아파트 풀옵션', desc:'명문학군·교통편리 · 즉시 입주 가능 🏠', img:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=400&fit=crop'},
+/* 광고 기본 데이터 (CMS 미설정 시 폴백) */
+const DEFAULT_ADS = [
+  {tag:'AD', sub:'전국농부들', title:'프리미엄 한우 꽃등심 특가 이벤트', desc:'투벌 한우 꽃등심 1kg + 양념 세트 55% 할인 🥩 무료배송', img:'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=400&h=400&fit=crop', link:''},
+  {tag:'AD', sub:'한성자동차', title:'BYD 한 EV 신차 출시 혜택', desc:'BYD·NIO·샤오펑 공식딜러 · 최대 600만원 할인 🚗', img:'https://images.unsplash.com/photo-1705747401901-28363172fe7e?w=400&h=400&fit=crop', link:''},
+  {tag:'AD', sub:'베이커 부동산', title:'베이징 한인 아파트 풀옵션', desc:'명문학군·교통편리 · 즉시 입주 가능 🏠', img:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=400&fit=crop', link:''},
 ];
+
+const getMobileAds = () => {
+  try {
+    const saved = localStorage.getItem('cms_mobile_ads');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_ADS;
+};
 
 /* 바로가기 */
 const SHORTCUT_ITEMS = [
@@ -156,12 +167,13 @@ export function MobileHome({
     return () => clearInterval(t);
   }, []);
 
-  /* 광고 슬라이드 */
+  /* 광고 슬라이드 - CMS에서 로드 */
+  const [adBanners, setAdBanners] = useState(() => getMobileAds());
   const [adIdx, setAdIdx] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setAdIdx(i=>(i+1)%AD_BANNERS.length), 3500);
+    const t = setInterval(() => setAdIdx(i=>(i+1)%adBanners.length), 3500);
     return () => clearInterval(t);
-  }, []);
+  }, [adBanners.length]);
 
   const [activeRegion, setActiveRegion] = useState('대련');
   useEffect(() => { if (currentUser?.region) setActiveRegion(currentUser.region); }, [currentUser]);
@@ -198,7 +210,7 @@ export function MobileHome({
   const visibleShortcuts = SHORTCUT_ITEMS.filter(s => selectedShortcuts.includes(s.id));
 
   const banner = BANNERS[bannerIdx];
-  const ad = AD_BANNERS[adIdx];
+  const ad = adBanners[adIdx] || DEFAULT_ADS[0];
 
   /* ── 콘텐츠 화면 ── */
   if (contentTab) return (
@@ -253,7 +265,7 @@ export function MobileHome({
           </div>
 
           {/* ─ 검색바 ─ */}
-          <div className="px-3 -mt-3 mb-2 relative z-10">
+          <div className="px-3 -mt-3 mb-3 relative z-10">
             <div className="bg-white rounded-2xl shadow-md flex items-center gap-2 px-4 py-2.5 border border-gray-100">
               <Search className="w-4 h-4 text-gray-400 shrink-0"/>
               <input
@@ -264,31 +276,6 @@ export function MobileHome({
                 className="flex-1 text-[13px] bg-transparent outline-none placeholder:text-gray-400"
               />
             </div>
-          </div>
-
-          {/* ─ 미니 광고 (검색바 바로 아래, 귀엽게) ─ */}
-          <div className="px-3 mb-3">
-            <button
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-100 active:scale-[0.98] transition-transform"
-              style={{boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
-              {/* 작은 썸네일 */}
-              <img src={ad.img} alt={ad.title}
-                className="w-9 h-9 rounded-lg object-cover shrink-0"/>
-              {/* 텍스트 */}
-              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                <span className="bg-[#03c75a] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md leading-none shrink-0">AD</span>
-                <p className="text-[11px] font-semibold text-gray-700 truncate">{ad.title}</p>
-              </div>
-              {/* 슬라이드 점 */}
-              <div className="flex items-center gap-0.5 shrink-0">
-                {AD_BANNERS.map((_,i)=>(
-                  <span key={i} className={`rounded-full transition-all ${
-                    i===adIdx ? 'w-2.5 h-1 bg-teal-400' : 'w-1 h-1 bg-gray-200'
-                  }`}/>
-                ))}
-              </div>
-              <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0"/>
-            </button>
           </div>
 
           {/* ─ 서비스 아이콘 8개 ─ */}
@@ -354,7 +341,7 @@ export function MobileHome({
 
               {/* 인디케이터 */}
               <div className="flex items-center gap-1 mt-3 justify-center relative z-10">
-                {AD_BANNERS.map((_,i)=>(
+                {adBanners.map((_,i)=>(
                   <span key={i} style={{
                     height: 4, borderRadius: 99,
                     width: i===adIdx ? 16 : 4,

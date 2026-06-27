@@ -593,7 +593,7 @@ export function CSMPage({ onBack }: CSMPageProps) {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white">
+          <TabsList className="grid w-full grid-cols-6 bg-white">
             <TabsTrigger value="legal" className="flex items-center space-x-2">
               <Scale className="w-4 h-4" />
               <span>법적 고지</span>
@@ -613,6 +613,10 @@ export function CSMPage({ onBack }: CSMPageProps) {
             <TabsTrigger value="media" className="flex items-center space-x-2">
               <Star className="w-4 h-4" />
               <span>뷰·기업</span>
+            </TabsTrigger>
+            <TabsTrigger value="mobileads" className="flex items-center space-x-2">
+              <Bell className="w-4 h-4" />
+              <span>모바일 광고</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1109,6 +1113,11 @@ export function CSMPage({ onBack }: CSMPageProps) {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* 모바일 광고 관리 탭 */}
+          <TabsContent value="mobileads" className="space-y-6">
+            <MobileAdsManager />
           </TabsContent>
         </Tabs>
 
@@ -1953,5 +1962,155 @@ function ContentForm({
         </Button>
       </div>
     </form>
+  );
+}
+/* ── 모바일 광고 관리 컴포넌트 ── */
+const DEFAULT_ADS_CMS = [
+  {id:'1', sub:'전국농부들', title:'프리미엄 한우 꽃등심 특가 이벤트', desc:'투벌 한우 꽃등심 1kg + 양념 세트 55% 할인 🥩 무료배송', img:'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=400&h=400&fit=crop', link:'', active:true},
+  {id:'2', sub:'한성자동차', title:'BYD 한 EV 신차 출시 혜택', desc:'BYD·NIO·샤오펑 공식딜러 · 최대 600만원 할인 🚗', img:'https://images.unsplash.com/photo-1705747401901-28363172fe7e?w=400&h=400&fit=crop', link:'', active:true},
+  {id:'3', sub:'베이커 부동산', title:'베이징 한인 아파트 풀옵션', desc:'명문학군·교통편리 · 즉시 입주 가능 🏠', img:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=400&fit=crop', link:'', active:true},
+];
+
+function MobileAdsManager() {
+  const [ads, setAds] = useState<any[]>(() => {
+    try { const s = localStorage.getItem('cms_mobile_ads_full'); return s ? JSON.parse(s) : DEFAULT_ADS_CMS; }
+    catch { return DEFAULT_ADS_CMS; }
+  });
+  const [editingId, setEditingId] = useState<string|null>(null);
+  const [form, setForm] = useState({sub:'', title:'', desc:'', img:'', link:''});
+  const [isAdding, setIsAdding] = useState(false);
+
+  const save = (newAds: any[]) => {
+    setAds(newAds);
+    localStorage.setItem('cms_mobile_ads_full', JSON.stringify(newAds));
+    // MobileHome에서 읽는 형식으로도 저장
+    const active = newAds.filter(a => a.active).map(a => ({tag:'AD', sub:a.sub, title:a.title, desc:a.desc, img:a.img, link:a.link}));
+    localStorage.setItem('cms_mobile_ads', JSON.stringify(active));
+  };
+
+  const toggleActive = (id: string) => {
+    save(ads.map(a => a.id===id ? {...a, active:!a.active} : a));
+  };
+
+  const deleteAd = (id: string) => {
+    if (!confirm('이 광고를 삭제하시겠습니까?')) return;
+    save(ads.filter(a => a.id!==id));
+  };
+
+  const startEdit = (ad: any) => {
+    setEditingId(ad.id);
+    setForm({sub:ad.sub, title:ad.title, desc:ad.desc, img:ad.img, link:ad.link});
+  };
+
+  const submitEdit = () => {
+    save(ads.map(a => a.id===editingId ? {...a, ...form} : a));
+    setEditingId(null);
+  };
+
+  const submitAdd = () => {
+    const newAd = {id: Date.now().toString(), ...form, active:true};
+    save([...ads, newAd]);
+    setForm({sub:'', title:'', desc:'', img:'', link:''});
+    setIsAdding(false);
+  };
+
+  const moveUp = (idx: number) => {
+    if (idx===0) return;
+    const n=[...ads]; [n[idx-1],n[idx]]=[n[idx],n[idx-1]]; save(n);
+  };
+  const moveDown = (idx: number) => {
+    if (idx===ads.length-1) return;
+    const n=[...ads]; [n[idx],n[idx+1]]=[n[idx+1],n[idx]]; save(n);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center space-x-2">
+            <Bell className="w-5 h-5 text-green-600" />
+            <span>모바일 광고 관리</span>
+          </CardTitle>
+          <Button onClick={()=>setIsAdding(true)} className="bg-green-600 hover:bg-green-700">
+            <Plus className="w-4 h-4 mr-2" />새 광고 추가
+          </Button>
+        </div>
+        <p className="text-sm text-gray-500 mt-1">모바일 홈 화면에 표시되는 슬라이드 광고를 관리합니다. 순서를 변경할 수 있습니다.</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {ads.map((ad, idx) => (
+          <div key={ad.id} className={`border rounded-xl p-4 flex gap-3 items-start transition-all ${ad.active ? 'bg-white' : 'bg-gray-50 opacity-60'}`}>
+            {/* 순서 */}
+            <div className="flex flex-col items-center gap-1 pt-1">
+              <button onClick={()=>moveUp(idx)} disabled={idx===0} className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">▲</button>
+              <span className="text-xs text-gray-400 font-bold">{idx+1}</span>
+              <button onClick={()=>moveDown(idx)} disabled={idx===ads.length-1} className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">▼</button>
+            </div>
+
+            {/* 미리보기 */}
+            <img src={ad.img} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0 border border-gray-100"/>
+
+            {/* 내용 */}
+            {editingId===ad.id ? (
+              <div className="flex-1 space-y-2">
+                <Input placeholder="회사명" value={form.sub} onChange={e=>setForm(p=>({...p,sub:e.target.value}))} className="text-sm"/>
+                <Input placeholder="광고 제목" value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} className="text-sm"/>
+                <Input placeholder="설명" value={form.desc} onChange={e=>setForm(p=>({...p,desc:e.target.value}))} className="text-sm"/>
+                <Input placeholder="이미지 URL" value={form.img} onChange={e=>setForm(p=>({...p,img:e.target.value}))} className="text-sm"/>
+                <Input placeholder="링크 URL (선택)" value={form.link} onChange={e=>setForm(p=>({...p,link:e.target.value}))} className="text-sm"/>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={submitEdit} className="bg-green-600 hover:bg-green-700"><Save className="w-3 h-3 mr-1"/>저장</Button>
+                  <Button size="sm" variant="outline" onClick={()=>setEditingId(null)}>취소</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-bold bg-green-500 text-white px-1.5 py-0.5 rounded">AD</span>
+                  <span className="text-xs text-gray-500">{ad.sub}</span>
+                  <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-medium ${ad.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{ad.active ? '활성' : '숨김'}</span>
+                </div>
+                <p className="text-sm font-semibold text-gray-800 line-clamp-1">{ad.title}</p>
+                <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{ad.desc}</p>
+              </div>
+            )}
+
+            {/* 액션 */}
+            {editingId!==ad.id && (
+              <div className="flex flex-col gap-1.5 shrink-0">
+                <Button size="sm" variant="outline" onClick={()=>startEdit(ad)}><Edit className="w-3 h-3"/></Button>
+                <Button size="sm" variant="outline" onClick={()=>toggleActive(ad.id)} className={ad.active ? 'text-orange-500 border-orange-300' : 'text-green-600 border-green-300'}>
+                  {ad.active ? <Eye className="w-3 h-3"/> : <Eye className="w-3 h-3"/>}
+                </Button>
+                <Button size="sm" variant="outline" onClick={()=>deleteAd(ad.id)} className="text-red-500 border-red-300"><Trash2 className="w-3 h-3"/></Button>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* 새 광고 추가 폼 */}
+        {isAdding && (
+          <div className="border-2 border-dashed border-green-300 rounded-xl p-4 space-y-2 bg-green-50">
+            <p className="text-sm font-semibold text-green-700 mb-2">새 광고 추가</p>
+            <Input placeholder="회사명 *" value={form.sub} onChange={e=>setForm(p=>({...p,sub:e.target.value}))} className="text-sm bg-white"/>
+            <Input placeholder="광고 제목 *" value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} className="text-sm bg-white"/>
+            <Input placeholder="설명" value={form.desc} onChange={e=>setForm(p=>({...p,desc:e.target.value}))} className="text-sm bg-white"/>
+            <Input placeholder="이미지 URL *" value={form.img} onChange={e=>setForm(p=>({...p,img:e.target.value}))} className="text-sm bg-white"/>
+            <Input placeholder="링크 URL (선택)" value={form.link} onChange={e=>setForm(p=>({...p,link:e.target.value}))} className="text-sm bg-white"/>
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" onClick={submitAdd} disabled={!form.sub||!form.title||!form.img} className="bg-green-600 hover:bg-green-700"><Save className="w-3 h-3 mr-1"/>추가</Button>
+              <Button size="sm" variant="outline" onClick={()=>{setIsAdding(false);setForm({sub:'',title:'',desc:'',img:'',link:''});}}>취소</Button>
+            </div>
+          </div>
+        )}
+
+        {ads.length === 0 && !isAdding && (
+          <div className="text-center py-10 text-gray-400">
+            <Bell className="w-10 h-10 mx-auto mb-3 opacity-30"/>
+            <p className="text-sm">등록된 광고가 없습니다.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
