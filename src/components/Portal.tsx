@@ -396,7 +396,7 @@ export function Portal() {
         </div>
 
         {visibleSections >= 8 && (
-          <div className="mt-8">
+          <div className="mt-8 hidden lg:block">
             <Suspense fallback={<LoadingSpinner />}>
               <BlogSection onViewHomeClick={handleGoToBlogPage} />
             </Suspense>
