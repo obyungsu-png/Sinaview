@@ -252,8 +252,8 @@ export function MobileHome({
             </div>
           </div>
 
-          {/* ─ 검색바 (배너에 자연스럽게 연결) ─ */}
-          <div className="px-3 -mt-3 mb-3 relative z-10">
+          {/* ─ 검색바 ─ */}
+          <div className="px-3 -mt-3 mb-2 relative z-10">
             <div className="bg-white rounded-2xl shadow-md flex items-center gap-2 px-4 py-2.5 border border-gray-100">
               <Search className="w-4 h-4 text-gray-400 shrink-0"/>
               <input
@@ -264,6 +264,31 @@ export function MobileHome({
                 className="flex-1 text-[13px] bg-transparent outline-none placeholder:text-gray-400"
               />
             </div>
+          </div>
+
+          {/* ─ 미니 광고 (검색바 바로 아래, 귀엽게) ─ */}
+          <div className="px-3 mb-3">
+            <button
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-100 active:scale-[0.98] transition-transform"
+              style={{boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
+              {/* 작은 썸네일 */}
+              <img src={ad.img} alt={ad.title}
+                className="w-9 h-9 rounded-lg object-cover shrink-0"/>
+              {/* 텍스트 */}
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <span className="bg-[#03c75a] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md leading-none shrink-0">AD</span>
+                <p className="text-[11px] font-semibold text-gray-700 truncate">{ad.title}</p>
+              </div>
+              {/* 슬라이드 점 */}
+              <div className="flex items-center gap-0.5 shrink-0">
+                {AD_BANNERS.map((_,i)=>(
+                  <span key={i} className={`rounded-full transition-all ${
+                    i===adIdx ? 'w-2.5 h-1 bg-teal-400' : 'w-1 h-1 bg-gray-200'
+                  }`}/>
+                ))}
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0"/>
+            </button>
           </div>
 
           {/* ─ 서비스 아이콘 8개 ─ */}
