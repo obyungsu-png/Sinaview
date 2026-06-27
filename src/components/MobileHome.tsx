@@ -298,7 +298,7 @@ export function MobileHome({
 
             {/* 트렌디 광고 - 주요 서비스 바로 위 */}
             <button
-              onClick={()=>{}}
+              onClick={()=>{ if(ad.link) window.open(ad.link,'_blank'); }}
               className="w-full mb-4 relative overflow-hidden active:scale-[0.98] transition-all"
               style={{
                 background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
