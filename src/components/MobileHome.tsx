@@ -97,9 +97,9 @@ const BANNERS = [
 
 /* 광고 슬라이드 */
 const AD_BANNERS = [
-  {tag:'AD', sub:'코리아Up 비즈니스 아카데미', title:'중국 비즈니스 전문가 양성과정 모집', img:'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=400&h=400&fit=crop', link:''},
-  {tag:'AD', sub:'한성자동차 강남전시장',     title:'BYD 한 EV 출시 · 600만원 할인',         img:'https://images.unsplash.com/photo-1705747401901-28363172fe7e?w=400&h=400&fit=crop', link:''},
-  {tag:'AD', sub:'베이커 부동산',             title:'베이징 한인 아파트 · 풀옵션 매물',       img:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=400&fit=crop', link:''},
+  {tag:'AD', sub:'전국농부들', title:'프리미엄 한우 꽃등심 특가 이벤트', desc:'투벌 한우 꽃등심 1kg + 양념 세트 55% 할인 🥩 무료배송', img:'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=400&h=400&fit=crop'},
+  {tag:'AD', sub:'한성자동차', title:'BYD 한 EV 신차 출시 혜택', desc:'BYD·NIO·샤오펑 공식딜러 · 최대 600만원 할인 🚗', img:'https://images.unsplash.com/photo-1705747401901-28363172fe7e?w=400&h=400&fit=crop'},
+  {tag:'AD', sub:'베이커 부동산', title:'베이징 한인 아파트 풀옵션', desc:'명문학군·교통편리 · 즉시 입주 가능 🏠', img:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=400&fit=crop'},
 ];
 
 /* 바로가기 */
@@ -284,29 +284,30 @@ export function MobileHome({
             </div>
           </div>
 
-          {/* ─ 광고 슬라이더 (컴팩트) ─ */}
-          <div className="px-3 mb-3">
-            <button className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex items-center gap-2.5 p-2 active:scale-[0.98] transition-transform">
-              <img src={ad.img} alt={ad.title}
-                className="w-14 h-14 rounded-xl object-cover shrink-0"/>
-              <div className="flex-1 min-w-0 text-left py-0.5">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="bg-teal-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded leading-none">{ad.tag}</span>
-                  <span className="text-[10px] text-gray-400 truncate">{ad.sub}</span>
-                </div>
-                <p className="text-[12px] font-semibold text-gray-900 leading-tight line-clamp-1">{ad.title}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  {AD_BANNERS.map((_,i)=>(
-                    <span key={i} className={`h-0.5 rounded-full transition-all ${i===adIdx?'w-3 bg-teal-500':'w-1 bg-gray-200'}`}/>
-                  ))}
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mr-1"/>
-            </button>
-          </div>
-
           {/* ─ 주요 서비스 5개 (사진6 스타일) ─ */}
           <div className="px-3 mb-3">
+            {/* 자연스러운 광고 카드 (사진 스타일) */}
+            <div className="mb-3">
+              <button className="w-full bg-white rounded-3xl shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.04)] flex items-start gap-3 p-3 active:scale-[0.98] transition-transform">
+                <img src={ad.img} alt={ad.title}
+                  className="w-[88px] h-[88px] rounded-2xl object-cover shrink-0"/>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="bg-[#03c75a] text-white text-[10px] font-bold px-2 py-0.5 rounded-md leading-none">AD</span>
+                    <span className="text-[12px] text-gray-500 truncate">{ad.sub}</span>
+                  </div>
+                  <p className="text-[14px] font-extrabold text-gray-900 leading-tight line-clamp-2 mb-1">{ad.title}</p>
+                  <p className="text-[11px] text-gray-500 line-clamp-2 leading-snug">{ad.desc}</p>
+                  <div className="flex items-center gap-1 mt-2">
+                    {AD_BANNERS.map((_,i)=>(
+                      <span key={i} className={`h-1.5 rounded-full transition-all ${i===adIdx?'w-1.5 bg-[#03c75a]':'w-1.5 bg-gray-200'}`}/>
+                    ))}
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-1"/>
+              </button>
+            </div>
+
             <p className="text-[12px] text-gray-500 font-semibold mb-2 px-1">주요 서비스</p>
             {/* 1번째 줄: 큰 카드 2개 */}
             <div className="grid grid-cols-2 gap-2.5 mb-2.5">
