@@ -281,51 +281,17 @@ export function MobileHome({
             </div>
           </div>
 
-          {/* ─ 광고 (지역소식 아래, 주요서비스 위) ─ */}
-          <div className="px-3 mb-3">
-            <button
-              className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white active:scale-[0.98] transition-transform"
-              style={{boxShadow:'0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)'}}>
-              {/* 사진1처럼 작은 정사각 이미지 */}
-              <img src={ad.img} alt={ad.title}
-                className="w-[70px] h-[70px] rounded-xl object-cover shrink-0"/>
-              <div className="flex-1 min-w-0 text-left">
-                {/* AD 태그 + 회사명 */}
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="bg-[#03c75a] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none tracking-wide">AD</span>
-                  <span className="text-[11px] text-gray-400 truncate">{ad.sub}</span>
-                </div>
-                {/* 제목 - 굵게 */}
-                <p className="text-[13px] font-bold text-gray-900 leading-tight line-clamp-2">{ad.title}</p>
-                {/* 설명 */}
-                <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{ad.desc}</p>
-                {/* 인디케이터 */}
-                <div className="flex items-center gap-1 mt-1.5">
-                  {AD_BANNERS.map((_,i)=>(
-                    <span key={i} className={`rounded-full transition-all ${
-                      i===adIdx ? 'w-3 h-1 bg-[#03c75a]' : 'w-1 h-1 bg-gray-200'
-                    }`}/>
-                  ))}
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0"/>
-            </button>
-          </div>
-
-          {/* ─ 주요 서비스 5개 (사진6 스타일) ─ */}
+          {/* ─ 주요 서비스 5개 ─ */}
           <div className="px-3 mb-3">
             <p className="text-[12px] text-gray-500 font-semibold mb-2 px-1">주요 서비스</p>
-            {/* 1번째 줄: 큰 카드 2개 */}
             <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <FeatureCard card={FEATURE_CARDS[0]} onClick={()=>goContent(FEATURE_CARDS[0].tabId,null)}/>
               <FeatureCard card={FEATURE_CARDS[1]} onClick={()=>goContent(FEATURE_CARDS[1].tabId,null)}/>
             </div>
-            {/* 2번째 줄: 큰 카드 2개 */}
             <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <FeatureCard card={FEATURE_CARDS[2]} onClick={()=>goContent(FEATURE_CARDS[2].tabId,null)}/>
               <FeatureCard card={FEATURE_CARDS[3]} onClick={()=>goContent(FEATURE_CARDS[3].tabId,null)}/>
             </div>
-            {/* 3번째 줄: 가로형 큰 카드 1개 */}
             <FeatureCard card={FEATURE_CARDS[4]} wide onClick={()=>goContent(FEATURE_CARDS[4].tabId,null)}/>
           </div>
 
@@ -355,6 +321,32 @@ export function MobileHome({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* ─ 광고 (지역소식 아래, 사진1 스타일) ─ */}
+          <div className="px-3 mb-3">
+            <button
+              className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white active:scale-[0.98] transition-transform"
+              style={{boxShadow:'0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)'}}>
+              <img src={ad.img} alt={ad.title}
+                className="w-[70px] h-[70px] rounded-xl object-cover shrink-0"/>
+              <div className="flex-1 min-w-0 text-left">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="bg-[#03c75a] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md leading-none">AD</span>
+                  <span className="text-[11px] text-gray-400 truncate">{ad.sub}</span>
+                </div>
+                <p className="text-[13px] font-bold text-gray-900 leading-tight line-clamp-2">{ad.title}</p>
+                <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{ad.desc}</p>
+                <div className="flex items-center gap-1 mt-1.5">
+                  {AD_BANNERS.map((_,i)=>(
+                    <span key={i} className={`rounded-full transition-all ${
+                      i===adIdx ? 'w-3 h-1 bg-[#03c75a]' : 'w-1 h-1 bg-gray-200'
+                    }`}/>
+                  ))}
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0"/>
+            </button>
           </div>
 
           {/* ─ 로그인 유도 ─ */}
@@ -602,29 +594,20 @@ function FeatureCard({card, wide, onClick}) {
       className="relative overflow-hidden rounded-3xl p-4 text-left active:scale-[0.97] transition-transform w-full"
       style={{
         background: card.bg,
-        minHeight: wide ? 100 : 120,
+        minHeight: wide ? 90 : 110,
       }}>
-      {/* 태그 (HOT, NEW 등) */}
-      <div className="absolute top-3 right-3 z-10">
+      <div className="absolute top-2.5 right-2.5 z-10">
         <span className="text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block"
-          style={{
-            background: card.tagBg,
-            transform: 'rotate(8deg)',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-          }}>
+          style={{background: card.tagBg, transform:'rotate(8deg)', boxShadow:'0 2px 6px rgba(0,0,0,0.15)'}}>
           {card.tag}
         </span>
       </div>
-
-      {/* 텍스트 */}
       <div className="relative z-[5]">
-        <p className="text-gray-900 font-extrabold text-[17px] leading-tight tracking-tight">{card.title}</p>
-        <p className="text-gray-700/70 text-[11px] mt-1">{card.sub}</p>
+        <p className="text-gray-900 font-extrabold text-[15px] leading-tight tracking-tight">{card.title}</p>
+        <p className="text-gray-700/70 text-[11px] mt-0.5">{card.sub}</p>
       </div>
-
-      {/* 큰 이모지 (우측 하단) */}
-      <div className={`absolute text-[60px] leading-none opacity-95 select-none ${wide ? 'right-6 bottom-0' : 'right-2 bottom-0'}`}
-        style={{filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.12))'}}>
+      <div className={`absolute text-[52px] leading-none opacity-90 select-none ${wide ? 'right-6 bottom-1' : 'right-1 bottom-0'}`}
+        style={{filter:'drop-shadow(0 4px 6px rgba(0,0,0,0.10))'}}>
         {card.emoji}
       </div>
     </button>

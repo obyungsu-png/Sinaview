@@ -231,7 +231,9 @@ export function Portal() {
         onMobileTabSelect={setMobileTab}
       />
       
-      <CenterAdBanner />
+      <div className="hidden lg:block">
+        <CenterAdBanner />
+      </div>
       
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Desktop Layout */}
