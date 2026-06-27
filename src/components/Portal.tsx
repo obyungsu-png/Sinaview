@@ -1,6 +1,5 @@
 import { useState, lazy, Suspense, useEffect } from 'react';
 import { Header } from './Header';
-import { testServerConnection } from '../utils/supabase/client';
 import { LoginSection } from './LoginSection';
 import { CenterAdBanner } from './CenterAdBanner';
 
@@ -131,7 +130,7 @@ export function Portal() {
     }
 
     const timer = setTimeout(() => {
-      testServerConnection();
+      // 서버 health check 제거 (CORS 에러 방지)
     }, 5000);
     const user = localStorage.getItem('currentUser');
     if (user) {
