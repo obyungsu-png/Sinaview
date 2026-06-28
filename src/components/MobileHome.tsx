@@ -52,16 +52,27 @@ const CAT_COLORS = {
   문화:'bg-pink-100 text-pink-600',
 };
 
-/* 서비스 아이콘 8개 - 이미지 URL 기반 (CMS에서 교체 가능) */
+/* 서비스 아이콘 8개 - 커스텀 SVG 캐릭터 아이콘 */
+const ICON_SVGS = {
+  visa: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 5 140 140"><rect x="30" y="20" width="90" height="110" rx="8" fill="#e2e8f0" transform="rotate(-5 75 75)" stroke="#cbd5e1" stroke-width="2"/><rect x="40" y="10" width="90" height="110" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="2"/><circle cx="70" cy="45" r="5" fill="#333"/><circle cx="100" cy="45" r="5" fill="#333"/><path d="M 75 60 Q 85 70 95 60" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="55" y="15" width="25" height="30" rx="3" fill="#3b82f6"/></svg>')}`,
+  education: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 10 160 120"><rect x="40" y="80" width="110" height="25" rx="5" fill="#c084fc"/><rect x="35" y="55" width="120" height="25" rx="5" fill="#fb923c"/><polygon points="95,15 160,40 95,65 30,40" fill="#334155"/><circle cx="80" cy="65" r="4" fill="#333"/><circle cx="110" cy="65" r="4" fill="#333"/><path d="M 85 75 Q 95 82 105 75" stroke="#333" stroke-width="2" fill="none"/></svg>')}`,
+  yellow: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 10 130 150"><path d="M 95 20 C 60 20 40 50 40 80 C 40 110 95 150 95 150 C 95 150 150 110 150 80 C 150 50 130 20 95 20 Z" fill="#93c5fd"/><rect x="75" y="100" width="40" height="40" rx="4" fill="#fca5a5"/><circle cx="85" cy="60" r="4" fill="#333"/><circle cx="105" cy="60" r="4" fill="#333"/><path d="M 88 72 Q 95 78 102 72" stroke="#333" stroke-width="2" fill="none"/></svg>')}`,
+  auto: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="25 45 145 85"><path d="M 40 90 Q 40 60 70 55 L 120 55 Q 150 60 150 90 L 155 110 L 35 110 Z" fill="#60a5fa"/><circle cx="60" cy="110" r="14" fill="#334155"/><circle cx="130" cy="110" r="14" fill="#334155"/><circle cx="75" cy="80" r="4" fill="#333"/><circle cx="105" cy="80" r="4" fill="#333"/><path d="M 85 90 Q 90 95 95 90" stroke="#333" stroke-width="2" fill="none"/></svg>')}`,
+  market: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 30 160 100"><path d="M 30 40 L 50 40 L 70 90 L 140 90 L 160 50 L 55 50" stroke="#f87171" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="80" cy="110" r="10" fill="#475569"/><circle cx="130" cy="110" r="10" fill="#475569"/><rect x="80" y="55" width="45" height="30" rx="4" fill="#60a5fa"/><circle cx="95" cy="70" r="3" fill="#fff"/><circle cx="110" cy="70" r="3" fill="#fff"/></svg>')}`,
+  securities: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 20 130 120"><rect x="40" y="90" width="20" height="40" rx="3" fill="#f87171"/><rect x="70" y="60" width="20" height="70" rx="3" fill="#60a5fa"/><rect x="100" y="30" width="20" height="100" rx="3" fill="#4ade80"/><circle cx="135" cy="105" r="20" fill="#fbbf24"/><text x="135" y="112" font-size="20" font-weight="bold" fill="#fff" text-anchor="middle">¥</text></svg>')}`,
+  realestate: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 30 130 100"><rect x="40" y="60" width="35" height="65" rx="4" fill="#cbd5e1"/><rect x="80" y="40" width="40" height="85" rx="4" fill="#a7f3d0"/><rect x="125" y="75" width="30" height="50" rx="4" fill="#fbcfe8"/><rect x="48" y="72" width="18" height="15" rx="2" fill="#94a3b8"/><rect x="90" y="52" width="18" height="15" rx="2" fill="#6ee7b7"/><rect x="90" y="75" width="18" height="15" rx="2" fill="#6ee7b7"/></svg>')}`,
+  community: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 25 150 110"><path d="M 40 75 C 40 50 70 40 90 40 C 110 40 140 50 140 75 C 140 100 110 110 90 110 L 70 125 L 75 110 C 50 105 40 90 40 75 Z" fill="#c7d2fe"/><path d="M 90 55 C 90 40 110 30 130 30 C 150 30 170 40 170 55 C 170 70 150 80 130 80 L 115 92 L 120 80 C 100 78 90 68 90 55 Z" fill="#fef08a" opacity="0.8"/><circle cx="75" cy="75" r="3" fill="#475569"/><circle cx="90" cy="75" r="3" fill="#475569"/><circle cx="105" cy="75" r="3" fill="#475569"/></svg>')}`,
+};
+
 const DEFAULT_SERVICE_ICONS = [
-  {id:'visa',       label:'비자/서류', img:'https://cdn-icons-png.flaticon.com/512/2965/2965567.png', tab:'visa',       bg:'#FFF3E0'},
-  {id:'education',  label:'교육',      img:'https://cdn-icons-png.flaticon.com/512/3976/3976625.png', tab:'education',  bg:'#E8F5E9'},
-  {id:'yellow',     label:'업소록',    img:'https://cdn-icons-png.flaticon.com/512/3145/3145765.png', tab:'yellow',     bg:'#FFFDE7'},
-  {id:'auto',       label:'자동차',    img:'https://cdn-icons-png.flaticon.com/512/3774/3774278.png', tab:'auto',       bg:'#FFEBEE'},
-  {id:'market',     label:'중고장터',  img:'https://cdn-icons-png.flaticon.com/512/3514/3514491.png', tab:'market',     bg:'#E3F2FD'},
-  {id:'securities', label:'증권',      img:'https://cdn-icons-png.flaticon.com/512/4149/4149680.png', tab:'securities', bg:'#EDE7F6'},
-  {id:'realestate', label:'부동산',    img:'https://cdn-icons-png.flaticon.com/512/3079/3079162.png', tab:'realestate', bg:'#E0F7FA'},
-  {id:'community',  label:'커뮤니티',  img:'https://cdn-icons-png.flaticon.com/512/4213/4213732.png', tab:'community',  bg:'#F3E5F5', page:'chinalife'},
+  {id:'visa',       label:'비자/서류', img: ICON_SVGS.visa,       tab:'visa',       bg:'#FFF3E0'},
+  {id:'education',  label:'교육',      img: ICON_SVGS.education,  tab:'education',  bg:'#F3E8FF'},
+  {id:'yellow',     label:'업소록',    img: ICON_SVGS.yellow,     tab:'yellow',     bg:'#EFF6FF'},
+  {id:'auto',       label:'자동차',    img: ICON_SVGS.auto,       tab:'auto',       bg:'#DBEAFE'},
+  {id:'market',     label:'중고장터',  img: ICON_SVGS.market,     tab:'market',     bg:'#FEF2F2'},
+  {id:'securities', label:'증권',      img: ICON_SVGS.securities, tab:'securities', bg:'#EDE7F6'},
+  {id:'realestate', label:'부동산',    img: ICON_SVGS.realestate, tab:'realestate', bg:'#E0F7FA'},
+  {id:'community',  label:'커뮤니티',  img: ICON_SVGS.community,  tab:'community',  bg:'#F3E5F5', page:'chinalife'},
 ];
 
 function getServiceIcons() {
@@ -329,7 +340,7 @@ export function MobileHome({
                     marginBottom: 8,
                     background: svc.bg || '#f5f5f5',
                   }}>
-                    <img src={svc.img} alt={svc.label} style={{width:40, height:40, objectFit:'contain'}}/>
+                    <img src={svc.img} alt={svc.label} style={{width:48, height:48, objectFit:'contain'}}/>
                   </div>
                   {/* 라벨 */}
                   <span style={{
@@ -609,7 +620,7 @@ export function MobileHome({
                     onTouchStart={e=>e.currentTarget.style.transform='scale(0.95)'}
                     onTouchEnd={e=>e.currentTarget.style.transform='scale(1)'}>
                     <div className="rounded-2xl" style={{width:64,height:64,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:8,background:svc.bg||'#f5f5f5'}}>
-                      <img src={svc.img} alt={svc.label} style={{width:40,height:40,objectFit:'contain'}}/>
+                      <img src={svc.img} alt={svc.label} style={{width:48,height:48,objectFit:'contain'}}/>
                     </div>
                     <span style={{fontFamily:"'Noto Sans KR', sans-serif",fontSize:12,fontWeight:500,color:'#333333',textAlign:'center',letterSpacing:'-0.5px',lineHeight:1.2}}>
                       {svc.label}
