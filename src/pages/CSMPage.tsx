@@ -1966,9 +1966,9 @@ function ContentForm({
 }
 /* ── 모바일 광고 관리 컴포넌트 ── */
 const DEFAULT_ADS_CMS = [
-  {id:'1', sub:'전국농부들', title:'프리미엄 한우 꽃등심 특가 이벤트', desc:'투벌 한우 꽃등심 1kg + 양념 세트 55% 할인 🥩 무료배송', img:'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=400&h=400&fit=crop', link:'', active:true},
-  {id:'2', sub:'한성자동차', title:'BYD 한 EV 신차 출시 혜택', desc:'BYD·NIO·샤오펑 공식딜러 · 최대 600만원 할인 🚗', img:'https://images.unsplash.com/photo-1705747401901-28363172fe7e?w=400&h=400&fit=crop', link:'', active:true},
-  {id:'3', sub:'베이커 부동산', title:'베이징 한인 아파트 풀옵션', desc:'명문학군·교통편리 · 즉시 입주 가능 🏠', img:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=400&fit=crop', link:'', active:true},
+  {id:'1', sub:'전국농부들', title:'프리미엄 한우 꽃등심 특가 이벤트', desc:'투벌 한우 꽃등심 1kg + 양념 세트 55% 할인 🥩 무료배송', img:'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=400&h=400&fit=crop', video:'', images:[], link:'', active:true},
+  {id:'2', sub:'한성자동차', title:'BYD 한 EV 신차 출시 혜택', desc:'BYD·NIO·샤오펑 공식딜러 · 최대 600만원 할인 🚗', img:'https://images.unsplash.com/photo-1705747401901-28363172fe7e?w=400&h=400&fit=crop', video:'', images:[], link:'', active:true},
+  {id:'3', sub:'베이커 부동산', title:'베이징 한인 아파트 풀옵션', desc:'명문학군·교통편리 · 즉시 입주 가능 🏠', img:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=400&fit=crop', video:'', images:[], link:'', active:true},
 ];
 
 function MobileAdsManager() {
@@ -1977,7 +1977,7 @@ function MobileAdsManager() {
     catch { return DEFAULT_ADS_CMS; }
   });
   const [editingId, setEditingId] = useState<string|null>(null);
-  const [form, setForm] = useState({sub:'', title:'', desc:'', img:'', link:''});
+  const [form, setForm] = useState({sub:'', title:'', desc:'', img:'', video:'', images:['','',''], link:''});
   const [isAdding, setIsAdding] = useState(false);
 
   const save = (newAds: any[]) => {
@@ -1999,7 +1999,7 @@ function MobileAdsManager() {
 
   const startEdit = (ad: any) => {
     setEditingId(ad.id);
-    setForm({sub:ad.sub, title:ad.title, desc:ad.desc, img:ad.img, link:ad.link});
+    setForm({sub:ad.sub, title:ad.title, desc:ad.desc, img:ad.img, video:ad.video||'', images:ad.images||['','',''], link:ad.link});
   };
 
   const submitEdit = () => {
@@ -2010,7 +2010,7 @@ function MobileAdsManager() {
   const submitAdd = () => {
     const newAd = {id: Date.now().toString(), ...form, active:true};
     save([...ads, newAd]);
-    setForm({sub:'', title:'', desc:'', img:'', link:''});
+    setForm({sub:'', title:'', desc:'', img:'', video:'', images:['','',''], link:''});
     setIsAdding(false);
   };
 
@@ -2056,7 +2056,17 @@ function MobileAdsManager() {
                 <Input placeholder="회사명" value={form.sub} onChange={e=>setForm(p=>({...p,sub:e.target.value}))} className="text-sm"/>
                 <Input placeholder="광고 제목" value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} className="text-sm"/>
                 <Input placeholder="설명" value={form.desc} onChange={e=>setForm(p=>({...p,desc:e.target.value}))} className="text-sm"/>
-                <Input placeholder="이미지 URL" value={form.img} onChange={e=>setForm(p=>({...p,img:e.target.value}))} className="text-sm"/>
+                <Input placeholder="대표 이미지 URL" value={form.img} onChange={e=>setForm(p=>({...p,img:e.target.value}))} className="text-sm"/>
+                <div className="border border-dashed border-blue-200 rounded-lg p-2 space-y-1.5 bg-blue-50">
+                  <p className="text-[11px] font-semibold text-blue-600">🎬 동영상 URL (YouTube/직접 링크)</p>
+                  <Input placeholder="https://youtube.com/embed/... 또는 .mp4 URL" value={form.video} onChange={e=>setForm(p=>({...p,video:e.target.value}))} className="text-sm bg-white"/>
+                </div>
+                <div className="border border-dashed border-green-200 rounded-lg p-2 space-y-1.5 bg-green-50">
+                  <p className="text-[11px] font-semibold text-green-600">📸 추가 사진 URL (최대 3장)</p>
+                  {[0,1,2].map(i=>(
+                    <Input key={i} placeholder={`사진 ${i+1} URL`} value={form.images[i]||''} onChange={e=>{const imgs=[...form.images]; imgs[i]=e.target.value; setForm(p=>({...p,images:imgs}));}} className="text-sm bg-white"/>
+                  ))}
+                </div>
                 <Input placeholder="링크 URL (선택)" value={form.link} onChange={e=>setForm(p=>({...p,link:e.target.value}))} className="text-sm"/>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={submitEdit} className="bg-green-600 hover:bg-green-700"><Save className="w-3 h-3 mr-1"/>저장</Button>
@@ -2095,11 +2105,21 @@ function MobileAdsManager() {
             <Input placeholder="회사명 *" value={form.sub} onChange={e=>setForm(p=>({...p,sub:e.target.value}))} className="text-sm bg-white"/>
             <Input placeholder="광고 제목 *" value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} className="text-sm bg-white"/>
             <Input placeholder="설명" value={form.desc} onChange={e=>setForm(p=>({...p,desc:e.target.value}))} className="text-sm bg-white"/>
-            <Input placeholder="이미지 URL *" value={form.img} onChange={e=>setForm(p=>({...p,img:e.target.value}))} className="text-sm bg-white"/>
+            <Input placeholder="대표 이미지 URL *" value={form.img} onChange={e=>setForm(p=>({...p,img:e.target.value}))} className="text-sm bg-white"/>
+            <div className="border border-dashed border-blue-300 rounded-lg p-2 space-y-1.5 bg-blue-50">
+              <p className="text-[11px] font-semibold text-blue-600">🎬 동영상 URL (YouTube embed 또는 .mp4)</p>
+              <Input placeholder="https://www.youtube.com/embed/VIDEO_ID" value={form.video} onChange={e=>setForm(p=>({...p,video:e.target.value}))} className="text-sm bg-white"/>
+            </div>
+            <div className="border border-dashed border-teal-300 rounded-lg p-2 space-y-1.5 bg-teal-50">
+              <p className="text-[11px] font-semibold text-teal-600">📸 추가 사진 URL (최대 3장)</p>
+              {[0,1,2].map(i=>(
+                <Input key={i} placeholder={`사진 ${i+1} URL`} value={form.images[i]||''} onChange={e=>{const imgs=[...form.images]; imgs[i]=e.target.value; setForm(p=>({...p,images:imgs}));}} className="text-sm bg-white"/>
+              ))}
+            </div>
             <Input placeholder="링크 URL (선택)" value={form.link} onChange={e=>setForm(p=>({...p,link:e.target.value}))} className="text-sm bg-white"/>
             <div className="flex gap-2 pt-1">
               <Button size="sm" onClick={submitAdd} disabled={!form.sub||!form.title||!form.img} className="bg-green-600 hover:bg-green-700"><Save className="w-3 h-3 mr-1"/>추가</Button>
-              <Button size="sm" variant="outline" onClick={()=>{setIsAdding(false);setForm({sub:'',title:'',desc:'',img:'',link:''});}}>취소</Button>
+              <Button size="sm" variant="outline" onClick={()=>{setIsAdding(false);setForm({sub:'',title:'',desc:'',img:'',video:'',images:['','',''],link:''});}}>취소</Button>
             </div>
           </div>
         )}

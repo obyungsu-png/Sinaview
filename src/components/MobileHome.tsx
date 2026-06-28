@@ -509,92 +509,64 @@ export function MobileHome({
         </div>
       )}
 
-      {/* ── 광고 상세 모달 (전체 화면에서 공통) ── */}
-      {showAdModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
-          onClick={()=>setShowAdModal(false)}>
-          <div className="bg-white w-full rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col"
-            onClick={e=>e.stopPropagation()}>
-            {/* 핸들바 */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 bg-gray-200 rounded-full"/>
-            </div>
+      {/* ── 광고 상세 모달 ── */}
+      {showAdModal && (() => {
+        const modalAd = adBanners[modalAdIdx] || {};
+        const hasVideo = !!modalAd.video;
+        const extraImgs = (modalAd.images||[]).filter(Boolean);
+        const allImgs = [modalAd.img, ...extraImgs].filter(Boolean);
+        return (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55"
+            onClick={()=>setShowAdModal(false)}>
+            <div className="bg-white w-full rounded-t-3xl overflow-hidden flex flex-col"
+              style={{maxHeight:'90vh'}}
+              onClick={e=>e.stopPropagation()}>
 
-            {/* 헤더 */}
-            <div className="flex items-center justify-between px-5 pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <span className="bg-[#03c75a] text-white text-[10px] font-bold px-2 py-0.5 rounded-md">AD</span>
-                <span className="text-[13px] font-semibold text-gray-800">{adBanners[modalAdIdx]?.sub}</span>
+              {/* 핸들바 */}
+              <div className="flex justify-center pt-2.5 pb-1 shrink-0">
+                <div className="w-10 h-1 bg-gray-200 rounded-full"/>
               </div>
-              <button onClick={()=>setShowAdModal(false)}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="w-4 h-4 text-gray-500"/>
-              </button>
-            </div>
 
-            {/* 광고 탭 (여러 광고일 때) */}
-            {adBanners.length > 1 && (
-              <div className="flex gap-2 px-5 py-2.5 overflow-x-auto scrollbar-hide border-b border-gray-50">
-                {adBanners.map((a,i)=>(
-                  <button key={i} onClick={()=>setModalAdIdx(i)}
-                    className={`shrink-0 text-[11px] px-3 py-1 rounded-full font-medium transition-all ${
-                      modalAdIdx===i?'bg-teal-500 text-white':'bg-gray-100 text-gray-500'}`}>
-                    {a.sub}
-                  </button>
-                ))}
+              {/* 헤더 */}
+              <div className="flex items-center justify-between px-5 pb-3 border-b border-gray-100 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="bg-[#03c75a] text-white text-[10px] font-bold px-2 py-0.5 rounded-md">AD</span>
+                  <span className="text-[13px] font-semibold text-gray-800">{modalAd.sub}</span>
+                </div>
+                <button onClick={()=>setShowAdModal(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                  <X className="w-4 h-4 text-gray-500"/>
+                </button>
               </div>
-            )}
 
-            {/* 스크롤 본문 */}
-            <div className="flex-1 overflow-y-auto">
-              {/* 메인 이미지 */}
-              <img src={adBanners[modalAdIdx]?.img} alt=""
-                className="w-full object-cover"
-                style={{maxHeight:220}}/>
-
-              <div className="px-5 py-4 space-y-4">
-                {/* 제목 + 설명 */}
-                <div>
-                  <h2 className="text-[18px] font-extrabold text-gray-900 leading-tight mb-1.5">
-                    {adBanners[modalAdIdx]?.title}
-                  </h2>
-                  <p className="text-[13px] text-gray-500 leading-relaxed">
-                    {adBanners[modalAdIdx]?.desc}
-                  </p>
+              {/* 광고 탭 선택 (여러 광고) */}
+              {adBanners.length > 1 && (
+                <div className="flex gap-2 px-5 py-2 overflow-x-auto scrollbar-hide border-b border-gray-50 shrink-0">
+                  {adBanners.map((a,i)=>(
+                    <button key={i} onClick={()=>setModalAdIdx(i)}
+                      className={`shrink-0 text-[11px] px-3 py-1 rounded-full font-medium transition-all ${
+                        modalAdIdx===i?'bg-teal-500 text-white':'bg-gray-100 text-gray-500'}`}>
+                      {a.sub}
+                    </button>
+                  ))}
                 </div>
+              )}
 
-                {/* 사진 갤러리 */}
-                <div>
-                  <p className="text-[12px] font-bold text-gray-400 mb-2">📸 사진</p>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {[0,1,2].map(i=>(
-                      <img key={i} src={adBanners[modalAdIdx]?.img} alt=""
-                        className="w-full aspect-square object-cover rounded-xl bg-gray-100"/>
-                    ))}
-                  </div>
-                </div>
+              {/* 콘텐츠 탭 (동영상/사진/안내) */}
+              <AdModalContent ad={modalAd} hasVideo={hasVideo} allImgs={allImgs}/>
 
-                {/* 상세 안내 */}
-                <div className="bg-gray-50 rounded-2xl p-4">
-                  <p className="text-[12px] font-bold text-gray-400 mb-2">📄 상세 안내</p>
-                  <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-line">
-                    {adBanners[modalAdIdx]?.desc}{'\n\n'}광고 내용을 CMS에서 수정할 수 있습니다.
-                  </p>
-                </div>
+              {/* 하단 버튼 */}
+              <div className="px-5 py-4 border-t border-gray-100 shrink-0">
+                <button
+                  onClick={()=>{ if(modalAd.link) window.open(modalAd.link,'_blank'); setShowAdModal(false); }}
+                  className="w-full py-3 bg-teal-600 text-white rounded-2xl text-[14px] font-bold active:bg-teal-700 transition-colors">
+                  자세히 보기 →
+                </button>
               </div>
-            </div>
-
-            {/* 하단 버튼 */}
-            <div className="px-5 py-4 border-t border-gray-100">
-              <button
-                onClick={()=>{ if(adBanners[modalAdIdx]?.link) window.open(adBanners[modalAdIdx].link,'_blank'); setShowAdModal(false); }}
-                className="w-full py-3 bg-teal-600 text-white rounded-2xl text-[14px] font-bold active:bg-teal-700 transition-colors">
-                자세히 보기 →
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ══ 소식 ══ */}
       {bottomTab==='news' && (
@@ -819,6 +791,105 @@ function FeatureCard({card, wide, onClick}) {
         {card.emoji}
       </div>
     </button>
+  );
+}
+
+/* ── 광고 모달 콘텐츠 (동영상/사진/안내 탭) ── */
+function AdModalContent({ad, hasVideo, allImgs}) {
+  const [tab, setTab] = useState(hasVideo ? 'video' : 'photo');
+  const isYoutube = ad.video && (ad.video.includes('youtube.com') || ad.video.includes('youtu.be'));
+  const isMp4 = ad.video && ad.video.endsWith('.mp4');
+
+  const tabs = [
+    ...(hasVideo ? [{id:'video', label:'🎬 동영상'}] : []),
+    {id:'photo', label:'📸 사진'},
+    {id:'info',  label:'📄 안내'},
+  ];
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      {/* 탭 바 */}
+      <div className="flex border-b border-gray-100 px-5 gap-4">
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)}
+            className={`py-2.5 text-[12px] font-semibold border-b-2 transition-colors whitespace-nowrap ${
+              tab===t.id ? 'border-teal-500 text-teal-600' : 'border-transparent text-gray-400'
+            }`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="px-5 py-4 space-y-3">
+        {/* 제목 */}
+        <div>
+          <h2 className="text-[17px] font-extrabold text-gray-900 leading-tight">{ad.title}</h2>
+          <p className="text-[12px] text-gray-400 mt-0.5">{ad.sub}</p>
+        </div>
+
+        {/* ─ 동영상 탭 ─ */}
+        {tab==='video' && (
+          <div>
+            {isYoutube && (
+              <div className="rounded-2xl overflow-hidden bg-black" style={{aspectRatio:'16/9'}}>
+                <iframe
+                  src={ad.video.includes('embed') ? ad.video : ad.video.replace('watch?v=','embed/')}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen/>
+              </div>
+            )}
+            {isMp4 && (
+              <div className="rounded-2xl overflow-hidden bg-black" style={{aspectRatio:'16/9'}}>
+                <video src={ad.video} controls className="w-full h-full object-contain"/>
+              </div>
+            )}
+            {!isYoutube && !isMp4 && ad.video && (
+              <div className="rounded-2xl overflow-hidden bg-black" style={{aspectRatio:'16/9'}}>
+                <iframe src={ad.video} className="w-full h-full" allowFullScreen/>
+              </div>
+            )}
+            <p className="text-[12px] text-gray-500 leading-relaxed mt-3">{ad.desc}</p>
+          </div>
+        )}
+
+        {/* ─ 사진 탭 ─ */}
+        {tab==='photo' && (
+          <div>
+            {/* 메인 이미지 */}
+            <img src={ad.img} alt="" className="w-full rounded-2xl object-cover mb-2" style={{maxHeight:220}}/>
+            {/* 추가 이미지 */}
+            {allImgs.length > 1 && (
+              <div className={`grid gap-1.5 ${allImgs.length===2?'grid-cols-2':'grid-cols-3'}`}>
+                {allImgs.slice(1).map((src,i)=>(
+                  <img key={i} src={src} alt=""
+                    className="w-full aspect-square object-cover rounded-xl bg-gray-100"/>
+                ))}
+              </div>
+            )}
+            {allImgs.length === 1 && (
+              <p className="text-[11px] text-gray-400 text-center py-2">추가 사진은 CMS에서 등록할 수 있습니다.</p>
+            )}
+          </div>
+        )}
+
+        {/* ─ 안내 탭 ─ */}
+        {tab==='info' && (
+          <div className="space-y-3">
+            <div className="bg-gray-50 rounded-2xl p-4">
+              <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-line">{ad.desc}</p>
+            </div>
+            {ad.link && (
+              <a href={ad.link} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 text-[12px] text-teal-600 font-medium">
+                <ExternalLink className="w-3.5 h-3.5"/>
+                {ad.link}
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
