@@ -281,15 +281,56 @@ export function MobileHome({
           </div>
 
           {/* ─ 서비스 아이콘 8개 ─ */}
-          <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-100 shadow-sm px-3 pt-4 pb-3">
-            <div className="grid grid-cols-4 gap-y-1">
+          <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-100 shadow-sm px-5 py-5">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '30px 20px',
+            }}>
               {SERVICE_ICONS.map(svc=>(
-                <button key={svc.id} onClick={()=>goContent(svc.tab, svc.page)}
-                  className="flex flex-col items-center gap-1.5 py-2.5 rounded-xl active:bg-gray-50">
-                  <div className={`w-12 h-12 ${svc.bg} rounded-2xl flex items-center justify-center text-[22px]`}>
+                <button
+                  key={svc.id}
+                  onClick={()=>goContent(svc.tab, svc.page)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    transition: 'transform 0.2s ease',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform='translateY(-4px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}
+                  onTouchStart={e => e.currentTarget.style.transform='scale(0.95)'}
+                  onTouchEnd={e => e.currentTarget.style.transform='scale(1)'}
+                >
+                  {/* 아이콘 박스 */}
+                  <div className={`${svc.bg} rounded-2xl`} style={{
+                    width: 64,
+                    height: 64,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 8,
+                    fontSize: 30,
+                  }}>
                     {svc.icon}
                   </div>
-                  <span className="text-[11px] text-gray-700 font-medium">{svc.label}</span>
+                  {/* 라벨 */}
+                  <span style={{
+                    fontFamily: "'Noto Sans KR', sans-serif",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: '#333333',
+                    textAlign: 'center',
+                    letterSpacing: '-0.5px',
+                    lineHeight: 1.2,
+                  }}>
+                    {svc.label}
+                  </span>
                 </button>
               ))}
             </div>
@@ -574,15 +615,21 @@ export function MobileHome({
             <p className="font-bold text-gray-900 text-[16px]">서비스</p>
           </div>
           <div className="p-3">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-3 py-4 mb-3">
-              <div className="grid grid-cols-4 gap-2">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-5 mb-3">
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:'30px 20px'}}>
                 {SERVICE_ICONS.map(svc=>(
                   <button key={svc.id} onClick={()=>goContent(svc.tab, svc.page)}
-                    className="flex flex-col items-center gap-2 py-3 rounded-2xl active:bg-gray-50">
-                    <div className={`w-14 h-14 ${svc.bg} rounded-2xl flex items-center justify-center text-2xl`}>
+                    style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer',background:'none',border:'none',padding:0,transition:'transform 0.2s ease'}}
+                    onMouseEnter={e=>e.currentTarget.style.transform='translateY(-4px)'}
+                    onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}
+                    onTouchStart={e=>e.currentTarget.style.transform='scale(0.95)'}
+                    onTouchEnd={e=>e.currentTarget.style.transform='scale(1)'}>
+                    <div className={`${svc.bg} rounded-2xl`} style={{width:64,height:64,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:8,fontSize:30}}>
                       {svc.icon}
                     </div>
-                    <span className="text-[11px] text-gray-700 font-medium">{svc.label}</span>
+                    <span style={{fontFamily:"'Noto Sans KR', sans-serif",fontSize:12,fontWeight:500,color:'#333333',textAlign:'center',letterSpacing:'-0.5px',lineHeight:1.2}}>
+                      {svc.label}
+                    </span>
                   </button>
                 ))}
               </div>
