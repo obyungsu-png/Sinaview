@@ -197,6 +197,7 @@ export function MobileHome({
 
   const [showAdModal, setShowAdModal] = useState(false);
   const [modalAdIdx, setModalAdIdx] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedShortcuts, setSelectedShortcuts] = useState(() => {
     try { const s = localStorage.getItem('dashboard_tabs'); return s ? JSON.parse(s) : ['doc','edu','realestate','travel','stock']; }
     catch { return ['doc','edu','realestate','travel','stock']; }
