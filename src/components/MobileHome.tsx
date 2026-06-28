@@ -87,7 +87,7 @@ const FEATURE_CARDS = [
   },
   {
     id:'daechi', title:'대치동 학원', sub:'유학·입시 컨설팅',
-    emoji:'📚', bg:'#FFF4B8', tag:'추천', tagBg:'#FF8C42', tabId:'daechi',
+    emoji:'🎒', bg:'#FFF4B8', tag:'추천', tagBg:'#FF8C42', tabId:'daechi',
   },
   {
     id:'realestate', title:'부동산', sub:'매물·전월세 정보',
