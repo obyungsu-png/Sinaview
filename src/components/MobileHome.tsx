@@ -52,17 +52,28 @@ const CAT_COLORS = {
   문화:'bg-pink-100 text-pink-600',
 };
 
-/* 서비스 아이콘 8개 - 더 부드러운 톤 */
-const SERVICE_ICONS = [
-  {id:'visa',       label:'비자/서류', icon:'📋', tab:'visa',       bg:'bg-blue-50'},
-  {id:'education',  label:'교육',      icon:'🎓', tab:'education',  bg:'bg-green-50'},
-  {id:'yellow',     label:'업소록',    icon:'📖', tab:'yellow',     bg:'bg-yellow-50'},
-  {id:'auto',       label:'자동차',    icon:'🚗', tab:'auto',       bg:'bg-red-50'},
-  {id:'market',     label:'중고장터',  icon:'🛍️', tab:'market',     bg:'bg-orange-50'},
-  {id:'securities', label:'증권',      icon:'💹', tab:'securities', bg:'bg-indigo-50'},
-  {id:'realestate', label:'부동산',    icon:'🏘️', tab:'realestate', bg:'bg-teal-50'},
-  {id:'community',  label:'커뮤니티',  icon:'💬', tab:'community',  bg:'bg-purple-50', page:'chinalife'},
+/* 서비스 아이콘 8개 - 이미지 URL 기반 (CMS에서 교체 가능) */
+const DEFAULT_SERVICE_ICONS = [
+  {id:'visa',       label:'비자/서류', img:'https://cdn-icons-png.flaticon.com/512/2965/2965567.png', tab:'visa',       bg:'#FFF3E0'},
+  {id:'education',  label:'교육',      img:'https://cdn-icons-png.flaticon.com/512/3976/3976625.png', tab:'education',  bg:'#E8F5E9'},
+  {id:'yellow',     label:'업소록',    img:'https://cdn-icons-png.flaticon.com/512/3145/3145765.png', tab:'yellow',     bg:'#FFFDE7'},
+  {id:'auto',       label:'자동차',    img:'https://cdn-icons-png.flaticon.com/512/3774/3774278.png', tab:'auto',       bg:'#FFEBEE'},
+  {id:'market',     label:'중고장터',  img:'https://cdn-icons-png.flaticon.com/512/3514/3514491.png', tab:'market',     bg:'#E3F2FD'},
+  {id:'securities', label:'증권',      img:'https://cdn-icons-png.flaticon.com/512/4149/4149680.png', tab:'securities', bg:'#EDE7F6'},
+  {id:'realestate', label:'부동산',    img:'https://cdn-icons-png.flaticon.com/512/3079/3079162.png', tab:'realestate', bg:'#E0F7FA'},
+  {id:'community',  label:'커뮤니티',  img:'https://cdn-icons-png.flaticon.com/512/4213/4213732.png', tab:'community',  bg:'#F3E5F5', page:'chinalife'},
 ];
+
+function getServiceIcons() {
+  try {
+    const saved = localStorage.getItem('cms_service_icons');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_SERVICE_ICONS;
+}
 
 /* 주요 서비스 5개 카드 - 사진6 스타일 (대형 + 캐릭터 + HOT 태그) */
 const FEATURE_CARDS = [
@@ -151,6 +162,7 @@ export function MobileHome({
   const [bottomTab, setBottomTab] = useState('home');
   const [contentTab, setContentTab] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const SERVICE_ICONS = getServiceIcons();
 
   const goContent = (tab, page) => {
     if (page) { onNavigate?.(page); return; }
@@ -308,16 +320,16 @@ export function MobileHome({
                   onTouchEnd={e => e.currentTarget.style.transform='scale(1)'}
                 >
                   {/* 아이콘 박스 */}
-                  <div className={`${svc.bg} rounded-2xl`} style={{
+                  <div className="rounded-2xl" style={{
                     width: 64,
                     height: 64,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: 8,
-                    fontSize: 30,
+                    background: svc.bg || '#f5f5f5',
                   }}>
-                    {svc.icon}
+                    <img src={svc.img} alt={svc.label} style={{width:40, height:40, objectFit:'contain'}}/>
                   </div>
                   {/* 라벨 */}
                   <span style={{
@@ -596,8 +608,8 @@ export function MobileHome({
                     onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}
                     onTouchStart={e=>e.currentTarget.style.transform='scale(0.95)'}
                     onTouchEnd={e=>e.currentTarget.style.transform='scale(1)'}>
-                    <div className={`${svc.bg} rounded-2xl`} style={{width:64,height:64,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:8,fontSize:30}}>
-                      {svc.icon}
+                    <div className="rounded-2xl" style={{width:64,height:64,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:8,background:svc.bg||'#f5f5f5'}}>
+                      <img src={svc.img} alt={svc.label} style={{width:40,height:40,objectFit:'contain'}}/>
                     </div>
                     <span style={{fontFamily:"'Noto Sans KR', sans-serif",fontSize:12,fontWeight:500,color:'#333333',textAlign:'center',letterSpacing:'-0.5px',lineHeight:1.2}}>
                       {svc.label}
