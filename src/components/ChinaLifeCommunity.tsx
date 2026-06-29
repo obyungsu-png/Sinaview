@@ -424,6 +424,95 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
             border-right: 1px solid #ddd;
         }
 
+        /* === 모바일 최적화 === */
+        @media (max-width: 768px) {
+            .community-wrapper {
+                flex-direction: column;
+                border-left: none;
+                border-right: none;
+            }
+            .community-sidebar {
+                width: 100% !important;
+                border-right: none !important;
+                border-bottom: 1px solid #eee;
+                padding: 12px 16px !important;
+                background: #fff !important;
+            }
+            .profile-card {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px !important;
+                margin-bottom: 0 !important;
+                text-align: left !important;
+            }
+            .profile-info {
+                margin-bottom: 0 !important;
+                flex: 1;
+            }
+            .avatar-circle {
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 18px !important;
+                flex-shrink: 0;
+            }
+            .stats {
+                flex-direction: row;
+                gap: 8px !important;
+                margin-top: 4px !important;
+                justify-content: flex-start !important;
+                font-size: 10px !important;
+            }
+            /* 모바일에서 사이드바 메뉴는 가로 스크롤 */
+            .menu-list {
+                display: flex;
+                gap: 8px;
+                overflow-x: auto;
+                padding-bottom: 4px;
+                margin-top: 10px;
+                -webkit-overflow-scrolling: touch;
+            }
+            .menu-list::-webkit-scrollbar { display: none; }
+            .menu-list li {
+                border-bottom: none !important;
+                border-radius: 20px;
+                background: #f5f5f5;
+                padding: 6px 12px !important;
+                font-size: 12px !important;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+            .menu-list li.title {
+                display: none !important;
+            }
+            .community-content {
+                padding: 14px 12px !important;
+            }
+            .board-header h2 {
+                font-size: 15px !important;
+            }
+            .post-table th, .post-table td {
+                padding: 8px 4px !important;
+                font-size: 11px !important;
+            }
+            /* 모바일에서 조회/추천 숨기기 */
+            .col-views, .col-likes, .col-date {
+                display: none;
+            }
+            .toolbar {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .btn-analyze {
+                font-size: 11px !important;
+                padding: 4px 10px !important;
+            }
+            .btn-write-blue {
+                font-size: 12px !important;
+                padding: 6px 12px !important;
+            }
+        }
+
         /* === 좌측 사이드바 === */
         .community-sidebar {
             width: 220px;
@@ -1194,9 +1283,9 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                     <th>구분</th>
                     <th>제목</th>
                     <th>작성자</th>
-                    <th>작성일</th>
-                    <th>조회</th>
-                    <th>추천</th>
+                    <th className="col-date">작성일</th>
+                    <th className="col-views">조회</th>
+                    <th className="col-likes">추천</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1230,9 +1319,9 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                           </span>
                         )}
                       </td>
-                      <td>{post.date}</td>
-                      <td>{post.views.toLocaleString()}</td>
-                      <td>{post.likes}</td>
+                      <td className="col-date">{post.date}</td>
+                      <td className="col-views">{post.views.toLocaleString()}</td>
+                      <td className="col-likes">{post.likes}</td>
                     </tr>
                   ))}
                 </tbody>

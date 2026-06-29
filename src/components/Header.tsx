@@ -202,7 +202,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                 />
                 
                 {/* Right Icons */}
-                <div className="flex items-center space-x-1 sm:space-x-2 pr-2 sm:pr-4 flex-shrink-0">
+                <div className="flex items-center gap-1 pr-2 sm:pr-4 flex-shrink-0">
                   <button className="hidden sm:flex p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors">
                     <Keyboard className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                   </button>
@@ -212,6 +212,23 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                   >
                     <Search className="w-4 h-4 sm:w-6 sm:h-6 text-gray-600" />
                   </button>
+
+                  {/* 모바일 전용 로그인 버튼 (검색창 안) */}
+                  {!currentUser ? (
+                    <button
+                      onClick={onLoginClick}
+                      className="sm:hidden flex items-center gap-1 bg-teal-500 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-full whitespace-nowrap transition-all active:scale-95"
+                    >
+                      로그인
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onNavigate?.('main')}
+                      className="sm:hidden w-7 h-7 rounded-full bg-teal-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
+                    >
+                      {(currentUser.name || currentUser.username || '?')[0].toUpperCase()}
+                    </button>
+                  )}
                 </div>
               </div>
 
