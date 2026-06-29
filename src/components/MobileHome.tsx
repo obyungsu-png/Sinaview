@@ -304,11 +304,11 @@ export function MobileHome({
           </div>
 
           {/* ─ 서비스 아이콘 8개 ─ */}
-          <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-100 shadow-sm px-5 py-5">
+          <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-100 shadow-sm" style={{padding:'16px 4px'}}>
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '30px 20px',
+              gap: '16px 0px',
             }}>
               {SERVICE_ICONS.map(svc=>(
                 <button
@@ -322,36 +322,36 @@ export function MobileHome({
                     cursor: 'pointer',
                     background: 'none',
                     border: 'none',
-                    padding: 0,
+                    padding: '0 4px',
+                    minWidth: 0,
                     transition: 'transform 0.2s ease',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.transform='translateY(-4px)'}
+                  onMouseEnter={e => e.currentTarget.style.transform='translateY(-3px)'}
                   onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}
-                  onTouchStart={e => e.currentTarget.style.transform='scale(0.95)'}
+                  onTouchStart={e => e.currentTarget.style.transform='scale(0.93)'}
                   onTouchEnd={e => e.currentTarget.style.transform='scale(1)'}
                 >
-                  {/* 아이콘 박스 */}
                   <div style={{
-                    width: 64,
-                    height: 64,
+                    width: 52,
+                    height: 52,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: 8,
-                    borderRadius: 18,
+                    marginBottom: 6,
+                    borderRadius: 16,
                     overflow: 'hidden',
+                    flexShrink: 0,
                   }}>
                     <img src={svc.img} alt={svc.label} style={{width:'100%', height:'100%', objectFit:'cover'}}/>
                   </div>
-                  {/* 라벨 */}
                   <span style={{
-                    fontFamily: "'Noto Sans KR', sans-serif",
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: 500,
-                    color: '#333333',
+                    color: '#333',
                     textAlign: 'center',
-                    letterSpacing: '-0.5px',
+                    letterSpacing: '-0.3px',
                     lineHeight: 1.2,
+                    whiteSpace: 'nowrap',
                   }}>
                     {svc.label}
                   </span>
@@ -611,19 +611,19 @@ export function MobileHome({
             <p className="font-bold text-gray-900 text-[16px]">서비스</p>
           </div>
           <div className="p-3">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-5 mb-3">
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:'30px 20px'}}>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-3" style={{padding:'16px 4px'}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:'16px 0px'}}>
                 {SERVICE_ICONS.map(svc=>(
                   <button key={svc.id} onClick={()=>goContent(svc.tab, svc.page)}
-                    style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer',background:'none',border:'none',padding:0,transition:'transform 0.2s ease'}}
-                    onMouseEnter={e=>e.currentTarget.style.transform='translateY(-4px)'}
+                    style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer',background:'none',border:'none',padding:'0 4px',minWidth:0,transition:'transform 0.2s ease'}}
+                    onMouseEnter={e=>e.currentTarget.style.transform='translateY(-3px)'}
                     onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}
-                    onTouchStart={e=>e.currentTarget.style.transform='scale(0.95)'}
+                    onTouchStart={e=>e.currentTarget.style.transform='scale(0.93)'}
                     onTouchEnd={e=>e.currentTarget.style.transform='scale(1)'}>
-                    <div style={{width:64,height:64,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:8,borderRadius:18,overflow:'hidden'}}>
+                    <div style={{width:52,height:52,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:6,borderRadius:16,overflow:'hidden',flexShrink:0}}>
                       <img src={svc.img} alt={svc.label} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                     </div>
-                    <span style={{fontFamily:"'Noto Sans KR', sans-serif",fontSize:12,fontWeight:500,color:'#333333',textAlign:'center',letterSpacing:'-0.5px',lineHeight:1.2}}>
+                    <span style={{fontSize:11,fontWeight:500,color:'#333',textAlign:'center',letterSpacing:'-0.3px',lineHeight:1.2,whiteSpace:'nowrap'}}>
                       {svc.label}
                     </span>
                   </button>
