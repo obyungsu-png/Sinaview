@@ -3,7 +3,7 @@ import {
   FileText, GraduationCap, Building2, Car, BookOpen, ShoppingBag,
   TrendingUp, MessageCircle, Stethoscope, Plane, X, Check,
   ChevronRight, Newspaper, Home, Grid3X3, User,
-  Eye, EyeOff, ArrowLeft, ExternalLink, Search
+  Eye, EyeOff, ArrowLeft, ExternalLink, Search, Play
 } from 'lucide-react';
 
 const VisaDocumentSection   = lazy(() => import('./VisaDocumentSection').then(m=>({default:m.VisaDocumentSection})));
@@ -843,7 +843,7 @@ function FeatureCard({card, wide, onClick}) {
 
 /* ── 광고 모달 콘텐츠 (동영상/사진/안내 탭) ── */
 function AdModalContent({ad, hasVideo, allImgs}) {
-  const [tab, setTab] = useState(hasVideo ? 'video' : 'photo');
+  const [tab, setTab] = useState('video');
   const isYoutube = ad.video && (ad.video.includes('youtube.com') || ad.video.includes('youtu.be'));
   const isTiktok  = ad.video && ad.video.includes('tiktok.com');
   const isMp4 = ad.video && ad.video.endsWith('.mp4');
@@ -864,7 +864,7 @@ function AdModalContent({ad, hasVideo, allImgs}) {
   })();
 
   const tabs = [
-    ...(hasVideo ? [{id:'video', label:'🎬 동영상'}] : []),
+    {id:'video', label:'🎬 동영상'},
     {id:'photo', label:'📸 사진'},
     {id:'info',  label:'📄 안내'},
   ];
@@ -893,6 +893,16 @@ function AdModalContent({ad, hasVideo, allImgs}) {
         {/* ─ 동영상 탭 ─ */}
         {tab==='video' && (
           <div>
+            {/* 동영상 없을 때 플레이스홀더 */}
+            {!ad.video && (
+              <div className="rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3 py-12">
+                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
+                  <Play className="w-7 h-7 text-gray-300"/>
+                </div>
+                <p className="text-[13px] text-gray-400 font-medium">동영상을 등록하세요</p>
+                <p className="text-[11px] text-gray-300 text-center leading-relaxed">YouTube · TikTok URL을<br/>CMS에서 입력하면 여기에 재생됩니다</p>
+              </div>
+            )}
             {/* YouTube */}
             {isYoutube && (
               <div className="rounded-2xl overflow-hidden bg-black" style={{aspectRatio:'16/9'}}>
@@ -926,7 +936,7 @@ function AdModalContent({ad, hasVideo, allImgs}) {
                 <iframe src={ad.video} className="w-full h-full" allowFullScreen/>
               </div>
             )}
-            <p className="text-[12px] text-gray-500 leading-relaxed mt-3">{ad.desc}</p>
+            {ad.video && <p className="text-[12px] text-gray-500 leading-relaxed mt-3">{ad.desc}</p>}
           </div>
         )}
 
