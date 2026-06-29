@@ -196,7 +196,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                   }}
                   onBlur={() => setShowPlaceholder(searchValue === '')}
                   onKeyDown={handleKeyDown}
-                  placeholder="검색어 입력하세요"
+                  placeholder="검색어"
                   className="flex-1 py-2 sm:py-4 px-3 sm:px-5 bg-transparent border-none outline-none text-sm sm:text-base min-w-0"
                   autoComplete="off"
                 />
