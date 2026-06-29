@@ -435,41 +435,67 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                 width: 100% !important;
                 border-right: none !important;
                 border-bottom: 1px solid #eee;
-                padding: 12px 16px !important;
+                padding: 10px 12px !important;
                 background: #fff !important;
             }
+            /* 프로필 카드: 아바타 + 텍스트 + 통계 한 줄 가로 배치 */
             .profile-card {
                 display: flex;
+                flex-direction: row;
                 align-items: center;
-                gap: 12px;
-                padding: 12px !important;
+                gap: 10px;
+                padding: 8px 10px !important;
                 margin-bottom: 0 !important;
                 text-align: left !important;
+                border-radius: 8px;
             }
             .profile-info {
-                margin-bottom: 0 !important;
                 flex: 1;
+                min-width: 0; /* 핵심: 세로 줄바꿈 방지 */
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 8px !important;
+                margin-bottom: 0 !important;
             }
             .avatar-circle {
-                width: 40px !important;
-                height: 40px !important;
-                font-size: 18px !important;
-                flex-shrink: 0;
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 15px !important;
+                flex-shrink: 0 !important;
+            }
+            .user-details {
+                min-width: 0; /* 핵심: 텍스트 overflow 허용 */
+                flex: 1;
+            }
+            .nickname {
+                font-size: 12px !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                display: block !important;
+            }
+            .role {
+                font-size: 9px !important;
+                padding: 1px 4px !important;
+                white-space: nowrap;
             }
             .stats {
-                flex-direction: row;
-                gap: 8px !important;
-                margin-top: 4px !important;
+                flex-direction: row !important;
+                gap: 6px !important;
+                margin-top: 0 !important;
                 justify-content: flex-start !important;
                 font-size: 10px !important;
+                flex-shrink: 0;
+                white-space: nowrap;
             }
             /* 모바일에서 사이드바 메뉴는 가로 스크롤 */
             .menu-list {
                 display: flex;
-                gap: 8px;
+                gap: 6px;
                 overflow-x: auto;
                 padding-bottom: 4px;
-                margin-top: 10px;
+                margin-top: 8px;
                 -webkit-overflow-scrolling: touch;
             }
             .menu-list::-webkit-scrollbar { display: none; }
@@ -477,8 +503,8 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                 border-bottom: none !important;
                 border-radius: 20px;
                 background: #f5f5f5;
-                padding: 6px 12px !important;
-                font-size: 12px !important;
+                padding: 5px 10px !important;
+                font-size: 11px !important;
                 white-space: nowrap;
                 flex-shrink: 0;
             }
@@ -486,22 +512,45 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                 display: none !important;
             }
             .community-content {
-                padding: 14px 12px !important;
+                padding: 12px 10px !important;
             }
             .board-header h2 {
-                font-size: 15px !important;
+                font-size: 14px !important;
+                white-space: nowrap;
             }
-            .post-table th, .post-table td {
+            .board-header {
+                padding-bottom: 8px !important;
+                margin-bottom: 12px !important;
+            }
+            /* 게시판 테이블 모바일 최적화 */
+            .board-table {
+                font-size: 12px !important;
+                width: 100%;
+            }
+            .board-table th, .board-table td {
                 padding: 8px 4px !important;
                 font-size: 11px !important;
             }
-            /* 모바일에서 조회/추천 숨기기 */
+            .board-table .title-col {
+                max-width: 160px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .board-table .author-col {
+                max-width: 70px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            /* 모바일에서 조회/추천/날짜 숨기기 */
             .col-views, .col-likes, .col-date {
                 display: none;
             }
             .toolbar {
                 flex-wrap: wrap;
                 gap: 6px;
+                font-size: 11px !important;
             }
             .btn-analyze {
                 font-size: 11px !important;
@@ -511,6 +560,18 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                 font-size: 12px !important;
                 padding: 6px 12px !important;
             }
+            .board-footer {
+                flex-wrap: wrap;
+                gap: 6px;
+                font-size: 12px !important;
+            }
+            /* 게시판 상단 카테고리 탭 가로 스크롤 */
+            .category-tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                flex-wrap: nowrap !important;
+            }
+            .category-tabs::-webkit-scrollbar { display: none; }
         }
 
         /* === 좌측 사이드바 === */

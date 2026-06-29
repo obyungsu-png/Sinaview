@@ -317,7 +317,7 @@ export function MobileHome({
               onClick={() => setShowSearchOverlay(true)}
             >
               <Search className="w-4 h-4 text-gray-400 shrink-0"/>
-              <span className="text-[13px] text-gray-400">검색어를 입력하세요</span>
+              <span className="text-[13px] text-gray-400">검색어 입력하세요</span>
             </button>
           </div>
 
@@ -332,7 +332,7 @@ export function MobileHome({
                     type="text"
                     value={searchQuery}
                     onChange={e=>setSearchQuery(e.target.value)}
-                    placeholder="검색어를 입력하세요"
+                    placeholder="검색어 입력하세요"
                     className="flex-1 text-[14px] bg-transparent outline-none"
                   />
                   {searchQuery && (
