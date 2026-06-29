@@ -212,6 +212,15 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                   >
                     <Search className="w-4 h-4 sm:w-6 sm:h-6 text-gray-600" />
                   </button>
+                  {/* 모바일 전용: 비로그인 시 로그인 버튼 */}
+                  {!currentUser && (
+                    <button
+                      onClick={onLoginClick}
+                      className="sm:hidden bg-teal-500 text-white text-[12px] font-bold px-3 py-1.5 rounded-full whitespace-nowrap"
+                    >
+                      로그인
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -343,22 +352,6 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
             )}
           </div>
         </div>
-
-        {/* 모바일 전용 컴팩트 로그인 바 */}
-        {!currentUser && (
-          <div className="sm:hidden flex items-center justify-between mt-2 px-1 py-2 bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl border border-teal-100">
-            <div className="min-w-0">
-              <p className="text-[12px] font-semibold text-gray-800 leading-tight">로그인하고 맞춤정보 받기</p>
-              <p className="text-[10px] text-gray-400 leading-tight">지역별 맞춤 서비스 제공</p>
-            </div>
-            <button
-              onClick={onLoginClick}
-              className="ml-3 shrink-0 px-3.5 py-1.5 bg-teal-500 text-white text-[12px] font-bold rounded-xl active:scale-95 transition-transform"
-            >
-              로그인
-            </button>
-          </div>
-        )}
 
         {/* Service Navigation - Desktop only */}
         <nav className="hidden sm:block mt-4">
