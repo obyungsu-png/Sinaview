@@ -173,6 +173,27 @@ export function MobileHome({
   const [bottomTab, setBottomTab] = useState('home');
   const [contentTab, setContentTab] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+
+  /* 검색 결과 (서비스 아이콘 + 지역 필터용) */
+  const ALL_SEARCHABLE = [
+    {label:'비자/서류', icon:'📋', tab:'visa'},
+    {label:'교육',     icon:'🎓', tab:'education'},
+    {label:'업소록',   icon:'📖', tab:'yellow'},
+    {label:'자동차',   icon:'🚗', tab:'auto'},
+    {label:'중고장터', icon:'🛍️', tab:'market'},
+    {label:'증권',     icon:'📊', tab:'securities'},
+    {label:'부동산',   icon:'🏘️', tab:'realestate'},
+    {label:'커뮤니티', icon:'💬', tab:'community', page:'chinalife'},
+    {label:'재중 한국기업', icon:'🏢', tab:'koreanbiz'},
+    {label:'뷰 (View)',     icon:'✍️', tab:'blog'},
+    {label:'병원정보',     icon:'🏥', tab:'hospital'},
+    {label:'대치동 학원',  icon:'📚', tab:'daechi'},
+    {label:'중국 날씨',    icon:'🌤️', tab:'weather'},
+  ];
+  const searchResults = searchQuery.trim()
+    ? ALL_SEARCHABLE.filter(s => s.label.includes(searchQuery))
+    : ALL_SEARCHABLE;
   const SERVICE_ICONS = getServiceIcons();
 
   const goContent = (tab, page) => {
@@ -289,19 +310,62 @@ export function MobileHome({
             </div>
           </div>
 
-          {/* ─ 검색바 ─ */}
+          {/* ─ 검색바 (탭 → 오버레이) ─ */}
           <div className="px-3 -mt-3 mb-3 relative z-10">
-            <div className="bg-white rounded-2xl shadow-md flex items-center gap-2 px-4 py-2.5 border border-gray-100">
+            <button
+              className="w-full bg-white rounded-2xl shadow-md flex items-center gap-2 px-4 py-3 border border-gray-100 text-left active:scale-[0.98] transition-transform"
+              onClick={() => setShowSearchOverlay(true)}
+            >
               <Search className="w-4 h-4 text-gray-400 shrink-0"/>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e=>setSearchQuery(e.target.value)}
-                placeholder="검색어를 입력하세요"
-                className="flex-1 text-[13px] bg-transparent outline-none placeholder:text-gray-400"
-              />
-            </div>
+              <span className="text-[13px] text-gray-400">검색어를 입력하세요</span>
+            </button>
           </div>
+
+          {/* ─ 검색 오버레이 ─ */}
+          {showSearchOverlay && (
+            <div className="fixed inset-0 z-[100] bg-white flex flex-col">
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100 shadow-sm">
+                <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
+                  <Search className="w-4 h-4 text-gray-400 shrink-0"/>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={searchQuery}
+                    onChange={e=>setSearchQuery(e.target.value)}
+                    placeholder="검색어를 입력하세요"
+                    className="flex-1 text-[14px] bg-transparent outline-none"
+                  />
+                  {searchQuery && (
+                    <button onClick={()=>setSearchQuery('')} className="text-gray-400 text-xl leading-none w-5 h-5 flex items-center justify-center">×</button>
+                  )}
+                </div>
+                <button onClick={()=>{ setShowSearchOverlay(false); setSearchQuery(''); }}
+                  className="text-[13px] text-gray-600 font-medium shrink-0 px-1">취소</button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3">
+                <p className="text-[11px] text-gray-400 font-medium mb-2 px-1">
+                  {searchQuery.trim() ? `"${searchQuery}" 검색 결과` : '전체 서비스'}
+                </p>
+                <div className="space-y-0.5">
+                  {searchResults.map(item=>(
+                    <button key={item.tab}
+                      onClick={()=>{ setShowSearchOverlay(false); setSearchQuery(''); goContent(item.tab, item.page); }}
+                      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 active:bg-gray-100">
+                      <span className="text-xl w-8 text-center shrink-0">{item.icon}</span>
+                      <span className="text-[14px] text-gray-800 font-medium">{item.label}</span>
+                      <ChevronRight className="w-4 h-4 text-gray-300 ml-auto"/>
+                    </button>
+                  ))}
+                  {searchQuery.trim() && searchResults.length===0 && (
+                    <div className="text-center py-12 text-gray-400">
+                      <p className="text-[14px]">검색 결과가 없습니다</p>
+                      <p className="text-[12px] mt-1">다른 키워드로 검색해보세요</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ─ 서비스 아이콘 8개 ─ */}
           <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-100 shadow-sm" style={{padding:'16px 4px'}}>
@@ -460,46 +524,7 @@ export function MobileHome({
             </div>
           </div>
 
-          {/* ─ 로그인 유도 (비로그인만) ─ */}
-          {!currentUser && !showLoginForm && (
-            <div className="mx-3 mb-3 bg-gradient-to-r from-teal-50 to-blue-50 rounded-2xl border border-teal-100 px-4 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-[13px] font-semibold text-gray-800">로그인하고 맞춤정보 받기</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">지역별 맞춤 서비스 제공</p>
-              </div>
-              <button onClick={()=>setShowLoginForm(true)}
-                className="px-4 py-2 bg-teal-600 text-white text-xs font-semibold rounded-xl">로그인</button>
-            </div>
-          )}
-          {!currentUser && showLoginForm && (
-            <div className="mx-3 mb-3 bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <p className="font-semibold text-gray-900 text-sm">로그인</p>
-                <button onClick={()=>setShowLoginForm(false)}><X className="w-4 h-4 text-gray-400"/></button>
-              </div>
-              <form onSubmit={handleLogin} className="space-y-2">
-                <input type="text" placeholder="아이디" value={username} onChange={e=>setUsername(e.target.value)}
-                  className="w-full px-3 py-2.5 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:border-teal-400"/>
-                <div className="relative">
-                  <input type={showPw?'text':'password'} placeholder="비밀번호" value={password} onChange={e=>setPassword(e.target.value)}
-                    className="w-full px-3 py-2.5 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:border-teal-400 pr-10"/>
-                  <button type="button" onClick={()=>setShowPw(v=>!v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    {showPw?<EyeOff className="w-4 h-4"/>:<Eye className="w-4 h-4"/>}
-                  </button>
-                </div>
-                <button type="submit" disabled={isSubmitting}
-                  className="w-full py-2.5 bg-teal-600 text-white rounded-xl text-[13px] font-semibold disabled:opacity-60">
-                  {isSubmitting?'로그인 중...':'로그인'}
-                </button>
-                <p className="text-center text-[11px] text-gray-400">
-                  계정이 없으신가요?{' '}
-                  <button type="button" onClick={onSignupClick} className="text-teal-600 font-semibold">회원가입</button>
-                </p>
-              </form>
-            </div>
-          )}
-
-          {/* ─ 광고 (로그인/비로그인 무관하게 항상 표시) ─ */}
+          {/* ─ 광고 (항상 표시) ─ */}
           <div className="px-3 mb-3">
             <button
               onClick={()=>{ setModalAdIdx(adIdx); setShowAdModal(true); }}

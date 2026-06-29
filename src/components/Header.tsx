@@ -212,23 +212,6 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                   >
                     <Search className="w-4 h-4 sm:w-6 sm:h-6 text-gray-600" />
                   </button>
-
-                  {/* 모바일 전용 로그인 버튼 (검색창 안) */}
-                  {!currentUser ? (
-                    <button
-                      onClick={onLoginClick}
-                      className="sm:hidden flex items-center gap-1 bg-teal-500 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-full whitespace-nowrap transition-all active:scale-95"
-                    >
-                      로그인
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => onNavigate?.('main')}
-                      className="sm:hidden w-7 h-7 rounded-full bg-teal-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
-                    >
-                      {(currentUser.name || currentUser.username || '?')[0].toUpperCase()}
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -360,6 +343,22 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
             )}
           </div>
         </div>
+
+        {/* 모바일 전용 컴팩트 로그인 바 */}
+        {!currentUser && (
+          <div className="sm:hidden flex items-center justify-between mt-2 px-1 py-2 bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl border border-teal-100">
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold text-gray-800 leading-tight">로그인하고 맞춤정보 받기</p>
+              <p className="text-[10px] text-gray-400 leading-tight">지역별 맞춤 서비스 제공</p>
+            </div>
+            <button
+              onClick={onLoginClick}
+              className="ml-3 shrink-0 px-3.5 py-1.5 bg-teal-500 text-white text-[12px] font-bold rounded-xl active:scale-95 transition-transform"
+            >
+              로그인
+            </button>
+          </div>
+        )}
 
         {/* Service Navigation - Desktop only */}
         <nav className="hidden sm:block mt-4">
