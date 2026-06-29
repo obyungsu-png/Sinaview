@@ -432,10 +432,8 @@ export function MobileHome({
               onClick={()=>{ setModalAdIdx(adIdx); setShowAdModal(true); }}
               className="w-full mb-4 relative overflow-hidden active:scale-[0.98] transition-all"
               style={{
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
-                borderRadius: '24px',
-                boxShadow: '0 2px 20px rgba(0,0,0,0.06)',
-                padding: '14px 14px 12px',
+                background: 'transparent',
+                padding: '4px 0 12px',
               }}>
               {/* 배경 블롭 장식 */}
               <div style={{position:'absolute', top:-20, right:-20, width:100, height:100, borderRadius:'50%', background:'rgba(3,199,90,0.08)', pointerEvents:'none'}}/>
@@ -529,7 +527,7 @@ export function MobileHome({
             <button
               onClick={()=>{ setModalAdIdx(adIdx); setShowAdModal(true); }}
               className="w-full relative overflow-hidden active:scale-[0.98] transition-all"
-              style={{background:'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)', borderRadius:'24px', boxShadow:'0 2px 20px rgba(0,0,0,0.06)', padding:'14px 14px 12px'}}>
+              style={{background:'transparent', padding:'4px 0 8px'}}>
               <div style={{position:'absolute', top:-20, right:-20, width:100, height:100, borderRadius:'50%', background:'rgba(3,199,90,0.08)', pointerEvents:'none'}}/>
               <div style={{position:'absolute', bottom:-15, right:60, width:60, height:60, borderRadius:'50%', background:'rgba(3,199,90,0.05)', pointerEvents:'none'}}/>
               <div className="flex items-center gap-3 relative z-10">
@@ -847,7 +845,23 @@ function FeatureCard({card, wide, onClick}) {
 function AdModalContent({ad, hasVideo, allImgs}) {
   const [tab, setTab] = useState(hasVideo ? 'video' : 'photo');
   const isYoutube = ad.video && (ad.video.includes('youtube.com') || ad.video.includes('youtu.be'));
+  const isTiktok  = ad.video && ad.video.includes('tiktok.com');
   const isMp4 = ad.video && ad.video.endsWith('.mp4');
+
+  // YouTube embed URL 변환
+  const youtubeEmbed = isYoutube
+    ? (ad.video.includes('embed') ? ad.video
+      : ad.video.includes('youtu.be')
+        ? ad.video.replace('youtu.be/', 'www.youtube.com/embed/')
+        : ad.video.replace('watch?v=', 'embed/'))
+    : '';
+
+  // TikTok embed URL 변환 (https://www.tiktok.com/@user/video/ID → embed/v2/ID)
+  const tiktokEmbed = (() => {
+    if (!isTiktok) return '';
+    const match = ad.video.match(/\/video\/(\d+)/);
+    return match ? `https://www.tiktok.com/embed/v2/${match[1]}` : ad.video;
+  })();
 
   const tabs = [
     ...(hasVideo ? [{id:'video', label:'🎬 동영상'}] : []),
@@ -879,21 +893,35 @@ function AdModalContent({ad, hasVideo, allImgs}) {
         {/* ─ 동영상 탭 ─ */}
         {tab==='video' && (
           <div>
+            {/* YouTube */}
             {isYoutube && (
               <div className="rounded-2xl overflow-hidden bg-black" style={{aspectRatio:'16/9'}}>
                 <iframe
-                  src={ad.video.includes('embed') ? ad.video : ad.video.replace('watch?v=','embed/')}
+                  src={youtubeEmbed}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen/>
               </div>
             )}
+            {/* TikTok - 세로 비율 */}
+            {isTiktok && (
+              <div className="rounded-2xl overflow-hidden bg-black mx-auto"
+                style={{aspectRatio:'9/16', maxWidth:280}}>
+                <iframe
+                  src={tiktokEmbed}
+                  className="w-full h-full"
+                  allow="autoplay"
+                  allowFullScreen/>
+              </div>
+            )}
+            {/* MP4 */}
             {isMp4 && (
               <div className="rounded-2xl overflow-hidden bg-black" style={{aspectRatio:'16/9'}}>
                 <video src={ad.video} controls className="w-full h-full object-contain"/>
               </div>
             )}
-            {!isYoutube && !isMp4 && ad.video && (
+            {/* 기타 iframe 가능한 URL */}
+            {!isYoutube && !isTiktok && !isMp4 && ad.video && (
               <div className="rounded-2xl overflow-hidden bg-black" style={{aspectRatio:'16/9'}}>
                 <iframe src={ad.video} className="w-full h-full" allowFullScreen/>
               </div>
