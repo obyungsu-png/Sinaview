@@ -327,22 +327,22 @@ export function AutoPage({ onBack, currentUser, isAdmin }: AutoPageProps) {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        <div className="max-w-6xl mx-auto px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
               <Button variant="ghost" onClick={onBack} className="p-2">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <h1 className="text-2xl font-bold text-gray-900">자동차</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 whitespace-nowrap">자동차</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
+            <div className="flex items-center space-x-4 min-w-0 flex-1 sm:flex-initial">
+              <div className="relative w-full sm:w-64">
                 <Input
                   type="text"
                   placeholder="자동차 뉴스 검색..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-64 pl-10"
+                  className="w-full sm:w-64 pl-10"
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
