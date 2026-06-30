@@ -2,6 +2,7 @@ import { useState, lazy, Suspense, useEffect } from 'react';
 import { Header } from './Header';
 import { LoginSection } from './LoginSection';
 import { CenterAdBanner } from './CenterAdBanner';
+import { AiAssistantWidget } from './AiAssistantWidget';
 
 // Lazy load LoginModal (only shown on user click)
 const LoginModal = lazy(() => import('./LoginModal').then(m => ({ default: m.LoginModal })));
@@ -210,6 +211,7 @@ export function Portal() {
     return (
       <Suspense fallback={<LoadingSpinner />}>
         {pageMap[currentPage]}
+        <AiAssistantWidget />
       </Suspense>
     );
   }

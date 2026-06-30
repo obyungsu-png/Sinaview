@@ -1,10 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { Heart, Trash2, MessageCircle, X, Sparkles, Send, Bot, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Heart, Trash2, MessageCircle, X } from 'lucide-react';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 interface Reply {
   id: string;
@@ -34,12 +31,6 @@ interface CommentSectionProps {
   isAdmin?: boolean;
 }
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-}
-
 export function CommentSection({ pageType, itemId, currentUser, isAdmin }: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -48,12 +39,6 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   
-  // AI Chat States
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
   const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-c6687586`;
 
   // 댓글 불러오기
@@ -61,16 +46,8 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
     fetchComments();
   }, [pageType, itemId]);
 
-  // AI 채팅 스크롤 — 새 메시지 오면 항상 맨 아래로
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }, [chatMessages, isAiLoading]);
-
   const fetchComments = async () => {
     try {
-      // Try to fetch from server first
       const response = await fetch(`${API_BASE}/comments/${pageType}/${itemId}`, {
         headers: {
           'Authorization': `Bearer ${publicAnonKey}`
@@ -86,7 +63,6 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
         setComments(data.comments);
       }
     } catch (err) {
-      // Fallback to localStorage if server is unavailable
       console.log('서버 연결 실패, 로컬 스토리지 사용:', err);
       const localKey = `comments:${pageType}:${itemId}`;
       const localComments = localStorage.getItem(localKey);
@@ -212,63 +188,6 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
       console.error('답글 작성 실패:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // AI 채팅 메시지 전송
-  const handleSendMessage = async () => {
-    if (!chatInput.trim() || isAiLoading) return;
-
-    const userMessage = chatInput;
-    setChatInput('');
-    
-    const newHistory: ChatMessage[] = [
-      ...chatMessages, 
-      { role: 'user', content: userMessage, timestamp: Date.now() }
-    ];
-    setChatMessages(newHistory);
-    setIsAiLoading(true);
-
-    try {
-      const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer dc2213720f4b4a88ae06ddbd434ab1dd.qDGcLtBM9gGqp6ff`
-        },
-        body: JSON.stringify({
-          model: 'glm-z1-flash',
-          messages: [
-            {
-              role: 'system',
-              content: '당신은 중국에 거주하는 한국인(재중 한인)을 위한 생활 도우미 AI입니다. 비자, 거류증, 생활정보, 병원, 부동산, 교육, 교통 등 중국 생활 전반에 대해 한국어로 친절하고 정확하게 답변해주세요. 답변은 간결하고 실용적으로 해주세요.'
-            },
-            ...newHistory.map(msg => ({ role: msg.role, content: msg.content }))
-          ],
-          max_tokens: 800,
-          temperature: 0.7,
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.choices && data.choices[0]) {
-        const reply = data.choices[0].message.content;
-        setChatMessages(prev => [
-          ...prev,
-          { role: 'assistant', content: reply, timestamp: Date.now() }
-        ]);
-      } else {
-        throw new Error('Invalid response');
-      }
-    } catch (err) {
-      console.error('GLAM AI error:', err);
-      setChatMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: "죄송해요, 일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요. 😢", timestamp: Date.now() }
-      ]);
-    } finally {
-      setIsAiLoading(false);
     }
   };
 
@@ -398,7 +317,7 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
   };
 
   return (
-    <div className="comments-section-container grid grid-cols-1 lg:grid-cols-4 gap-6 mt-8" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
+    <div className="comments-section-container relative mt-8" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
       <style>{`
         .comment-avatar {
           width: 36px;
@@ -413,51 +332,13 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
           font-size: 14px;
           flex-shrink: 0;
         }
-        .ai-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          flex-shrink: 0;
-        }
-        .user-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: #e5e7eb;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #6b7280;
-          flex-shrink: 0;
-        }
-        .chat-bubble {
-          max-width: 85%;
-          padding: 10px 14px;
-          border-radius: 12px;
-          font-size: 14px;
-          line-height: 1.5;
-        }
-        .chat-bubble.user {
-          background-color: #667eea;
-          color: white;
-          border-bottom-right-radius: 2px;
-        }
-        .chat-bubble.ai {
-          background-color: #f3f4f6;
-          color: #1f2937;
-          border-bottom-left-radius: 2px;
-        }
       `}</style>
 
-      {/* 왼쪽: 댓글 영역 (2/3) */}
-      <div className="comments-main lg:col-span-2">
+      {/* 댓글 영역 */}
+      <div className="comments-main">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-[#667eea]">
           <h3 className="text-lg font-bold text-gray-800">댓글 <span className="text-[#667eea]">{comments.length}</span></h3>
+
         </div>
 
         {comments.length > 0 ? (
@@ -626,100 +507,6 @@ export function CommentSection({ pageType, itemId, currentUser, isAdmin }: Comme
             </div>
           </div>
         )}
-      </div>
-
-      {/* 오른쪽: AI 채팅 위젯 (1/3) */}
-      <div className="ai-chat-widget lg:col-span-2">
-        <Card className="h-full max-h-[600px] flex flex-col border-2 border-teal-100 shadow-md">
-          <CardHeader className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white py-4 px-5 rounded-t-lg shrink-0">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="w-5 h-5 text-yellow-200" />
-              AI에게 물어보세요
-            </CardTitle>
-            <p className="text-xs text-teal-100 opacity-90 font-normal mt-1">
-              중국 생활 전반에 대해 한국어로 답변해드립니다.
-            </p>
-          </CardHeader>
-          
-          <CardContent className="p-0 flex flex-col" style={{height: '480px'}}>
-            {/* 메시지 영역 — 고정 높이, 내부 스크롤 */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50 min-h-0">
-              {chatMessages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 space-y-3">
-                  <Bot className="w-12 h-12 text-teal-200" />
-                  <p className="text-sm">
-                    "중국 비자 신청은 어떻게 하나요?"<br/>
-                    "상하이 날씨 어때요?"<br/>
-                    무엇이든 물어보세요!
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col space-y-4">
-                  {chatMessages.map((msg, idx) => {
-                    const cleanContent = msg.content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-                    return (
-                      <div key={idx} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                        <div className={msg.role === 'user' ? 'user-avatar' : 'ai-avatar'}>
-                          {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                        </div>
-                        <div className={`chat-bubble ${msg.role === 'user' ? 'user' : 'ai'}`}>
-                          {msg.role === 'assistant'
-                            ? cleanContent.split('\n').map((line, i) => (
-                                <span key={i}>
-                                  {line}
-                                  {i < cleanContent.split('\n').length - 1 && <br />}
-                                </span>
-                              ))
-                            : cleanContent
-                          }
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {isAiLoading && (
-                    <div className="flex gap-2 flex-row">
-                      <div className="ai-avatar animate-pulse">
-                        <Bot className="w-4 h-4" />
-                      </div>
-                      <div className="chat-bubble ai flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
-                      </div>
-                    </div>
-                  )}
-                  <div ref={chatEndRef} />
-                </div>
-              )}
-            </div>
-            
-            <div className="p-3 border-t bg-white shrink-0">
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendMessage();
-                }}
-                className="flex gap-2"
-              >
-                <Input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="AI에게 질문하기..."
-                  className="flex-1 text-sm bg-gray-50 focus:bg-white transition-colors"
-                  disabled={isAiLoading}
-                />
-                <Button 
-                  type="submit" 
-                  size="icon" 
-                  className="bg-teal-600 hover:bg-teal-700 text-white shrink-0"
-                  disabled={!chatInput.trim() || isAiLoading}
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
