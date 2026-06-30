@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import type { ReactElement } from 'react';
 import { X, Sparkles, Send, Bot, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -15,6 +16,83 @@ const suggestedQuestions = [
   '중국에서 병원 가는 방법 알려주세요',
   '상하이/베이징 날씨는 어떤가요?',
 ];
+
+// 인라인 마크다운(**bold**, *italic*, `code`)을 JSX로 변환
+function renderInline(text: string): (string | ReactElement)[] {
+  const parts: (string | ReactElement)[] = [];
+  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    if (match[2]) {
+      parts.push(<strong key={key++} className="font-bold text-gray-900">{match[2]}</strong>);
+    } else if (match[3]) {
+      parts.push(<em key={key++} className="italic">{match[3]}</em>);
+    } else if (match[4]) {
+      parts.push(<code key={key++} className="bg-gray-200 px-1 py-0.5 rounded text-[13px] font-mono">{match[4]}</code>);
+    }
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return parts.length > 0 ? parts : [text];
+}
+
+// 마크다운 텍스트를 JSX 요소로 렌더링
+function renderMarkdown(content: string): ReactElement {
+  const lines = content.split('\n');
+  const elements: ReactElement[] = [];
+  let listItems: string[] = [];
+  let listType: 'ul' | 'ol' | null = null;
+
+  const flushList = (key: number) => {
+    if (listItems.length === 0 || !listType) return;
+    const Tag = listType;
+    elements.push(
+      <Tag key={`list-${key}`} className={`pl-5 my-1.5 space-y-0.5 ${listType === 'ul' ? 'list-disc' : 'list-decimal'}`}>
+        {listItems.map((item, i) => <li key={i}>{renderInline(item)}</li>)}
+      </Tag>
+    );
+    listItems = [];
+    listType = null;
+  };
+
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+
+    if (/^#{3}\s/.test(trimmed)) {
+      flushList(idx);
+      elements.push(<h4 key={idx} className="font-bold text-[13px] text-gray-800 mt-2 mb-0.5">{renderInline(trimmed.replace(/^#{3}\s/, ''))}</h4>);
+    } else if (/^#{2}\s/.test(trimmed)) {
+      flushList(idx);
+      elements.push(<h3 key={idx} className="font-bold text-sm text-gray-800 mt-2 mb-0.5">{renderInline(trimmed.replace(/^#{2}\s/, ''))}</h3>);
+    } else if (/^#\s/.test(trimmed)) {
+      flushList(idx);
+      elements.push(<h2 key={idx} className="font-bold text-base text-gray-800 mt-2 mb-0.5">{renderInline(trimmed.replace(/^#\s/, ''))}</h2>);
+    } else if (/^[-*]\s/.test(trimmed)) {
+      if (listType !== 'ul') { flushList(idx); listType = 'ul'; }
+      listItems.push(trimmed.replace(/^[-*]\s/, ''));
+    } else if (/^\d+\.\s/.test(trimmed)) {
+      if (listType !== 'ol') { flushList(idx); listType = 'ol'; }
+      listItems.push(trimmed.replace(/^\d+\.\s/, ''));
+    } else if (trimmed === '') {
+      flushList(idx);
+      elements.push(<div key={idx} className="h-1.5" />);
+    } else {
+      flushList(idx);
+      elements.push(<p key={idx} className="my-0.5">{renderInline(trimmed)}</p>);
+    }
+  });
+  flushList(lines.length);
+
+  return <>{elements}</>;
+}
 
 export function AiAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -288,7 +366,7 @@ export function AiAssistantWidget() {
               <div className="flex-1 overflow-y-auto px-5 py-4 bg-gray-50/50">
                 <div className="flex flex-col space-y-4">
                   {chatMessages.map((msg, idx) => {
-                    const cleanContent = msg.content.replace(/[\s\S]*?<\/think>/gi, '').trim();
+                    const cleanContent = msg.content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
                     return (
                       <div key={idx} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                         <div className={msg.role === 'user' ? 'user-avatar' : 'ai-avatar'}>
@@ -296,12 +374,7 @@ export function AiAssistantWidget() {
                         </div>
                         <div className={`chat-bubble ${msg.role === 'user' ? 'user' : 'ai'}`}>
                           {msg.role === 'assistant'
-                            ? cleanContent.split('\n').map((line, i) => (
-                                <span key={i}>
-                                  {line}
-                                  {i < cleanContent.split('\n').length - 1 && <br />}
-                                </span>
-                              ))
+                            ? renderMarkdown(cleanContent)
                             : cleanContent
                           }
                         </div>
