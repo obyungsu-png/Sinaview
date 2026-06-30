@@ -178,9 +178,30 @@ export function AiAssistantWidget() {
           flex-direction: column;
           animation: aiSlideIn 0.25s ease;
         }
+        /* 데스크톱: 중앙 모달창 */
+        @media (min-width: 1024px) {
+          .ai-panel {
+            top: 50%;
+            left: 50%;
+            right: auto;
+            transform: translate(-50%, -50%);
+            height: 640px;
+            max-height: 85vh;
+            width: 460px;
+            max-width: 90vw;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            animation: aiModalIn 0.25s ease;
+          }
+        }
         @keyframes aiSlideIn {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
+        }
+        @keyframes aiModalIn {
+          from { transform: translate(-50%, -45%) scale(0.95); opacity: 0; }
+          to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
         @keyframes aiFadeIn {
           from { opacity: 0; }

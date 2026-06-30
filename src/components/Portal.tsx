@@ -182,6 +182,7 @@ export function Portal() {
       <div className="h-screen flex flex-col">
         <Suspense fallback={<LoadingSpinner />}>
           <CSMPage onBack={() => setIsNStudyHubOpen(false)} />
+          <AiAssistantWidget />
         </Suspense>
       </div>
     );
