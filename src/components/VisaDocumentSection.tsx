@@ -177,7 +177,7 @@ export function VisaDocumentSection({ category, onMoreClick, onArticleClick }: V
   return (
     <Card className="p-4">
       <div className="mb-4">
-        <h2 className="text-lg font-semibold mb-3">{category}</h2>
+        <h2 className="text-lg font-semibold mb-3 whitespace-nowrap">{category}</h2>
         
         {/* 서브카테고리 탭 - 이미지와 같은 스타일 */}
         <div className="flex items-center space-x-1 text-sm text-gray-600">
