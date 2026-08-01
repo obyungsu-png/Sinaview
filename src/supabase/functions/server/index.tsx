@@ -505,34 +505,46 @@ app.post("/make-server-c6687586/api/ai-chat", async (c) => {
       }, 400);
     }
 
-    const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
+    const apiKey = Deno.env.get("GLM_API_KEY");
     
     if (!apiKey) {
       return c.json({
         success: false,
-        error: "DeepSeek API 키가 설정되지 않았습니다. 관리자에게 문의하세요."
+        error: "GLM API 키가 설정되지 않았습니다. 관리자에게 문의하세요."
       }, 500);
     }
 
-    const openai = new OpenAI({
-      baseURL: 'https://api.deepseek.com',
-      apiKey: apiKey
+    const response = await fetch("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "glm-z1-flash",
+        reasoning_effort: "high",
+        messages: [
+          {
+            role: "system",
+            content: "당신은 중국에 거주하는 한국인(재중 한인)을 위한 생활 도우미 AI입니다. 비자, 거류증, 생활정보, 병원, 부동산, 교육, 교통 등 중국 생활 전반에 대해 한국어로 친절하고 정확하게 답변해주세요. 답변은 간결하고 실용적으로 해주세요."
+          },
+          ...(history || []),
+          { role: "user", content: message }
+        ],
+        max_tokens: 2000,
+        temperature: 0.7,
+      }),
     });
 
-    const messages = [
-      { role: "system", content: "당신은 한국-중국 포털 사이트 '차이나 View'의 친절하고 똑똑한 AI 어시스턴트입니다. 사용자의 질문에 대해 정확하고 도움이 되는 답변을 한국어로 제공해주세요. 이모지를 적절히 사용하여 친근하게 대화하세요." },
-      ...(history || []),
-      { role: "user", content: message }
-    ];
+    const data = await response.json();
 
-    const completion = await openai.chat.completions.create({
-      messages: messages,
-      model: "deepseek-chat",
-    });
+    if (!response.ok || !data.choices?.[0]?.message?.content) {
+      throw new Error(data.error?.message || `GLM API error: ${response.status}`);
+    }
 
     return c.json({
       success: true,
-      reply: completion.choices[0].message.content
+      reply: data.choices[0].message.content
     });
 
   } catch (error) {

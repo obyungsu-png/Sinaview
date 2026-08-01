@@ -3,6 +3,7 @@ import type { ReactElement } from 'react';
 import { X, Sparkles, Send, Bot, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { serverUrl } from '../utils/supabase/client';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -123,39 +124,30 @@ export function AiAssistantWidget() {
     setIsAiLoading(true);
 
     try {
-      const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+      const historyForRequest = newHistory.slice(0, -1).slice(-10).map(msg => ({ role: msg.role, content: msg.content }));
+      const response = await fetch(`${serverUrl}/api/ai-chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer dc2213720f4b4a88ae06ddbd434ab1dd.qDGcLtBM9gGqp6ff`
         },
         body: JSON.stringify({
-          model: 'glm-z1-flash',
-          messages: [
-            {
-              role: 'system',
-              content: '당신은 중국에 거주하는 한국인(재중 한인)을 위한 생활 도우미 AI입니다. 비자, 거류증, 생활정보, 병원, 부동산, 교육, 교통 등 중국 생활 전반에 대해 한국어로 친절하고 정확하게 답변해주세요. 답변은 간결하고 실용적으로 해주세요.'
-            },
-            ...newHistory.map(msg => ({ role: msg.role, content: msg.content }))
-          ],
-          max_tokens: 800,
-          temperature: 0.7,
+          message: userMessage,
+          history: historyForRequest,
         })
       });
 
       const data = await response.json();
 
-      if (data.choices && data.choices[0]) {
-        const reply = data.choices[0].message.content;
+      if (data.success && data.reply) {
         setChatMessages(prev => [
           ...prev,
-          { role: 'assistant', content: reply, timestamp: Date.now() }
+          { role: 'assistant', content: data.reply, timestamp: Date.now() }
         ]);
       } else {
-        throw new Error('Invalid response');
+        throw new Error(data.error || 'Invalid response');
       }
     } catch (err) {
-      console.error('GLAM AI error:', err);
+      console.error('GLM AI error:', err);
       setChatMessages(prev => [
         ...prev,
         { role: 'assistant', content: "죄송해요, 일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요. 😢", timestamp: Date.now() }
