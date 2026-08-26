@@ -1,0 +1,1 @@
+import{j as e}from"./index-njSLLFE1.js";function t(){return e.jsx("div",{className:"w-full h-screen",children:e.jsx("iframe",{src:"https://goblin-snout-47323457.figma.site",className:"w-full h-full border-0",title:"메인 사이트",allow:"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"})})}export{t as HomePage};
