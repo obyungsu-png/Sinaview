@@ -521,8 +521,7 @@ app.post("/make-server-c6687586/api/ai-chat", async (c) => {
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "glm-z1-flash",
-        reasoning_effort: "high",
+        model: "glm-4-flash",
         messages: [
           {
             role: "system",
@@ -538,14 +537,18 @@ app.post("/make-server-c6687586/api/ai-chat", async (c) => {
 
     const data = await response.json();
 
-    if (!response.ok || !data.choices?.[0]?.message?.content) {
-      throw new Error(data.error?.message || `GLM API error: ${response.status}`);
+    if (!response.ok) {
+      console.error(`GLM API HTTP ${response.status}:`, JSON.stringify(data));
+      throw new Error(data?.error?.message || `GLM API error: ${response.status}`);
     }
 
-    return c.json({
-      success: true,
-      reply: data.choices[0].message.content
-    });
+    const reply = data.choices?.[0]?.message?.content;
+    if (!reply) {
+      console.error(`GLM API returned no content:`, JSON.stringify(data));
+      throw new Error("GLM 응답에 답변 내용이 없습니다.");
+    }
+
+    return c.json({ success: true, reply });
 
   } catch (error) {
      console.error(`AI Error: ${error.message}`);
