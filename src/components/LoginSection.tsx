@@ -19,7 +19,7 @@ const ALL_TABS = [
   { id: 'stock',     label: '증권 상담',   icon: <TrendingUp className="w-7 h-7" strokeWidth={1.5} />,    page: 'chinalife' },
   { id: 'market',    label: '장터 상담',   icon: <ShoppingBag className="w-7 h-7" strokeWidth={1.5} />,   page: 'usedmarket' },
   { id: 'car',       label: '자동차 상담', icon: <Car className="w-7 h-7" strokeWidth={1.5} />,           page: 'auto' },
-  { id: 'yellow',    label: '업소록 상담', icon: <BookOpen className="w-7 h-7" strokeWidth={1.5} />,      page: 'yellowpages' },
+  { id: 'yellow',    label: '엘로우 페이지 상담', icon: <BookOpen className="w-7 h-7" strokeWidth={1.5} />,      page: 'yellowpages' },
   { id: 'medical',   label: '병원 상담',   icon: <Stethoscope className="w-7 h-7" strokeWidth={1.5} />,   page: 'chinalife' },
   { id: 'community', label: '커뮤니티',    icon: <MessageCircle className="w-7 h-7" strokeWidth={1.5} />, page: 'chinalife' },
 ];

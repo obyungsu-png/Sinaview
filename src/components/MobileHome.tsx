@@ -67,7 +67,7 @@ const ICON_SVGS = {
 const DEFAULT_SERVICE_ICONS = [
   {id:'visa',       label:'비자/서류', img: ICON_SVGS.visa,       tab:'visa',       bg:'#FFF3E0'},
   {id:'education',  label:'교육',      img: ICON_SVGS.education,  tab:'education',  bg:'#F3E8FF'},
-  {id:'yellow',     label:'업소록',    img: ICON_SVGS.yellow,     tab:'yellow',     bg:'#EFF6FF'},
+  {id:'yellow',     label:'엘로우 페이지',    img: ICON_SVGS.yellow,     tab:'yellow',     bg:'#EFF6FF'},
   {id:'auto',       label:'자동차',    img: ICON_SVGS.auto,       tab:'auto',       bg:'#DBEAFE'},
   {id:'market',     label:'중고장터',  img: ICON_SVGS.market,     tab:'market',     bg:'#FEF2F2'},
   {id:'securities', label:'증권',      img: ICON_SVGS.securities, tab:'securities', bg:'#EDE7F6'},
@@ -144,7 +144,7 @@ const SHORTCUT_ITEMS = [
   {id:'stock',      label:'증권',     Icon:TrendingUp,     page:'chinalife'},
   {id:'market',     label:'장터',     Icon:ShoppingBag,    page:'usedmarket'},
   {id:'car',        label:'자동차',   Icon:Car,            page:'auto'},
-  {id:'yellow',     label:'업소록',   Icon:BookOpen,       page:'yellowpages'},
+  {id:'yellow',     label:'엘로우 페이지',   Icon:BookOpen,       page:'yellowpages'},
   {id:'medical',    label:'병원',     Icon:Stethoscope,    page:'chinalife'},
   {id:'community',  label:'커뮤니티', Icon:MessageCircle,  page:'chinalife'},
 ];
@@ -158,7 +158,7 @@ const STUDY_LINKS = [
 ];
 
 const CONTENT_LABELS = {
-  news:'중국소식', visa:'비자/서류', education:'교육', yellow:'업소록',
+  news:'중국소식', visa:'비자/서류', education:'교육', yellow:'엘로우 페이지',
   auto:'자동차', market:'중고장터', securities:'증권', realestate:'부동산',
   koreanbiz:'재중 한국기업', blog:'뷰 (View)', weather:'날씨', hospital:'병원정보',
   daechi:'대치동 학원',
@@ -179,7 +179,7 @@ export function MobileHome({
   const ALL_SEARCHABLE = [
     {label:'비자/서류', icon:'📋', tab:'visa'},
     {label:'교육',     icon:'🎓', tab:'education'},
-    {label:'업소록',   icon:'📖', tab:'yellow'},
+    {label:'엘로우 페이지',   icon:'📖', tab:'yellow'},
     {label:'자동차',   icon:'🚗', tab:'auto'},
     {label:'중고장터', icon:'🛍️', tab:'market'},
     {label:'증권',     icon:'📊', tab:'securities'},
@@ -271,7 +271,7 @@ export function MobileHome({
         {contentTab==='news'       && <NewsSection category="중국소식" onMoreClick={()=>onNavigate?.('news')}/>}
         {contentTab==='visa'       && <VisaDocumentSection category="비자/서류" onMoreClick={()=>onNavigate?.('visadocument')} onArticleClick={onVisaArticleClick}/>}
         {contentTab==='education'  && <EducationSection category="교육" onMoreClick={()=>onNavigate?.('education')} onArticleClick={onEducationArticleClick} userRegion={currentUser?.region}/>}
-        {contentTab==='yellow'     && <YellowPagesSection category="업소록" onMoreClick={()=>onNavigate?.('yellowpages')}/>}
+        {contentTab==='yellow'     && <YellowPagesSection category="엘로우 페이지" onMoreClick={()=>onNavigate?.('yellowpages')}/>}
         {contentTab==='auto'       && <AutoSection category="자동차" onMoreClick={()=>onNavigate?.('auto')} onDriverLicenseClick={onDriverLicenseClick}/>}
         {contentTab==='market'     && <UsedMarketSection category="중고장터" onMoreClick={()=>onNavigate?.('usedmarket')} userRegion={currentUser?.region} currentUser={currentUser} isAdmin={isAdmin}/>}
         {contentTab==='securities' && <SecuritiesSection category="증권" onMoreClick={()=>onNavigate?.('securities')}/>}

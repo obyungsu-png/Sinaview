@@ -375,7 +375,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
               }}
               className="hover:text-green-600 whitespace-nowrap"
             >
-              업소록
+              엘로우 페이지
             </button>
             <button 
               onClick={() => navTab('auto', 'auto', 'auto-mobile')}
