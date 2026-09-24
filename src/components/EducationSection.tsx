@@ -15,11 +15,10 @@ export function EducationSection({ category, onMoreClick, onArticleClick, userRe
 
   const subcategories = [
     { id: 'all', name: '전체', count: 32, isHighlight: false },
-    { id: 'daechi', name: '대치동학원', count: 12, isHighlight: false },
-    { id: 'special', name: '특례', count: 8, isHighlight: false },
+    { id: 'daechi', name: '대치동학원', count: 12, isHighlight: true },
     { id: 'korean-school', name: '한국학교', count: 10, isHighlight: true },
     { id: 'international', name: '국제학교', count: 7, isHighlight: true },
-    { id: 'china-univ', name: '중국대학', count: 5, isHighlight: false }
+    { id: 'china-univ', name: '중국 및 아시아 대학', count: 5, isHighlight: false }
   ];
   const contentBySubcategory = {
     '전체': [
@@ -36,7 +35,7 @@ export function EducationSection({ category, onMoreClick, onArticleClick, userRe
         title: "베이징대/칭화대 2026 신입생 모집요강 발표 - 이공계 장학금 신설",
         source: "중국교육부",
         time: "2시간 전",
-        type: "중국대학",
+        type: "중국 및 아시아 대학",
         thumbnail: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=100&h=60&fit=crop"
       },
       {
@@ -72,24 +71,6 @@ export function EducationSection({ category, onMoreClick, onArticleClick, userRe
         time: "2시간 전",
         type: "대치동학원",
         thumbnail: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=100&h=60&fit=crop"
-      }
-    ],
-    '특례': [
-      {
-        id: 1,
-        title: "2026학년도 재외국민 3년/12년 특례 입학 전형 주요 변경사항 총정리",
-        source: "특례교육센터",
-        time: "1시간 전",
-        type: "특례",
-        thumbnail: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=100&h=60&fit=crop"
-      },
-      {
-        id: 2,
-        title: "중국 고교 졸업자 한국 대학 특례 입학 서류 디지털 연동 확대",
-        source: "교육부",
-        time: "3시간 전",
-        type: "특례",
-        thumbnail: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=100&h=60&fit=crop"
       }
     ],
     '한국학교': [
@@ -160,13 +141,13 @@ export function EducationSection({ category, onMoreClick, onArticleClick, userRe
         thumbnail: "https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=100&h=60&fit=crop"
       }
     ],
-    '중국대학': [
+    '중국 및 아시아 대학': [
       {
         id: 1,
         title: "베이징대/칭화대 2026 신입생 모집요강 발표 - 이공계 장학금 신설",
         source: "중국교육부",
         time: "1시간 전",
-        type: "중국대학",
+        type: "중국 및 아시아 대학",
         thumbnail: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=100&h=60&fit=crop"
       },
       {
@@ -174,7 +155,7 @@ export function EducationSection({ category, onMoreClick, onArticleClick, userRe
         title: "복단대학교 2026학년도 외국인 유학생 전용 AI 융합 전공 신설",
         source: "복단대학교",
         time: "2시간 전",
-        type: "중국대학",
+        type: "중국 및 아시아 대학",
         thumbnail: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=100&h=60&fit=crop"
       }
     ]
