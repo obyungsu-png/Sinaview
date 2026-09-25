@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { CITY_ROOMS, NAVER_CAFE_URL } from '../config/communityLinks';
+import { CityRoomCard, ShareButtons } from './CommunityConnect';
 
 interface Post {
   id: number;
@@ -33,11 +35,6 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeCategory, setActiveCategory] = useState('전체');
-  const [naverCafeUrl, setNaverCafeUrl] = useState(() => {
-    return localStorage.getItem('naverCafeUrl') || '';
-  });
-  const [isNaverTabOpen, setIsNaverTabOpen] = useState(false);
-  const [naverCafeInput, setNaverCafeInput] = useState('');
   const [comments, setComments] = useState<Comment[]>([
     {
       id: 1,
@@ -316,15 +313,6 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
     setSearchInput('');
   };
 
-  const handleNaverCafeSave = () => {
-    let url = naverCafeInput.trim();
-    if (url && !url.startsWith('http')) url = 'https://' + url;
-    setNaverCafeUrl(url);
-    localStorage.setItem('naverCafeUrl', url);
-    setIsNaverTabOpen(false);
-    setNaverCafeInput('');
-  };
-
   const categoryFilterMap: Record<string, (post: Post) => boolean> = {
     '전체': () => true,
     '공지사항': (p) => p.badgeType === 'notice',
@@ -336,10 +324,14 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
     '비자·거류증': (p) => p.title.includes('비자') || p.title.includes('거류'),
     '은행·금융': (p) => p.title.includes('은행') || p.title.includes('금융') || p.title.includes('결제'),
     '통신·인터넷': (p) => p.title.includes('전화') || p.title.includes('VPN') || p.title.includes('통신') || p.title.includes('인터넷') || p.title.includes('앱'),
-    '베이징/상하이': (p) => p.title.includes('베이징') || p.title.includes('상하이'),
-    '광저우/심천': (p) => p.title.includes('광저우') || p.title.includes('심천'),
-    '기타 지역': (p) => !p.title.includes('베이징') && !p.title.includes('상하이') && !p.title.includes('광저우'),
+    ...Object.fromEntries(CITY_ROOMS.map(room => [
+      room.name,
+      room.keywords.length
+        ? (p: Post) => room.keywords.some(k => p.title.includes(k))
+        : (p: Post) => !CITY_ROOMS.some(r => r.keywords.some(k => p.title.includes(k))),
+    ])),
   };
+  const activeCity = CITY_ROOMS.find(room => room.name === activeCategory);
 
   const filteredPosts = posts.filter(post => {
     const matchesSearch = searchTerm === '' ||
@@ -1139,90 +1131,20 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
               <span><i className="fa-solid fa-users"></i> 2,850명</span>
               <span><i className="fa-solid fa-comment"></i> 5,240개</span>
             </div>
-            {/* 네이버 카페 연결 탭 */}
-            <div style={{marginTop: '14px', borderTop: '1px solid #f0f0f0', paddingTop: '12px'}}>
-              {naverCafeUrl ? (
-                <div>
-                  <a
-                    href={naverCafeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                      background: 'linear-gradient(135deg, #03c75a, #00a843)',
-                      color: 'white', padding: '8px 12px', borderRadius: '6px',
-                      fontSize: '12px', fontWeight: '600', textDecoration: 'none',
-                      transition: 'all 0.2s', width: '100%'
-                    }}
-                  >
-                    <i className="fa-solid fa-square-n" style={{fontSize:'14px'}}></i>
-                    네이버 카페 바로가기
-                  </a>
-                  <button
-                    onClick={() => { setNaverCafeInput(naverCafeUrl); setIsNaverTabOpen(true); }}
-                    style={{
-                      marginTop: '6px', width: '100%', background: 'none',
-                      border: '1px solid #ddd', borderRadius: '4px', padding: '4px',
-                      fontSize: '11px', color: '#999', cursor: 'pointer'
-                    }}
-                  >
-                    ✏️ URL 변경
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsNaverTabOpen(true)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    background: '#f8f9fa', border: '1px dashed #03c75a',
-                    color: '#03c75a', padding: '8px 12px', borderRadius: '6px',
-                    fontSize: '12px', fontWeight: '600', width: '100%', cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <i className="fa-solid fa-link" style={{fontSize:'12px'}}></i>
-                  네이버 카페 연결하기
-                </button>
-              )}
-            </div>
-            {/* 네이버 카페 URL 입력 팝업 */}
-            {isNaverTabOpen && (
-              <div style={{
-                marginTop: '10px', background: '#f0fff4', border: '1px solid #03c75a',
-                borderRadius: '8px', padding: '12px'
-              }}>
-                <div style={{fontSize: '12px', fontWeight: '600', color: '#333', marginBottom: '8px'}}>
-                  네이버 카페 URL 입력
-                </div>
-                <input
-                  type="text"
-                  value={naverCafeInput}
-                  onChange={e => setNaverCafeInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleNaverCafeSave()}
-                  placeholder="https://cafe.naver.com/..."
-                  style={{
-                    width: '100%', padding: '6px 8px', border: '1px solid #ddd',
-                    borderRadius: '4px', fontSize: '11px', marginBottom: '8px'
-                  }}
-                />
-                <div style={{display: 'flex', gap: '6px'}}>
-                  <button
-                    onClick={handleNaverCafeSave}
-                    style={{
-                      flex: 1, background: '#03c75a', color: 'white', border: 'none',
-                      borderRadius: '4px', padding: '6px', fontSize: '11px',
-                      fontWeight: '600', cursor: 'pointer'
-                    }}
-                  >저장</button>
-                  <button
-                    onClick={() => { setIsNaverTabOpen(false); setNaverCafeInput(''); }}
-                    style={{
-                      flex: 1, background: '#f8f9fa', color: '#666', border: '1px solid #ddd',
-                      borderRadius: '4px', padding: '6px', fontSize: '11px', cursor: 'pointer'
-                    }}
-                  >취소</button>
-                </div>
-              </div>
+            {NAVER_CAFE_URL && (
+              <a
+                href={NAVER_CAFE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  marginTop: '14px', background: 'linear-gradient(135deg, #03c75a, #00a843)',
+                  color: 'white', padding: '8px 12px', borderRadius: '6px',
+                  fontSize: '12px', fontWeight: '600', textDecoration: 'none', width: '100%'
+                }}
+              >
+                N 네이버 카페 바로가기
+              </a>
             )}
           </div>
 
@@ -1243,9 +1165,9 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
             <li onClick={() => handleCategoryClick('통신·인터넷')} style={activeCategory === '통신·인터넷' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>통신·인터넷</li>
             
             <li className="title">지역별</li>
-            <li onClick={() => handleCategoryClick('베이징/상하이')} style={activeCategory === '베이징/상하이' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>베이징/상하이</li>
-            <li onClick={() => handleCategoryClick('광저우/심천')} style={activeCategory === '광저우/심천' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>광저우/심천</li>
-            <li onClick={() => handleCategoryClick('기타 지역')} style={activeCategory === '기타 지역' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>기타 지역</li>
+            {CITY_ROOMS.map(room => (
+              <li key={room.name} onClick={() => handleCategoryClick(room.name)} style={activeCategory === room.name ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>{room.name}</li>
+            ))}
           </ul>
         </aside>
 
@@ -1259,6 +1181,23 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                 </h2>
                 <button className="btn-analyze">통계 보기</button>
               </div>
+
+              {/* 우리 동네 선택 */}
+              <div style={{display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '12px', paddingBottom: '2px'}}>
+                {['전체', ...CITY_ROOMS.map(room => room.name)].map(name => (
+                  <button
+                    key={name}
+                    onClick={() => handleCategoryClick(name)}
+                    style={{
+                      flexShrink: 0, padding: '6px 12px', borderRadius: '999px', fontSize: '13px', cursor: 'pointer',
+                      border: activeCategory === name ? '1px solid #667eea' : '1px solid #ddd',
+                      background: activeCategory === name ? '#667eea' : 'white',
+                      color: activeCategory === name ? 'white' : '#555',
+                    }}
+                  >{name}</button>
+                ))}
+              </div>
+              {activeCity && <CityRoomCard room={activeCity} />}
 
               {/* 검색바 */}
               <div style={{
@@ -1453,11 +1392,9 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                   <i className="fa-regular fa-bookmark"></i>
                   북마크
                 </button>
-                <button className="action-btn">
-                  <i className="fa-regular fa-share-from-square"></i>
-                  공유
-                </button>
               </div>
+
+              <ShareButtons title={selectedPost.title} />
 
               {/* 댓글 섹션 */}
               <div className="comments-section">
