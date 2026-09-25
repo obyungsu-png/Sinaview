@@ -326,9 +326,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
     '통신·인터넷': (p) => p.title.includes('전화') || p.title.includes('VPN') || p.title.includes('통신') || p.title.includes('인터넷') || p.title.includes('앱'),
     ...Object.fromEntries(CITY_ROOMS.map(room => [
       room.name,
-      room.keywords.length
-        ? (p: Post) => room.keywords.some(k => p.title.includes(k))
-        : (p: Post) => !CITY_ROOMS.some(r => r.keywords.some(k => p.title.includes(k))),
+      (p: Post) => room.keywords.some(k => p.title.includes(k)),
     ])),
   };
   const activeCity = CITY_ROOMS.find(room => room.name === activeCategory);
@@ -1188,13 +1186,13 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
               </div>
 
               {/* 우리 동네 선택 */}
-              <div style={{display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '12px', paddingBottom: '2px'}}>
+              <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px'}}>
                 {['전체', ...CITY_ROOMS.map(room => room.name)].map(name => (
                   <button
                     key={name}
                     onClick={() => handleCategoryClick(name)}
                     style={{
-                      flexShrink: 0, padding: '6px 12px', borderRadius: '999px', fontSize: '13px', cursor: 'pointer',
+                      padding: '4px 10px', borderRadius: '999px', fontSize: '12px', cursor: 'pointer',
                       border: activeCategory === name ? '1px solid #667eea' : '1px solid #ddd',
                       background: activeCategory === name ? '#667eea' : 'white',
                       color: activeCategory === name ? 'white' : '#555',

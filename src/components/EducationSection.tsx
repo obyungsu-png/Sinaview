@@ -15,7 +15,7 @@ export function EducationSection({ category, onMoreClick, onArticleClick, userRe
 
   const subcategories = [
     { id: 'all', name: '전체', count: 32, isHighlight: false },
-    { id: 'daechi', name: '대치동학원', count: 12, isHighlight: true },
+    { id: 'daechi', name: '대치동학원', count: 12, isHighlight: false },
     { id: 'korean-school', name: '한국학교', count: 10, isHighlight: true },
     { id: 'international', name: '국제학교', count: 7, isHighlight: true },
     { id: 'china-univ', name: '중국 및 아시아 대학', count: 5, isHighlight: false }
