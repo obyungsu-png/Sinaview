@@ -193,24 +193,24 @@ export function RegionalNewsWidget({ onMoreClick }: RegionalNewsWidgetProps) {
   const currentNews = regionalNews[activeRegion] || regionalNews['대련'];
 
   return (
-    <Card className="p-4">
-      <div className="mb-4">
+    <Card className="p-4 gap-2 lg:gap-6">
+      <div className="lg:mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <h2 className="text-lg font-semibold text-gray-900">📰 지역 소식</h2>
-            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">HOT</span>
+            <h2 className="text-[15px] lg:text-lg font-semibold text-gray-900">📰 지역 소식</h2>
+            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] lg:text-xs rounded-full font-medium">HOT</span>
           </div>
         </div>
         
         {/* 지역 선택 탭 */}
-        <div className="mb-4">
-          <div className="text-xs text-gray-500 mb-2">지역 선택</div>
+        <div className="lg:mb-4">
+          <div className="text-[11px] lg:text-xs text-gray-500 mb-2">지역 선택</div>
           <div className="flex flex-wrap gap-1.5">
             {sortedRegions.map((region) => (
               <button
                 key={region.id}
                 onClick={() => setActiveRegion(region.name)}
-                className={`px-2.5 py-1 text-xs rounded-full transition-colors ${
+                className={`px-2.5 py-1 text-[11px] lg:text-xs rounded-full transition-colors ${
                   activeRegion === region.name
                     ? 'bg-blue-600 text-white font-medium'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -224,13 +224,13 @@ export function RegionalNewsWidget({ onMoreClick }: RegionalNewsWidgetProps) {
       </div>
 
       {/* 지역 소식 목록 */}
-      <div className="space-y-3">
+      <div className="space-y-1 lg:space-y-3">
         {currentNews.slice(0, 3).map((news) => (
-          <div key={news.id} className="group cursor-pointer hover:bg-gray-50 p-2.5 rounded-lg transition-colors border-b border-gray-100 last:border-b-0">
+          <div key={news.id} className="group cursor-pointer hover:bg-gray-50 px-1 py-2 lg:p-2.5 rounded-lg transition-colors border-b border-gray-100 last:border-b-0">
             <div className="flex items-start justify-between mb-1.5">
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-1">
-                  <span className={`px-2 py-0.5 text-xs rounded font-medium ${
+                  <span className={`px-1.5 lg:px-2 py-0.5 text-[10px] lg:text-xs rounded font-medium ${
                     news.category === '행사' ? 'bg-orange-100 text-orange-700' :
                     news.category === '생활' ? 'bg-blue-100 text-blue-700' :
                     news.category === '교육' ? 'bg-blue-100 text-blue-700' :
@@ -244,10 +244,10 @@ export function RegionalNewsWidget({ onMoreClick }: RegionalNewsWidgetProps) {
                     {news.category}
                   </span>
                 </div>
-                <h4 className="text-sm text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 font-medium mb-1.5">
+                <h4 className="text-[13px] lg:text-sm text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 font-medium mb-1.5">
                   {news.title}
                 </h4>
-                <div className="flex items-center space-x-3 text-xs text-gray-500">
+                <div className="flex items-center space-x-3 text-[11px] lg:text-xs text-gray-500">
                   <span>{news.date}</span>
                   <span>👁️ {news.views.toLocaleString()}</span>
                 </div>
@@ -258,10 +258,10 @@ export function RegionalNewsWidget({ onMoreClick }: RegionalNewsWidgetProps) {
       </div>
 
       {/* Footer */}
-      <div className="mt-4 pt-3 border-t border-gray-200">
+      <div className="lg:mt-4 pt-3 border-t border-gray-200">
         <button 
           onClick={onMoreClick}
-          className="w-full text-sm text-gray-500 hover:text-gray-700 text-center transition-colors"
+          className="w-full text-[13px] lg:text-sm text-gray-500 hover:text-gray-700 text-center transition-colors"
         >
           더 많은 소식 보기 &gt;
         </button>
