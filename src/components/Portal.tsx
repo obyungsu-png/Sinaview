@@ -479,12 +479,7 @@ export function Portal() {
             </div>
           </div>
 
-          {/* 모바일 푸터 — 저작권만 */}
-          <div className="sm:hidden py-4 text-center">
-            <p className="text-[11px] text-gray-300">&copy; Sina View Corp. All Rights Reserved.</p>
-          </div>
-          
-          <div className="border-t border-gray-200 mt-6 sm:mt-8 pt-4 sm:pt-6 text-center text-[11px] sm:text-sm text-gray-400 sm:text-gray-500">
+          <div className="sm:border-t border-gray-200 sm:mt-8 sm:pt-6 text-center text-[11px] sm:text-sm text-gray-400 sm:text-gray-500">
             <p>&copy; Sina View Corp. All Rights Reserved.</p>
           </div>
         </div>

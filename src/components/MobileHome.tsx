@@ -3,7 +3,7 @@ import {
   FileText, GraduationCap, Building2, Car, BookOpen, ShoppingBag,
   TrendingUp, MessageCircle, Stethoscope, Plane, X, Check,
   ChevronRight, Newspaper, Home, Grid3X3, User,
-  Eye, EyeOff, ArrowLeft, ExternalLink, Search, Play
+  Eye, EyeOff, ArrowLeft, ExternalLink, Play, Briefcase, PenLine, CloudSun
 } from 'lucide-react';
 
 const VisaDocumentSection   = lazy(() => import('./VisaDocumentSection').then(m=>({default:m.VisaDocumentSection})));
@@ -18,103 +18,38 @@ const KoreanBizSection      = lazy(() => import('./KoreanBizSection').then(m=>({
 const WeatherWidget         = lazy(() => import('./WeatherWidget').then(m=>({default:m.WeatherWidget})));
 const HospitalWidget        = lazy(() => import('./HospitalWidget').then(m=>({default:m.HospitalWidget})));
 const BlogSection           = lazy(() => import('./BlogSection').then(m=>({default:m.BlogSection})));
+const RegionalNewsWidget    = lazy(() => import('./RegionalNewsWidget').then(m=>({default:m.RegionalNewsWidget})));
 
 const Spinner = () => (
   <div className="flex items-center justify-center py-12">
-    <div className="w-7 h-7 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"/>
+    <div className="w-7 h-7 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"/>
   </div>
 );
 
 /* ── 데이터 ─────────────────── */
-const REGIONS = ['대련','북경','상해','소주','무석','난징','항저우','천진','심천','광저우','청도'];
-const NEWS_DATA = {
-  '대련': [
-    {title:'대련시 한인회, 명절 맞이 전통시장 운영', cat:'행사'},
-    {title:'개발구 한인마트 코리아타운 오늘 오픈',   cat:'생활'},
-    {title:'대련한국학교 2025학년도 신입생 모집',    cat:'교육'},
-  ],
-  '북경': [
-    {title:'조양구 한국타운, 연말 특별 할인행사',   cat:'생활'},
-    {title:'베이징한국국제학교 입학설명회 개최',    cat:'교육'},
-    {title:'북경 한인사회 송년의 밤 준비 한창',    cat:'행사'},
-  ],
-  '상해': [
-    {title:'푸동신구 한인타운 리모델링 완료',   cat:'생활'},
-    {title:'상해한인회 찾아가는 법률상담 시작', cat:'서비스'},
-    {title:'상해국제영화제 한국영화 특별전',    cat:'문화'},
-  ],
-};
-const getNews = r => NEWS_DATA[r] || NEWS_DATA['대련'];
+/* 광고는 일단 숨김 - 다시 보이려면 true 로 변경 */
+const SHOW_ADS = false;
 
-const CAT_COLORS = {
-  행사:'bg-orange-100 text-orange-600', 생활:'bg-blue-100 text-blue-600',
-  교육:'bg-green-100 text-green-600',   서비스:'bg-purple-100 text-purple-600',
-  문화:'bg-pink-100 text-pink-600',
-};
-
-/* 서비스 아이콘 8개 - 3D 클레이 스타일 SVG 캐릭터 */
-const ICON_SVGS = {
-  visa: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FDFBF7"/><stop offset="100%" stop-color="#EAE0C8"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(#bg1)"/><rect x="45" y="55" width="70" height="80" rx="8" fill="#FFF" opacity="0.7" transform="rotate(-5 80 95)"/><rect x="65" y="50" width="70" height="90" rx="8" fill="#FFF"/><rect x="85" y="45" width="30" height="30" rx="6" fill="#4A90E2"/><circle cx="95" cy="90" r="3" fill="#333"/><circle cx="115" cy="90" r="3" fill="#333"/><path d="M 98 100 Q 105 108 112 100" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/></svg>')}`,
-  education: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E8DFF5"/><stop offset="100%" stop-color="#CBBCE0"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(#bg2)"/><rect x="45" y="110" width="90" height="20" rx="4" fill="#9B59B6"/><rect x="45" y="90" width="90" height="20" rx="4" fill="#E67E22"/><polygon points="90,50 130,70 90,90 50,70" fill="#2C3E50"/><rect x="85" y="70" width="10" height="20" fill="#2C3E50"/><circle cx="80" cy="100" r="3" fill="#333"/><circle cx="100" cy="100" r="3" fill="#333"/><path d="M 83 108 Q 90 115 97 108" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/></svg>')}`,
-  yellow: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E3F2FD"/><stop offset="100%" stop-color="#BBDEFB"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(#bg3)"/><path d="M 90 130 C 90 130 50 90 50 65 A 40 40 0 1 1 130 65 C 130 90 90 130 90 130 Z" fill="#5DADE2"/><rect x="75" y="95" width="30" height="35" rx="2" fill="#FF8A80" transform="rotate(10 90 110)"/><circle cx="80" cy="65" r="3" fill="#333"/><circle cx="100" cy="65" r="3" fill="#333"/><path d="M 83 75 Q 90 82 97 75" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/></svg>')}`,
-  auto: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="bg4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#D0E4F5"/><stop offset="100%" stop-color="#9DBFE0"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(#bg4)"/><path d="M 40 100 L 50 75 Q 90 55 130 75 L 140 100 Z" fill="#3498DB"/><rect x="35" y="100" width="110" height="30" rx="10" fill="#3498DB"/><circle cx="60" cy="130" r="12" fill="#2C3E50"/><circle cx="120" cy="130" r="12" fill="#2C3E50"/><circle cx="80" cy="90" r="3" fill="#333"/><circle cx="100" cy="90" r="3" fill="#333"/><path d="M 83 98 Q 90 105 97 98" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/></svg>')}`,
-  market: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="bg5" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FCE4EC"/><stop offset="100%" stop-color="#F8BBD0"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(#bg5)"/><path d="M 45 60 L 60 110 L 120 110 L 135 60 Z" fill="none" stroke="#E74C3C" stroke-width="10" stroke-linejoin="round"/><path d="M 55 60 L 125 60" stroke="#E74C3C" stroke-width="7" stroke-linecap="round"/><rect x="75" y="75" width="30" height="25" rx="3" fill="#3498DB"/><circle cx="70" cy="125" r="8" fill="#2C3E50"/><circle cx="110" cy="125" r="8" fill="#2C3E50"/><circle cx="85" cy="85" r="2" fill="#FFF"/><circle cx="95" cy="85" r="2" fill="#FFF"/><path d="M 87 90 Q 90 93 93 90" stroke="#FFF" stroke-width="1.5" fill="none"/></svg>')}`,
-  securities: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="bg6" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E8DFF5"/><stop offset="100%" stop-color="#CBBCE0"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(#bg6)"/><rect x="45" y="100" width="20" height="30" rx="4" fill="#E74C3C"/><rect x="80" y="70" width="20" height="60" rx="4" fill="#3498DB"/><rect x="115" y="50" width="20" height="80" rx="4" fill="#2ECC71"/><circle cx="135" cy="115" r="15" fill="#F1C40F"/><text x="135" y="121" font-family="sans-serif" font-size="14" font-weight="bold" fill="#FFF" text-anchor="middle">¥</text></svg>')}`,
-  realestate: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="bg7" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E0F2F1"/><stop offset="100%" stop-color="#B2DFDB"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(#bg7)"/><rect x="45" y="80" width="35" height="50" rx="4" fill="#BDC3C7"/><rect x="52" y="90" width="8" height="8" rx="1" fill="#FFF" opacity="0.5"/><rect x="65" y="90" width="8" height="8" rx="1" fill="#FFF" opacity="0.5"/><rect x="75" y="50" width="40" height="80" rx="4" fill="#2ECC71"/><rect x="82" y="60" width="10" height="10" rx="1" fill="#FFF" opacity="0.5"/><rect x="98" y="60" width="10" height="10" rx="1" fill="#FFF" opacity="0.5"/><rect x="82" y="80" width="10" height="10" rx="1" fill="#FFF" opacity="0.5"/><rect x="98" y="80" width="10" height="10" rx="1" fill="#FFF" opacity="0.5"/><rect x="110" y="90" width="25" height="40" rx="4" fill="#FF8A80"/></svg>')}`,
-  community: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="bg8" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FCE4EC"/><stop offset="100%" stop-color="#F8BBD0"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(#bg8)"/><path d="M 50 90 Q 50 60 80 60 Q 110 60 110 90 Q 110 110 90 115 L 70 125 L 75 110 Q 50 105 50 90 Z" fill="#9B59B6"/><path d="M 70 80 Q 70 55 100 55 Q 130 55 130 80 Q 130 95 115 100 L 105 110 L 108 98 Q 70 95 70 80 Z" fill="#F9E852" opacity="0.85"/><circle cx="80" cy="90" r="3" fill="#FFF"/><circle cx="90" cy="90" r="3" fill="#FFF"/><circle cx="100" cy="90" r="3" fill="#FFF"/></svg>')}`,
-};
-
-const DEFAULT_SERVICE_ICONS = [
-  {id:'visa',       label:'비자/서류', img: ICON_SVGS.visa,       tab:'visa',       bg:'#FFF3E0'},
-  {id:'education',  label:'교육',      img: ICON_SVGS.education,  tab:'education',  bg:'#F3E8FF'},
-  {id:'yellow',     label:'엘로우 페이지',    img: ICON_SVGS.yellow,     tab:'yellow',     bg:'#EFF6FF'},
-  {id:'auto',       label:'자동차',    img: ICON_SVGS.auto,       tab:'auto',       bg:'#DBEAFE'},
-  {id:'market',     label:'중고장터',  img: ICON_SVGS.market,     tab:'market',     bg:'#FEF2F2'},
-  {id:'securities', label:'증권',      img: ICON_SVGS.securities, tab:'securities', bg:'#EDE7F6'},
-  {id:'realestate', label:'부동산',    img: ICON_SVGS.realestate, tab:'realestate', bg:'#E0F7FA'},
-  {id:'community',  label:'커뮤니티',  img: ICON_SVGS.community,  tab:'community',  bg:'#F3E5F5', page:'chinalife'},
+/* 서비스 아이콘 8개 - PC와 같은 단색 라인 아이콘 */
+const SERVICE_ICONS = [
+  {id:'visa',       label:'비자/서류',     Icon:FileText,      tab:'visa'},
+  {id:'education',  label:'교육',          Icon:GraduationCap, tab:'education'},
+  {id:'yellow',     label:'엘로우 페이지', Icon:BookOpen,      tab:'yellow'},
+  {id:'auto',       label:'자동차',        Icon:Car,           tab:'auto'},
+  {id:'market',     label:'중고장터',      Icon:ShoppingBag,   tab:'market'},
+  {id:'securities', label:'증권',          Icon:TrendingUp,    tab:'securities'},
+  {id:'realestate', label:'부동산',        Icon:Building2,     tab:'realestate'},
+  {id:'community',  label:'게시판',        Icon:MessageCircle, tab:'community', page:'chinalife'},
 ];
 
-function getServiceIcons() {
-  try {
-    const saved = localStorage.getItem('cms_service_icons');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch {}
-  return DEFAULT_SERVICE_ICONS;
-}
-
-/* 주요 서비스 5개 카드 - 사진6 스타일 (대형 + 캐릭터 + HOT 태그) */
-const FEATURE_CARDS = [
-  {
-    id:'koreanbiz', title:'재중 한국기업', sub:'5,000+ 기업 정보',
-    emoji:'🏢', bg:'#A5E5D8', tag:'NEW', tagBg:'#FFB800', tabId:'koreanbiz',
-  },
-  {
-    id:'blog', title:'뷰 (View)', sub:'한인 스토리·일상',
-    emoji:'✍️', bg:'#FFD3D3', tag:'HOT', tagBg:'#FF4444', tabId:'blog',
-  },
-  {
-    id:'daechi', title:'대치동 학원', sub:'유학·입시 컨설팅',
-    emoji:'🎒', bg:'#FFF4B8', tag:'추천', tagBg:'#FF8C42', tabId:'daechi',
-  },
-  {
-    id:'realestate', title:'부동산', sub:'매물·전월세 정보',
-    emoji:'🏠', bg:'#D4E5FF', tag:'AI', tagBg:'#5B9BFF', tabId:'realestate',
-  },
-  {
-    id:'hospital', title:'병원정보', sub:'한국어 진료 가능',
-    emoji:'🏥', bg:'#E0D4FF', tag:'24h', tagBg:'#9B6CFF', tabId:'hospital',
-  },
-];
-
-/* 메인 배너 - 슬라이드별 다른 그라데이션 */
-const BANNERS = [
-  {title:'차이나뷰 서비스',   sub:'재중 한인을 위한 종합 정보 플랫폼', from:'#00b09b', to:'#96c93d'},
-  {title:'부동산 1:1 상담', sub:'중국 현지 부동산 전문 컨설팅',     from:'#4facfe', to:'#00f2fe'},
-  {title:'비자/서류 안내',   sub:'비자 연장·서류 발급 완벽 가이드', from:'#a18cd1', to:'#fbc2eb'},
+/* 주요 서비스 - PC 우측/하단 영역과 같은 구성 */
+const MAIN_SERVICES = [
+  {tab:'news',      title:'중국소식',      sub:'현지 뉴스·정책',   Icon:Newspaper},
+  {tab:'koreanbiz', title:'재중 한인 기업', sub:'5,000+ 기업 정보', Icon:Briefcase},
+  {tab:'blog',      title:'뷰 (View)',     sub:'한인 스토리·일상',  Icon:PenLine},
+  {tab:'daechi',    title:'대치동 학원',    sub:'유학·입시 컨설팅',  Icon:GraduationCap},
+  {tab:'hospital',  title:'병원 정보',      sub:'한국어 진료 가능',  Icon:Stethoscope},
+  {tab:'weather',   title:'중국 날씨',      sub:'도시별 날씨',       Icon:CloudSun},
 ];
 
 /* 광고 기본 데이터 (CMS 미설정 시 폴백) */
@@ -160,7 +95,7 @@ const STUDY_LINKS = [
 const CONTENT_LABELS = {
   news:'중국소식', visa:'비자/서류', education:'교육', yellow:'엘로우 페이지',
   auto:'자동차', market:'중고장터', securities:'증권', realestate:'부동산',
-  koreanbiz:'재중 한국기업', blog:'뷰 (View)', weather:'날씨', hospital:'병원정보',
+  koreanbiz:'재중 한인 기업', blog:'뷰 (View)', weather:'날씨', hospital:'병원정보',
   daechi:'대치동 학원',
 };
 
@@ -172,30 +107,6 @@ export function MobileHome({
 }) {
   const [bottomTab, setBottomTab] = useState('home');
   const [contentTab, setContentTab] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchOverlay, setShowSearchOverlay] = useState(false);
-
-  /* 검색 결과 (서비스 아이콘 + 지역 필터용) */
-  const ALL_SEARCHABLE = [
-    {label:'비자/서류', icon:'📋', tab:'visa'},
-    {label:'교육',     icon:'🎓', tab:'education'},
-    {label:'엘로우 페이지',   icon:'📖', tab:'yellow'},
-    {label:'자동차',   icon:'🚗', tab:'auto'},
-    {label:'중고장터', icon:'🛍️', tab:'market'},
-    {label:'증권',     icon:'📊', tab:'securities'},
-    {label:'부동산',   icon:'🏘️', tab:'realestate'},
-    {label:'커뮤니티', icon:'💬', tab:'community', page:'chinalife'},
-    {label:'재중 한국기업', icon:'🏢', tab:'koreanbiz'},
-    {label:'뷰 (View)',     icon:'✍️', tab:'blog'},
-    {label:'병원정보',     icon:'🏥', tab:'hospital'},
-    {label:'대치동 학원',  icon:'📚', tab:'daechi'},
-    {label:'중국 날씨',    icon:'🌤️', tab:'weather'},
-  ];
-  const searchResults = searchQuery.trim()
-    ? ALL_SEARCHABLE.filter(s => s.label.includes(searchQuery))
-    : ALL_SEARCHABLE;
-  const SERVICE_ICONS = getServiceIcons();
-
   const goContent = (tab, page) => {
     if (page) { onNavigate?.(page); return; }
     if (tab==='daechi') { onNavigate?.('education'); return; }
@@ -204,24 +115,14 @@ export function MobileHome({
   };
   const goHome = () => { setContentTab(''); setBottomTab('home'); window.scrollTo({top:0}); };
 
-  /* 배너 슬라이드 */
-  const [bannerIdx, setBannerIdx] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setBannerIdx(i=>(i+1)%BANNERS.length), 4000);
-    return () => clearInterval(t);
-  }, []);
-
   /* 광고 슬라이드 - CMS에서 로드 */
   const [adBanners, setAdBanners] = useState(() => getMobileAds());
   const [adIdx, setAdIdx] = useState(0);
   useEffect(() => {
+    if (!SHOW_ADS) return;
     const t = setInterval(() => setAdIdx(i=>(i+1)%adBanners.length), 3500);
     return () => clearInterval(t);
   }, [adBanners.length]);
-
-  const [activeRegion, setActiveRegion] = useState('대련');
-  useEffect(() => { if (currentUser?.region) setActiveRegion(currentUser.region); }, [currentUser]);
-  const news = getNews(activeRegion);
 
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [username, setUsername] = useState('');
@@ -255,7 +156,6 @@ export function MobileHome({
   };
   const visibleShortcuts = SHORTCUT_ITEMS.filter(s => selectedShortcuts.includes(s.id));
 
-  const banner = BANNERS[bannerIdx];
   const ad = adBanners[adIdx] || DEFAULT_ADS[0];
 
   /* ── 콘텐츠 화면 ── */
@@ -292,141 +192,12 @@ export function MobileHome({
       {bottomTab==='home' && (
         <div>
 
-          {/* ─ 메인 배너 (슬라이드별 그라데이션) ─ */}
-          <div className="relative px-5 pt-5 pb-6"
-            style={{background:`linear-gradient(135deg, ${banner.from}, ${banner.to})`}}>
-            <div className="text-white/80 text-[11px] font-bold tracking-widest mb-1">CN</div>
-            <p className="text-white font-extrabold text-[22px] leading-tight">{banner.title}</p>
-            <p className="text-white/85 text-[12px] mt-1">{banner.sub}</p>
-            <div className="absolute right-6 top-6 w-20 h-20 rounded-full bg-white/15"/>
-            <div className="absolute right-2 bottom-8 w-12 h-12 rounded-full bg-white/15"/>
-            <div className="absolute bottom-4 right-5 flex gap-1.5 items-center">
-              {BANNERS.map((_,i)=>(
-                <button key={i} onClick={()=>setBannerIdx(i)}
-                  className={`transition-all rounded-full ${
-                    i===bannerIdx ? 'w-6 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40'
-                  }`}/>
-              ))}
-            </div>
-          </div>
-
-          {/* ─ 검색바 (탭 → 오버레이) ─ */}
-          <div className="px-3 -mt-3 mb-3 relative z-10">
-            <button
-              className="w-full bg-white rounded-2xl shadow-md flex items-center gap-2 px-4 py-3 border border-gray-100 text-left active:scale-[0.98] transition-transform"
-              onClick={() => setShowSearchOverlay(true)}
-            >
-              <Search className="w-4 h-4 text-gray-400 shrink-0"/>
-              <span className="text-[13px] text-gray-400">검색어 입력하세요</span>
-            </button>
-          </div>
-
-          {/* ─ 검색 오버레이 ─ */}
-          {showSearchOverlay && (
-            <div className="fixed inset-0 z-[100] bg-white flex flex-col">
-              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100 shadow-sm">
-                <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
-                  <Search className="w-4 h-4 text-gray-400 shrink-0"/>
-                  <input
-                    autoFocus
-                    type="text"
-                    value={searchQuery}
-                    onChange={e=>setSearchQuery(e.target.value)}
-                    placeholder="검색어 입력하세요"
-                    className="flex-1 text-[14px] bg-transparent outline-none"
-                  />
-                  {searchQuery && (
-                    <button onClick={()=>setSearchQuery('')} className="text-gray-400 text-xl leading-none w-5 h-5 flex items-center justify-center">×</button>
-                  )}
-                </div>
-                <button onClick={()=>{ setShowSearchOverlay(false); setSearchQuery(''); }}
-                  className="text-[13px] text-gray-600 font-medium shrink-0 px-1">취소</button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-3">
-                <p className="text-[11px] text-gray-400 font-medium mb-2 px-1">
-                  {searchQuery.trim() ? `"${searchQuery}" 검색 결과` : '전체 서비스'}
-                </p>
-                <div className="space-y-0.5">
-                  {searchResults.map(item=>(
-                    <button key={item.tab}
-                      onClick={()=>{ setShowSearchOverlay(false); setSearchQuery(''); goContent(item.tab, item.page); }}
-                      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 active:bg-gray-100">
-                      <span className="text-xl w-8 text-center shrink-0">{item.icon}</span>
-                      <span className="text-[14px] text-gray-800 font-medium">{item.label}</span>
-                      <ChevronRight className="w-4 h-4 text-gray-300 ml-auto"/>
-                    </button>
-                  ))}
-                  {searchQuery.trim() && searchResults.length===0 && (
-                    <div className="text-center py-12 text-gray-400">
-                      <p className="text-[14px]">검색 결과가 없습니다</p>
-                      <p className="text-[12px] mt-1">다른 키워드로 검색해보세요</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* ─ 서비스 아이콘 8개 ─ */}
-          <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-100 shadow-sm" style={{padding:'16px 4px'}}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '16px 0px',
-            }}>
-              {SERVICE_ICONS.map(svc=>(
-                <button
-                  key={svc.id}
-                  onClick={()=>goContent(svc.tab, svc.page)}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    background: 'none',
-                    border: 'none',
-                    padding: '0 4px',
-                    minWidth: 0,
-                    transition: 'transform 0.2s ease',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.transform='translateY(-3px)'}
-                  onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}
-                  onTouchStart={e => e.currentTarget.style.transform='scale(0.93)'}
-                  onTouchEnd={e => e.currentTarget.style.transform='scale(1)'}
-                >
-                  <div style={{
-                    width: 52,
-                    height: 52,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 6,
-                    borderRadius: 16,
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                  }}>
-                    <img src={svc.img} alt={svc.label} style={{width:'100%', height:'100%', objectFit:'cover'}}/>
-                  </div>
-                  <span style={{
-                    fontSize: 11,
-                    fontWeight: 500,
-                    color: '#333',
-                    textAlign: 'center',
-                    letterSpacing: '-0.3px',
-                    lineHeight: 1.2,
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {svc.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <ServiceIconGrid onSelect={goContent}/>
 
-          {/* ─ 주요 서비스 5개 ─ */}
+          {/* ─ 광고 (SHOW_ADS 로 켜고 끔) ─ */}
+          {SHOW_ADS && (
           <div className="px-3 mb-3">
-
             {/* 트렌디 광고 - 주요 서비스 바로 위 */}
             <button
               onClick={()=>{ setModalAdIdx(adIdx); setShowAdModal(true); }}
@@ -481,49 +252,21 @@ export function MobileHome({
                 ))}
               </div>
             </button>
+          </div>
+          )}
 
-            <p className="text-[12px] text-gray-500 font-semibold mb-2 px-1">주요 서비스</p>
-            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
-              <FeatureCard card={FEATURE_CARDS[0]} onClick={()=>goContent(FEATURE_CARDS[0].tabId,null)}/>
-              <FeatureCard card={FEATURE_CARDS[1]} onClick={()=>goContent(FEATURE_CARDS[1].tabId,null)}/>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
-              <FeatureCard card={FEATURE_CARDS[2]} onClick={()=>goContent(FEATURE_CARDS[2].tabId,null)}/>
-              <FeatureCard card={FEATURE_CARDS[3]} onClick={()=>goContent(FEATURE_CARDS[3].tabId,null)}/>
-            </div>
-            <FeatureCard card={FEATURE_CARDS[4]} wide onClick={()=>goContent(FEATURE_CARDS[4].tabId,null)}/>
+          {/* ─ 주요 서비스 ─ */}
+          <MainServices onSelect={goContent}/>
+
+          {/* ─ 지역 소식 (PC와 같은 위젯) ─ */}
+          <div className="mx-3 mb-3">
+            <Suspense fallback={<Spinner/>}>
+              <RegionalNewsWidget onMoreClick={()=>goContent('news',null)}/>
+            </Suspense>
           </div>
 
-          {/* ─ 지역소식 ─ */}
-          <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-base">📰</span>
-                <span className="font-semibold text-gray-800 text-[14px]">지역 소식</span>
-              </div>
-              <button onClick={()=>goContent('news',null)} className="text-[11px] text-teal-500 font-medium">더보기 →</button>
-            </div>
-            <div className="flex gap-1.5 px-4 pb-2 overflow-x-auto scrollbar-hide">
-              {REGIONS.map(r=>(
-                <button key={r} onClick={()=>setActiveRegion(r)}
-                  className={`shrink-0 text-[10px] px-2 py-1 rounded-full font-medium transition-all ${
-                    activeRegion===r?'bg-teal-500 text-white':'bg-gray-100 text-gray-500'}`}>{r}</button>
-              ))}
-            </div>
-            <div className="divide-y divide-gray-50 px-1 pb-1">
-              {news.map((n,i)=>(
-                <button key={i} onClick={()=>goContent('news',null)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left">
-                  <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded ${CAT_COLORS[n.cat]||'bg-gray-100 text-gray-500'}`}>{n.cat}</span>
-                  <p className="text-[13px] text-gray-700 line-clamp-1 flex-1">{n.title}</p>
-                  <ChevronRight className="w-3 h-3 text-gray-300 shrink-0"/>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ─ 광고 (항상 표시) ─ */}
-          <div className="px-3 mb-3">
+          {/* ─ 광고 (SHOW_ADS 로 켜고 끔) ─ */}
+          {SHOW_ADS && <div className="px-3 mb-3">
             <button
               onClick={()=>{ setModalAdIdx(adIdx); setShowAdModal(true); }}
               className="w-full relative overflow-hidden active:scale-[0.98] transition-all"
@@ -548,11 +291,7 @@ export function MobileHome({
                 ))}
               </div>
             </button>
-          </div>
-
-          <div className="px-3 pb-4 text-center">
-            <p className="text-[10px] text-gray-300">© Sina View Corp. All Rights Reserved.</p>
-          </div>
+          </div>}
         </div>
       )}
 
@@ -633,38 +372,9 @@ export function MobileHome({
           <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-sm">
             <p className="font-bold text-gray-900 text-[16px]">서비스</p>
           </div>
-          <div className="p-3">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-3" style={{padding:'16px 4px'}}>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:'16px 0px'}}>
-                {SERVICE_ICONS.map(svc=>(
-                  <button key={svc.id} onClick={()=>goContent(svc.tab, svc.page)}
-                    style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer',background:'none',border:'none',padding:'0 4px',minWidth:0,transition:'transform 0.2s ease'}}
-                    onMouseEnter={e=>e.currentTarget.style.transform='translateY(-3px)'}
-                    onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}
-                    onTouchStart={e=>e.currentTarget.style.transform='scale(0.93)'}
-                    onTouchEnd={e=>e.currentTarget.style.transform='scale(1)'}>
-                    <div style={{width:52,height:52,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:6,borderRadius:16,overflow:'hidden',flexShrink:0}}>
-                      <img src={svc.img} alt={svc.label} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-                    </div>
-                    <span style={{fontSize:11,fontWeight:500,color:'#333',textAlign:'center',letterSpacing:'-0.3px',lineHeight:1.2,whiteSpace:'nowrap'}}>
-                      {svc.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* 주요 서비스 */}
-            <p className="text-[12px] text-gray-500 font-semibold mb-2 px-1">주요 서비스</p>
-            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
-              <FeatureCard card={FEATURE_CARDS[0]} onClick={()=>goContent(FEATURE_CARDS[0].tabId,null)}/>
-              <FeatureCard card={FEATURE_CARDS[1]} onClick={()=>goContent(FEATURE_CARDS[1].tabId,null)}/>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
-              <FeatureCard card={FEATURE_CARDS[2]} onClick={()=>goContent(FEATURE_CARDS[2].tabId,null)}/>
-              <FeatureCard card={FEATURE_CARDS[3]} onClick={()=>goContent(FEATURE_CARDS[3].tabId,null)}/>
-            </div>
-            <FeatureCard card={FEATURE_CARDS[4]} wide onClick={()=>goContent(FEATURE_CARDS[4].tabId,null)}/>
-          </div>
+          <div className="h-3"/>
+          <ServiceIconGrid onSelect={goContent}/>
+          <MainServices onSelect={goContent}/>
         </div>
       )}
 
@@ -814,30 +524,43 @@ export function MobileHome({
   );
 }
 
-/* ── 주요 서비스 카드 (사진6 스타일) ── */
-function FeatureCard({card, wide, onClick}) {
+/* ── 서비스 아이콘 (PC 카드와 같은 흰 배경 + 단색 아이콘) ── */
+function ServiceIconGrid({onSelect}) {
   return (
-    <button onClick={onClick}
-      className="relative overflow-hidden rounded-3xl p-4 text-left active:scale-[0.97] transition-transform w-full"
-      style={{
-        background: card.bg,
-        minHeight: wide ? 90 : 110,
-      }}>
-      <div className="absolute top-2.5 right-2.5 z-10">
-        <span className="text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block"
-          style={{background: card.tagBg, transform:'rotate(8deg)', boxShadow:'0 2px 6px rgba(0,0,0,0.15)'}}>
-          {card.tag}
-        </span>
+    <div className="bg-white mx-3 mb-3 rounded-xl border border-gray-200 py-4 px-1">
+      <div className="grid grid-cols-4 gap-y-4">
+        {SERVICE_ICONS.map(svc=>(
+          <button key={svc.id} onClick={()=>onSelect(svc.tab, svc.page)}
+            className="flex flex-col items-center gap-1.5 min-w-0 px-1 group">
+            <span className="w-11 h-11 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center group-active:bg-teal-50">
+              <svc.Icon className="w-5 h-5 text-gray-700 group-active:text-teal-600" strokeWidth={1.6}/>
+            </span>
+            <span className="text-[11px] text-gray-700 whitespace-nowrap tracking-tight">{svc.label}</span>
+          </button>
+        ))}
       </div>
-      <div className="relative z-[5]">
-        <p className="text-gray-900 font-extrabold text-[15px] leading-tight tracking-tight">{card.title}</p>
-        <p className="text-gray-700/70 text-[11px] mt-0.5">{card.sub}</p>
+    </div>
+  );
+}
+
+/* ── 주요 서비스 (PC 섹션 카드 스타일) ── */
+function MainServices({onSelect}) {
+  return (
+    <div className="bg-white mx-3 mb-3 rounded-xl border border-gray-200 p-4">
+      <h2 className="text-[15px] font-semibold text-gray-900 mb-2">주요 서비스</h2>
+      <div className="grid grid-cols-2 gap-2">
+        {MAIN_SERVICES.map(item=>(
+          <button key={item.tab} onClick={()=>onSelect(item.tab, null)}
+            className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-100 text-left hover:bg-gray-50 active:bg-gray-100">
+            <item.Icon className="w-5 h-5 text-teal-600 shrink-0" strokeWidth={1.6}/>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-medium text-gray-900 truncate">{item.title}</span>
+              <span className="block text-[11px] text-gray-400 truncate">{item.sub}</span>
+            </span>
+          </button>
+        ))}
       </div>
-      <div className={`absolute text-[52px] leading-none opacity-90 select-none ${wide ? 'right-6 bottom-1' : 'right-1 bottom-0'}`}
-        style={{filter:'drop-shadow(0 4px 6px rgba(0,0,0,0.10))'}}>
-        {card.emoji}
-      </div>
-    </button>
+    </div>
   );
 }
 

@@ -535,10 +535,15 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
-            /* 모바일에서 조회/추천/날짜 숨기기 */
+            /* 모바일에서 조회/추천/날짜 숨기기 (col 너비도 함께 제거) */
             .col-views, .col-likes, .col-date {
                 display: none;
             }
+            .board-table col.col-check { width: 26px !important; }
+            .board-table col.col-type { width: 52px !important; }
+            .board-table .badge-box { white-space: nowrap; padding: 2px 5px; font-size: 10px; }
+            .board-table col.col-author { width: 76px !important; }
+            .board-table .title-col { max-width: none; }
             .toolbar {
                 flex-wrap: wrap;
                 gap: 6px;
@@ -1269,13 +1274,13 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack }: ChinaLifeCo
 
               <table className="board-table">
                 <colgroup>
-                  <col style={{width: '30px'}} />
-                  <col style={{width: '70px'}} />
+                  <col className="col-check" style={{width: '30px'}} />
+                  <col className="col-type" style={{width: '70px'}} />
                   <col style={{width: 'auto'}} />
-                  <col style={{width: '100px'}} />
-                  <col style={{width: '90px'}} />
-                  <col style={{width: '60px'}} />
-                  <col style={{width: '50px'}} />
+                  <col className="col-author" style={{width: '100px'}} />
+                  <col className="col-date" style={{width: '90px'}} />
+                  <col className="col-views" style={{width: '60px'}} />
+                  <col className="col-likes" style={{width: '50px'}} />
                 </colgroup>
                 <thead>
                   <tr>
