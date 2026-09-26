@@ -354,8 +354,8 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
         </div>
 
         {/* Service Navigation - Desktop only */}
-        <nav className="hidden sm:block mt-4">
-          <div className="flex items-center space-x-8 text-base overflow-x-auto pb-1.5 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <nav className="mt-2 sm:mt-4 -mx-1 sm:mx-0">
+          <div className="flex items-center space-x-5 sm:space-x-8 text-[14px] sm:text-base overflow-x-auto px-1 sm:px-0 pb-1.5 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button 
               onClick={() => navTab('visa', 'visa-documents', 'visa-documents-mobile')}
               className="hover:text-green-600 whitespace-nowrap"

@@ -18,6 +18,7 @@ const KoreanBizSection      = lazy(() => import('./KoreanBizSection').then(m=>({
 const WeatherWidget         = lazy(() => import('./WeatherWidget').then(m=>({default:m.WeatherWidget})));
 const HospitalWidget        = lazy(() => import('./HospitalWidget').then(m=>({default:m.HospitalWidget})));
 const BlogSection           = lazy(() => import('./BlogSection').then(m=>({default:m.BlogSection})));
+import { PopularPosts } from './PopularPosts';
 const RegionalNewsWidget    = lazy(() => import('./RegionalNewsWidget').then(m=>({default:m.RegionalNewsWidget})));
 
 const Spinner = () => (
@@ -101,7 +102,7 @@ const CONTENT_LABELS = {
 
 /* ══════════════════════════════════════════════ */
 export function MobileHome({
-  currentUser, isAdmin, activeTab: extTab, onTabChange,
+  currentUser, isAdmin, navRequest, onOpenCommunityPost,
   onLoginClick, onSignupClick, onLogout, onNavigate,
   onVisaArticleClick, onEducationArticleClick, onDriverLicenseClick,
 }) {
@@ -114,6 +115,11 @@ export function MobileHome({
     window.scrollTo({top:0});
   };
   const goHome = () => { setContentTab(''); setBottomTab('home'); window.scrollTo({top:0}); };
+
+  /* 상단 메뉴(헤더)에서 누른 탭으로 이동 */
+  useEffect(() => {
+    if (navRequest) goContent(navRequest.tab, null);
+  }, [navRequest]);
 
   /* 광고 슬라이드 - CMS에서 로드 */
   const [adBanners, setAdBanners] = useState(() => getMobileAds());
@@ -193,6 +199,11 @@ export function MobileHome({
       {/* ══ 홈 ══ */}
       {bottomTab==='home' && (
         <div>
+
+          {/* ─ 인기글 ─ */}
+          <div className="mx-3 mb-3">
+            <PopularPosts onPostClick={id=>onOpenCommunityPost?.(id)} onMoreClick={()=>onNavigate?.('chinalife')}/>
+          </div>
 
           {/* ─ 서비스 아이콘 8개 ─ */}
           <ServiceIconGrid onSelect={goContent}/>

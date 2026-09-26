@@ -3,6 +3,7 @@ import { Header } from './Header';
 import { LoginSection } from './LoginSection';
 import { CenterAdBanner } from './CenterAdBanner';
 import { AiAssistantWidget } from './AiAssistantWidget';
+import { PopularPosts } from './PopularPosts';
 
 // Lazy load LoginModal (only shown on user click)
 const LoginModal = lazy(() => import('./LoginModal').then(m => ({ default: m.LoginModal })));
@@ -82,7 +83,9 @@ export function Portal() {
   const [isNStudyHubOpen, setIsNStudyHubOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
-  const [mobileTab, setMobileTab] = useState('news');
+  // 헤더 메뉴(모바일)에서 누른 탭 - nonce 로 같은 탭을 다시 눌러도 반응
+  const [mobileNav, setMobileNav] = useState<{ tab: string; nonce: number } | null>(null);
+  const [communityPostId, setCommunityPostId] = useState<number | null>(null);
 
   useEffect(() => {
     // Set page title
@@ -154,7 +157,8 @@ export function Portal() {
   const handleGoToDriverLicensePage = () => setCurrentPage('driverlicense');
   const handleGoToRealEstatePage = () => setCurrentPage('realestate');
   const handleBackToHome = () => setCurrentPage('main');
-  const handleNavigate = (page: string) => setCurrentPage(page);
+  const handleNavigate = (page: string) => { setCommunityPostId(null); setCurrentPage(page); };
+  const handleOpenCommunityPost = (postId: number) => { setCommunityPostId(postId); setCurrentPage('chinalife'); };
   const handleNStudyHubToggle = () => {
     if (!isNStudyHubOpen) {
       const pw = window.prompt('비밀번호를 입력하세요');
@@ -205,7 +209,7 @@ export function Portal() {
     wechatlogin: <WeChatLoginPage onBack={handleBackToHome} />,
     realestate: <RealEstatePage onBack={handleBackToHome} />,
     hsk: <HSKPage onBack={handleBackToHome} />,
-    chinalife: <ChinaLifeCommunity currentUser={currentUser} isAdmin={isAdmin} onBack={handleBackToHome} />,
+    chinalife: <ChinaLifeCommunity currentUser={currentUser} isAdmin={isAdmin} onBack={handleBackToHome} initialPostId={communityPostId} />,
   };
 
   if (currentPage !== 'main' && pageMap[currentPage]) {
@@ -230,7 +234,7 @@ export function Portal() {
         userRegion={currentUser?.region}
         onLoginClick={() => setIsLoginModalOpen(true)}
         currentUser={currentUser}
-        onMobileTabSelect={setMobileTab}
+        onMobileTabSelect={tab => setMobileNav({ tab, nonce: Date.now() })}
       />
       
       <div className="hidden lg:block">
@@ -242,6 +246,7 @@ export function Portal() {
         <div className="hidden lg:block space-y-6">
           <div className="grid grid-cols-10 gap-6">
             <div className="col-span-7 space-y-6">
+              <PopularPosts onPostClick={handleOpenCommunityPost} onMoreClick={() => handleNavigate('chinalife')} />
               {visibleSections >= 1 && (
                 <Suspense fallback={<LoadingSpinner />}>
                   <div className="grid grid-cols-2 gap-4">
@@ -386,8 +391,8 @@ export function Portal() {
             <MobileHome
               currentUser={currentUser}
               isAdmin={isAdmin}
-              activeTab={mobileTab}
-              onTabChange={setMobileTab}
+              navRequest={mobileNav}
+              onOpenCommunityPost={handleOpenCommunityPost}
               onLoginClick={() => setIsLoginModalOpen(true)}
               onSignupClick={() => setIsSignupModalOpen(true)}
               onLogout={() => { localStorage.removeItem('currentUser'); window.location.reload(); }}
