@@ -27,9 +27,15 @@ export function MarketArticleModal({ article, onClose }: { article: MarketNewsIt
         <div className="px-5 py-5">
           <h2 className="text-[19px] sm:text-2xl font-bold text-gray-900 leading-snug">{article.title}</h2>
           <div className="mt-2 text-xs text-gray-500 flex flex-wrap items-center gap-x-2">
-            <span className="flex items-center gap-1 text-teal-700"><Sparkles className="w-3.5 h-3.5" /> AI 기사</span>
-            <span>·</span>
-            <span>{timeAgo(article.publishedAt)}</span>
+            {article.isSample ? (
+              <span className="text-orange-600">예시 기사</span>
+            ) : (
+              <>
+                <span className="flex items-center gap-1 text-teal-700"><Sparkles className="w-3.5 h-3.5" /> AI 기사</span>
+                <span>·</span>
+                <span>{timeAgo(article.publishedAt)}</span>
+              </>
+            )}
           </div>
           {article.summary && (
             <p className="mt-4 p-3 bg-gray-50 rounded-lg text-[14px] text-gray-700 leading-relaxed">{article.summary}</p>
@@ -38,7 +44,9 @@ export function MarketArticleModal({ article, onClose }: { article: MarketNewsIt
             {article.content || article.summary}
           </div>
           <p className="mt-6 pt-4 border-t border-gray-100 text-xs text-gray-400 leading-relaxed">
-            이 글은 AI(GLM)가 {article.source} 보도를 바탕으로 한국어로 요약·재구성한 기사입니다. 투자 권유가 아닙니다.
+            {article.isSample
+              ? '화면 구성을 보여 주기 위한 예시 기사입니다. AI 기사가 준비되면 실제 뉴스로 자동으로 바뀝니다.'
+              : `이 글은 AI(GLM)가 ${article.source} 보도를 바탕으로 한국어로 요약·재구성한 기사입니다. 투자 권유가 아닙니다.`}
           </p>
         </div>
       </article>

@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { fetchMarketQuotes, fetchMarketNews, formatUpdatedAt, timeAgo, MarketQuote, MarketNewsItem } from '../utils/market';
 import { MarketArticleModal } from '../components/MarketArticleModal';
+import { toSampleArticle } from '../data/sampleMarketArticles';
 
 interface SecuritiesPageProps {
   onBack: () => void;
@@ -27,11 +28,11 @@ const SAMPLE_QUOTES: MarketQuote[] = [
   { code: 'sz300750', name: 'CATL(닝더스다이)', type: 'stock', market: '선전', currency: '¥', price: 186.3, change: 3.1, percent: 1.69 },
 ];
 
-const SAMPLE_NEWS: MarketNewsItem[] = [
-  { title: '중국 증시, 부동산 규제 완화 기대감에 상승 마감', originalTitle: '', summary: '', category: '상하이증시', url: '', source: '예시', publishedAt: new Date().toISOString() },
-  { title: '항셍지수, 기술주 반등에 3거래일 연속 상승', originalTitle: '', summary: '', category: '홍콩증시', url: '', source: '예시', publishedAt: new Date().toISOString() },
-  { title: '중국 인민은행, 지급준비율 인하 시사', originalTitle: '', summary: '', category: 'A주', url: '', source: '예시', publishedAt: new Date().toISOString() },
-];
+const SAMPLE_NEWS = [
+  { title: '중국 증시, 부동산 규제 완화 기대감에 상승 마감', category: '상하이증시' },
+  { title: '항셍지수, 기술주 반등에 3거래일 연속 상승', category: '홍콩증시' },
+  { title: '중국 인민은행, 지급준비율 인하 시사', category: 'A주' },
+].map(item => toSampleArticle(item)!) as MarketNewsItem[];
 
 const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const signed = (n: number, digits = 2) => `${n >= 0 ? '+' : ''}${n.toFixed(digits)}`;
@@ -156,7 +157,7 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
                     <>
                       <div className="flex items-center space-x-2 mb-1">
                         <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                        <span className="text-xs text-gray-500">{item.content ? 'AI 기사 · ' : ''}{timeAgo(item.publishedAt)}</span>
+                        <span className="text-xs text-gray-500">{item.isSample ? '예시 기사' : `AI 기사 · ${timeAgo(item.publishedAt)}`}</span>
                       </div>
                       <h4 className="font-medium line-clamp-2">{item.title}</h4>
                       {item.summary && <p className="text-sm text-gray-600 mt-1">{item.summary}</p>}

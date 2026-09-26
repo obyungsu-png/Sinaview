@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { fetchMarketNews, timeAgo, MarketNewsItem } from '../utils/market';
 import { MarketArticleModal } from './MarketArticleModal';
+import { toSampleArticle } from '../data/sampleMarketArticles';
 
 interface SecuritiesSectionProps {
   category: string;
@@ -205,7 +206,10 @@ export function SecuritiesSection({ category, onMoreClick }: SecuritiesSectionPr
           <div 
             key={item.id} 
             className="flex items-start space-x-3 hover:bg-gray-50 p-2 rounded cursor-pointer"
-            onClick={onMoreClick}
+            onClick={() => {
+              const article = toSampleArticle(item);
+              article ? setOpenArticle(article) : onMoreClick?.();
+            }}
           >
             <img 
               src={item.thumbnail} 
@@ -231,7 +235,7 @@ export function SecuritiesSection({ category, onMoreClick }: SecuritiesSectionPr
                 </div>
               </div>
             </div>
-            <ExternalLink className="w-3 h-3 text-gray-400 flex-shrink-0 mt-1" />
+            <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />
           </div>
         ))}
       </div>

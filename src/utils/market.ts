@@ -14,6 +14,7 @@ export interface MarketQuote {
 export interface MarketNewsItem {
   id?: string;
   content?: string;   // AI가 쓴 한국어 기사 본문
+  isSample?: boolean; // 서버 기사가 없을 때 보여 주는 예시 기사
   title: string;
   originalTitle: string;
   summary: string;
