@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
+import { fetchMarketNews, timeAgo, MarketNewsItem } from '../utils/market';
 
 interface SecuritiesSectionProps {
   category: string;
@@ -133,6 +134,15 @@ export function SecuritiesSection({ category, onMoreClick }: SecuritiesSectionPr
 
   const currentItems = contentBySubcategory[activeSubcategory] || contentBySubcategory['전체'];
 
+  // 서버의 AI 한국어 요약 뉴스 (없으면 위 예시 데이터 표시)
+  const [liveNews, setLiveNews] = useState<MarketNewsItem[] | null>(null);
+  useEffect(() => {
+    fetchMarketNews().then(data => { if (data) setLiveNews(data.items); });
+  }, []);
+  const liveItems = liveNews && (activeSubcategory === '전체'
+    ? liveNews
+    : liveNews.filter(item => item.category === activeSubcategory));
+
   return (
     <Card className="p-4">
       <div className="mb-4">
@@ -162,6 +172,36 @@ export function SecuritiesSection({ category, onMoreClick }: SecuritiesSectionPr
         </div>
       </div>
 
+      {liveItems ? (
+        <div className="space-y-3">
+          {liveItems.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-6">이 분류의 최신 뉴스가 아직 없습니다.</p>
+          )}
+          {liveItems.slice(0, 4).map((item) => (
+            <a
+              key={item.url}
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start space-x-3 hover:bg-gray-50 p-2 rounded"
+              title={item.originalTitle}
+            >
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm text-gray-900 line-clamp-2 leading-tight">{item.title}</h3>
+                {item.summary && <p className="text-xs text-gray-500 line-clamp-2 mt-1 leading-snug">{item.summary}</p>}
+                <div className="flex items-center mt-1 text-xs text-gray-400">
+                  <span>{item.source}</span>
+                  <span className="mx-1">·</span>
+                  <span>{timeAgo(item.publishedAt)}</span>
+                  <span className="mx-1">·</span>
+                  <span className="text-teal-600">AI 요약</span>
+                </div>
+              </div>
+              <ExternalLink className="w-3 h-3 text-gray-400 flex-shrink-0 mt-1" />
+            </a>
+          ))}
+        </div>
+      ) : (
       <div className="space-y-3">
         {currentItems.slice(0, 4).map((item) => (
           <div 
@@ -197,6 +237,7 @@ export function SecuritiesSection({ category, onMoreClick }: SecuritiesSectionPr
           </div>
         ))}
       </div>
+      )}
 
       <div className="mt-4 text-center">
         <button 

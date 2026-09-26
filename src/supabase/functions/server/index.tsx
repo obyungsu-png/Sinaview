@@ -553,4 +553,190 @@ app.post("/make-server-c6687586/api/ai-chat", async (c) => {
   }
 });
 
+// ===== 증권: 시세·뉴스 자동 갱신 =====
+// 방문자 요청 시 KV 캐시를 먼저 돌려주고, 오래됐으면 새로 가져온다 (별도 cron 불필요)
+
+// 응답을 보낸 뒤에도 백그라운드 작업이 끝까지 돌도록
+function runInBackground(task: Promise<unknown>) {
+  const p = task.catch((e) => console.error(`Background task error: ${e.message}`));
+  try { (globalThis as any).EdgeRuntime?.waitUntil(p); } catch { /* 로컬 실행 등 */ }
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 8000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// --- 1) 지수·주가 (텐센트 증권 공개 시세) ---
+const QUOTE_SYMBOLS = [
+  { code: "sh000001", name: "상하이종합" },
+  { code: "sz399001", name: "선전성분" },
+  { code: "hkHSI", name: "항셍지수" },
+  { code: "hk09988", name: "알리바바" },
+  { code: "hk00700", name: "텐센트" },
+  { code: "hk09888", name: "바이두" },
+  { code: "hk01810", name: "샤오미" },
+  { code: "hk01211", name: "BYD" },
+];
+const QUOTES_KEY = "market:quotes";
+const QUOTES_TTL_MS = 5 * 60 * 1000;
+
+// 응답 형식: v_sh000001="1~이름~코드~현재가~전일종가~시가~...";
+export function parseTencentQuotes(text: string) {
+  const quotes = [];
+  for (const { code, name } of QUOTE_SYMBOLS) {
+    const m = text.match(new RegExp(`v_${code}="([^"]*)"`));
+    if (!m) continue;
+    const f = m[1].split("~");
+    const price = parseFloat(f[3]);
+    const prevClose = parseFloat(f[4]);
+    if (!isFinite(price) || !isFinite(prevClose) || prevClose === 0) continue;
+    const change = price - prevClose;
+    quotes.push({
+      code,
+      name,
+      price,
+      change,
+      percent: (change / prevClose) * 100,
+    });
+  }
+  return quotes;
+}
+
+async function refreshQuotes() {
+  const url = `https://qt.gtimg.cn/q=${QUOTE_SYMBOLS.map((s) => s.code).join(",")}`;
+  const res = await fetchWithTimeout(url, {}, 5000);
+  if (!res.ok) throw new Error(`quotes HTTP ${res.status}`);
+  const quotes = parseTencentQuotes(await res.text());
+  if (quotes.length === 0) throw new Error("quotes: 파싱된 종목 없음");
+  const data = { quotes, updatedAt: new Date().toISOString() };
+  await kv.set(QUOTES_KEY, data);
+  return data;
+}
+
+app.get("/make-server-c6687586/market/quotes", async (c) => {
+  const cached = await kv.get(QUOTES_KEY).catch(() => null);
+  const fresh = cached && Date.now() - new Date(cached.updatedAt).getTime() < QUOTES_TTL_MS;
+  if (fresh) return c.json({ success: true, ...cached });
+  try {
+    return c.json({ success: true, ...(await refreshQuotes()) });
+  } catch (error) {
+    console.error(`Quotes refresh failed: ${error.message}`);
+    // 실패하면 마지막으로 저장된 값을 그대로 사용
+    if (cached) return c.json({ success: true, stale: true, ...cached });
+    return c.json({ success: false, error: error.message }, 502);
+  }
+});
+
+// --- 2) 중국 증권 뉴스 → GLM 한국어 요약 ---
+// 시나 재경 실시간 뉴스 목록 (여러 개 중 되는 것 사용)
+const NEWS_SOURCES = [
+  "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2516&num=20&page=1",
+  "https://feed.mix.sina.com.cn/api/roll/get?pageid=155&lid=1686&num=20&page=1",
+];
+const NEWS_KEY = "market:news";
+const NEWS_LOCK_KEY = "market:news:lock";
+const NEWS_TTL_MS = 60 * 60 * 1000;
+const NEWS_LOCK_MS = 5 * 60 * 1000;
+const NEWS_CATEGORIES = ["상하이증시", "홍콩증시", "A주", "중국펀드"];
+
+async function fetchChineseNews() {
+  for (const url of NEWS_SOURCES) {
+    try {
+      const res = await fetchWithTimeout(url, { headers: { Referer: "https://finance.sina.com.cn/" } });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const items = (json?.result?.data || [])
+        .filter((d: any) => d.title && d.url)
+        .slice(0, 10)
+        .map((d: any) => ({
+          title: String(d.title),
+          intro: String(d.intro || d.summary || "").slice(0, 300),
+          url: String(d.url),
+          source: String(d.media_name || "新浪财经"),
+          publishedAt: d.ctime ? new Date(Number(d.ctime) * 1000).toISOString() : new Date().toISOString(),
+        }));
+      if (items.length) return items;
+    } catch (e) {
+      console.error(`News source failed (${url}): ${e.message}`);
+    }
+  }
+  throw new Error("모든 뉴스 소스 실패");
+}
+
+// 기존 AI 채팅과 같은 GLM 모델 사용
+async function callGLM(system: string, user: string, maxTokens = 4000) {
+  const apiKey = Deno.env.get("GLM_API_KEY");
+  if (!apiKey) throw new Error("GLM_API_KEY 미설정");
+  const res = await fetchWithTimeout("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: "glm-z1-flash",
+      messages: [{ role: "system", content: system }, { role: "user", content: user }],
+      max_tokens: maxTokens,
+      temperature: 0.3,
+    }),
+  }, 90000);
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!res.ok || !content) throw new Error(data.error?.message || `GLM API error: ${res.status}`);
+  return content as string;
+}
+
+// GLM 응답에서 JSON 배열만 꺼내기 (<think> 등 제거)
+export function extractJsonArray(text: string) {
+  const cleaned = text.replace(/<think>[\s\S]*?<\/think>/g, "");
+  const start = cleaned.indexOf("[");
+  const end = cleaned.lastIndexOf("]");
+  if (start < 0 || end <= start) throw new Error("GLM 응답에 JSON 배열 없음");
+  return JSON.parse(cleaned.slice(start, end + 1));
+}
+
+async function refreshNews() {
+  const raw = await fetchChineseNews();
+  const system =
+    "당신은 재중 한인을 위한 중국 증시 뉴스 편집자입니다. 중국어 기사 제목과 요약을 한국어로 번역·요약합니다. " +
+    "반드시 JSON 배열만 출력하세요. 설명이나 코드블록 없이.";
+  const user =
+    `다음 기사들을 각각 한국어로 정리해 주세요.\n` +
+    `형식: [{"id":번호,"title":"자연스러운 한국어 제목","summary":"핵심만 2~3문장 한국어 요약","category":"${NEWS_CATEGORIES.join("|")} 중 하나"}]\n` +
+    `증시와 관련 없는 기사는 배열에서 빼세요.\n\n` +
+    JSON.stringify(raw.map((r, i) => ({ id: i, title: r.title, intro: r.intro })));
+  const translated = extractJsonArray(await callGLM(system, user));
+  const items = translated
+    .filter((t: any) => raw[t.id] && t.title)
+    .map((t: any) => ({
+      ...raw[t.id],
+      originalTitle: raw[t.id].title,
+      title: String(t.title),
+      summary: String(t.summary || ""),
+      category: NEWS_CATEGORIES.includes(t.category) ? t.category : "A주",
+    }));
+  if (items.length === 0) throw new Error("요약된 뉴스 없음");
+  const data = { items, updatedAt: new Date().toISOString() };
+  await kv.set(NEWS_KEY, data);
+  return data;
+}
+
+app.get("/make-server-c6687586/market/news", async (c) => {
+  const cached = await kv.get(NEWS_KEY).catch(() => null);
+  const stale = !cached || Date.now() - new Date(cached.updatedAt).getTime() > NEWS_TTL_MS;
+  if (stale) {
+    // 동시에 여러 번 갱신하지 않도록 잠금
+    const lock = await kv.get(NEWS_LOCK_KEY).catch(() => null);
+    if (!lock || Date.now() - lock.at > NEWS_LOCK_MS) {
+      await kv.set(NEWS_LOCK_KEY, { at: Date.now() });
+      runInBackground(refreshNews().finally(() => kv.del(NEWS_LOCK_KEY)));
+    }
+  }
+  // AI 요약은 시간이 걸리므로 저장된 뉴스를 바로 돌려준다
+  return c.json({ success: true, items: cached?.items || [], updatedAt: cached?.updatedAt || null, refreshing: stale });
+});
+
 Deno.serve(app.fetch);

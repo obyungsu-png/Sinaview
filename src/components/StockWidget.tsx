@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import { Card } from './ui/card';
+import { fetchMarketQuotes, formatUpdatedAt } from '../utils/market';
 
 export function StockWidget() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const allStocks = [
+  const sampleStocks = [
     { name: "상하이종합", price: "3,127.45", change: "+18.32", percent: "+0.59%", isUp: true },
     { name: "선전성분", price: "10,234.78", change: "-68.90", percent: "-0.67%", isUp: false },
     { name: "항셍지수", price: "19,823.45", change: "+134.56", percent: "+0.68%", isUp: true },
@@ -16,6 +17,29 @@ export function StockWidget() {
     { name: "BYD", price: "245.80", change: "+12.40", percent: "+5.32%", isUp: true }
   ];
 
+  // 서버에서 실제 시세를 받으면 예시 데이터를 대체 (5분마다 갱신)
+  const [liveStocks, setLiveStocks] = useState<typeof sampleStocks | null>(null);
+  const [updatedAt, setUpdatedAt] = useState('09.29. 13:39');
+  useEffect(() => {
+    const load = async () => {
+      const data = await fetchMarketQuotes();
+      if (!data) return;
+      const fmt = (n: number, digits = 2) => n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+      setLiveStocks(data.quotes.map(q => ({
+        name: q.name,
+        price: fmt(q.price),
+        change: `${q.change >= 0 ? '+' : ''}${fmt(q.change)}`,
+        percent: `${q.percent >= 0 ? '+' : ''}${q.percent.toFixed(2)}%`,
+        isUp: q.change >= 0,
+      })));
+      setUpdatedAt(formatUpdatedAt(data.updatedAt));
+    };
+    load();
+    const timer = setInterval(load, 5 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const allStocks = liveStocks ?? sampleStocks;
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % allStocks.length);
@@ -24,7 +48,7 @@ export function StockWidget() {
     return () => clearInterval(interval);
   }, [allStocks.length]);
 
-  const currentStock = allStocks[currentIndex];
+  const currentStock = allStocks[currentIndex % allStocks.length];
 
   return (
     <Card className="p-2">
@@ -32,7 +56,7 @@ export function StockWidget() {
         <h2 className="text-sm font-semibold">증권</h2>
         <div className="flex items-center space-x-1">
           <RefreshCw className="w-2.5 h-2.5 text-gray-400" />
-          <span className="text-xs text-gray-500">09.29. 13:39</span>
+          <span className="text-xs text-gray-500">{updatedAt}</span>
         </div>
       </div>
 
