@@ -4,6 +4,7 @@ import { LoginSection } from './LoginSection';
 import { CenterAdBanner } from './CenterAdBanner';
 import { AiAssistantWidget } from './AiAssistantWidget';
 import { PopularPosts } from './PopularPosts';
+import { CommunityNavContext } from './MemberStories';
 
 // Lazy load LoginModal (only shown on user click)
 const LoginModal = lazy(() => import('./LoginModal').then(m => ({ default: m.LoginModal })));
@@ -86,6 +87,7 @@ export function Portal() {
   // 헤더 메뉴(모바일)에서 누른 탭 - nonce 로 같은 탭을 다시 눌러도 반응
   const [mobileNav, setMobileNav] = useState<{ tab: string; nonce: number } | null>(null);
   const [communityPostId, setCommunityPostId] = useState<number | null>(null);
+  const [communityCategory, setCommunityCategory] = useState<string | null>(null);
 
   useEffect(() => {
     // Set page title
@@ -157,8 +159,12 @@ export function Portal() {
   const handleGoToDriverLicensePage = () => setCurrentPage('driverlicense');
   const handleGoToRealEstatePage = () => setCurrentPage('realestate');
   const handleBackToHome = () => setCurrentPage('main');
-  const handleNavigate = (page: string) => { setCommunityPostId(null); setCurrentPage(page); };
-  const handleOpenCommunityPost = (postId: number) => { setCommunityPostId(postId); setCurrentPage('chinalife'); };
+  const handleNavigate = (page: string) => { setCommunityPostId(null); setCommunityCategory(null); setCurrentPage(page); };
+  const handleOpenCommunityPost = (postId: number) => { setCommunityPostId(postId); setCommunityCategory(null); setCurrentPage('chinalife'); };
+  const communityNav = {
+    openPost: handleOpenCommunityPost,
+    openBoard: (category: string) => { setCommunityPostId(null); setCommunityCategory(category); setCurrentPage('chinalife'); },
+  };
   const handleNStudyHubToggle = () => {
     if (!isNStudyHubOpen) {
       const pw = window.prompt('비밀번호를 입력하세요');
@@ -209,7 +215,7 @@ export function Portal() {
     wechatlogin: <WeChatLoginPage onBack={handleBackToHome} />,
     realestate: <RealEstatePage onBack={handleBackToHome} />,
     hsk: <HSKPage onBack={handleBackToHome} />,
-    chinalife: <ChinaLifeCommunity currentUser={currentUser} isAdmin={isAdmin} onBack={handleBackToHome} initialPostId={communityPostId} />,
+    chinalife: <ChinaLifeCommunity currentUser={currentUser} isAdmin={isAdmin} onBack={handleBackToHome} initialPostId={communityPostId} initialCategory={communityCategory} onNavigate={handleNavigate} />,
   };
 
   if (currentPage !== 'main' && pageMap[currentPage]) {
@@ -222,6 +228,7 @@ export function Portal() {
   }
 
   return (
+    <CommunityNavContext.Provider value={communityNav}>
     <div className="min-h-screen bg-gray-50">
       <Header 
         key={currentUser?.region || 'no-user'}
@@ -490,5 +497,6 @@ export function Portal() {
         </div>
       </footer>
     </div>
+    </CommunityNavContext.Provider>
   );
 }

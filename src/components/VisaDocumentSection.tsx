@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MemberStories } from './MemberStories';
 import { ExternalLink, ChevronDown } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -236,6 +237,7 @@ export function VisaDocumentSection({ category, onMoreClick, onArticleClick }: V
           {activeSubcategory} 카테고리에서 더보기 &gt;
         </button>
       </div>
+      <MemberStories category="비자/서류" />
     </Card>
   );
 }

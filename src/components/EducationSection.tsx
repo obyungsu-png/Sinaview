@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { MemberStories } from './MemberStories';
 import { ExternalLink, ChevronDown } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -238,6 +239,7 @@ export function EducationSection({ category, onMoreClick, onArticleClick, userRe
           {activeSubcategory} 카테고리에서 더보기 &gt;
         </button>
       </div>
+      <MemberStories category="교육" />
     </Card>
   );
 }

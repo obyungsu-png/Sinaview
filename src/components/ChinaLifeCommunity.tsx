@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { CITY_ROOMS, NAVER_CAFE_URL } from '../config/communityLinks';
-import { Post, CHINA_LIFE_POSTS as posts } from '../data/chinaLifePosts';
+import { Post, CHINA_LIFE_POSTS, BOARD_CATEGORIES, CATEGORY_PAGES } from '../data/chinaLifePosts';
+
+// 필독(공지) 글을 위로, 나머지는 최신순
+const posts = [...CHINA_LIFE_POSTS].sort((a, b) => Number(!!b.badgeType) - Number(!!a.badgeType) || b.id - a.id);
 import { CityRoomCard, ShareButtons } from './CommunityConnect';
 
 
@@ -17,13 +20,17 @@ interface ChinaLifeCommunityProps {
   isAdmin?: boolean;
   onBack?: () => void;
   initialPostId?: number | null;
+  initialCategory?: string | null;
+  onNavigate?: (page: string) => void;
 }
 
-export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId }: ChinaLifeCommunityProps) {
+export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId, initialCategory, onNavigate }: ChinaLifeCommunityProps) {
   const [selectedPost, setSelectedPost] = useState<Post | null>(() => posts.find(p => p.id === initialPostId) ?? null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [activeCategory, setActiveCategory] = useState('전체');
+  const [activeCategory, setActiveCategory] = useState(initialCategory || '전체');
+  // 지역은 분류와 따로 선택 (분류 + 지역 조합)
+  const [activeCityName, setActiveCityName] = useState('전체');
   const [comments, setComments] = useState<Comment[]>([
     {
       id: 1,
@@ -65,19 +72,10 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
     '전체': () => true,
     '공지사항': (p) => p.badgeType === 'notice',
     '신입 가이드': (p) => p.title.includes('가이드') || p.title.includes('1년차') || p.title.includes('꼭 알'),
-    '주거·부동산': (p) => p.title.includes('아파트') || p.title.includes('월세') || p.title.includes('부동산') || p.title.includes('집'),
-    '음식·맛집': (p) => p.title.includes('맛집') || p.title.includes('음식') || p.title.includes('재료') || p.title.includes('요리'),
-    '쇼핑·배달': (p) => p.title.includes('타오바오') || p.title.includes('쇼핑') || p.title.includes('배달') || p.title.includes('택배') || p.title.includes('구매'),
-    '교통·이동': (p) => p.title.includes('교통') || p.title.includes('이동') || p.title.includes('택시'),
-    '비자·거류증': (p) => p.title.includes('비자') || p.title.includes('거류'),
-    '은행·금융': (p) => p.title.includes('은행') || p.title.includes('금융') || p.title.includes('결제'),
-    '통신·인터넷': (p) => p.title.includes('전화') || p.title.includes('VPN') || p.title.includes('통신') || p.title.includes('인터넷') || p.title.includes('앱'),
-    ...Object.fromEntries(CITY_ROOMS.map(room => [
-      room.name,
-      (p: Post) => room.keywords.some(k => p.title.includes(k)),
-    ])),
+    ...Object.fromEntries(BOARD_CATEGORIES.map(cat => [cat, (p: Post) => p.category === cat])),
   };
-  const activeCity = CITY_ROOMS.find(room => room.name === activeCategory);
+  const activeCity = CITY_ROOMS.find(room => room.name === activeCityName);
+  const categoryPage = CATEGORY_PAGES[activeCategory as keyof typeof CATEGORY_PAGES];
 
   const filteredPosts = posts.filter(post => {
     const matchesSearch = searchTerm === '' ||
@@ -86,7 +84,8 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
       post.author.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = activeCategory === '전체' || 
       (categoryFilterMap[activeCategory] ? categoryFilterMap[activeCategory](post) : true);
-    return matchesSearch && matchesCategory;
+    const matchesCity = !activeCity || activeCity.keywords.some(k => post.title.includes(k));
+    return matchesSearch && matchesCategory && matchesCity;
   });
 
   const handleAddComment = () => {
@@ -904,20 +903,9 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
             <li onClick={() => handleCategoryClick('공지사항')} style={activeCategory === '공지사항' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}><i className="fa-solid fa-bullhorn"></i> 공지사항</li>
             <li onClick={() => handleCategoryClick('신입 가이드')} style={activeCategory === '신입 가이드' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}><i className="fa-regular fa-file-lines"></i> 신입 가이드</li>
             
-            <li className="title">생활 정보</li>
-            <li onClick={() => handleCategoryClick('주거·부동산')} style={activeCategory === '주거·부동산' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>주거·부동산</li>
-            <li onClick={() => handleCategoryClick('음식·맛집')} style={activeCategory === '음식·맛집' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>음식·맛집</li>
-            <li onClick={() => handleCategoryClick('쇼핑·배달')} style={activeCategory === '쇼핑·배달' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>쇼핑·배달</li>
-            <li onClick={() => handleCategoryClick('교통·이동')} style={activeCategory === '교통·이동' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>교통·이동</li>
-            
-            <li className="title">행정·비자</li>
-            <li onClick={() => handleCategoryClick('비자·거류증')} style={activeCategory === '비자·거류증' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>비자·거류증</li>
-            <li onClick={() => handleCategoryClick('은행·금융')} style={activeCategory === '은행·금융' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>은행·금융</li>
-            <li onClick={() => handleCategoryClick('통신·인터넷')} style={activeCategory === '통신·인터넷' ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>통신·인터넷</li>
-            
-            <li className="title">지역별</li>
-            {CITY_ROOMS.map(room => (
-              <li key={room.name} onClick={() => handleCategoryClick(room.name)} style={activeCategory === room.name ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>{room.name}</li>
+            <li className="title">게시판</li>
+            {['전체', ...BOARD_CATEGORIES].map(cat => (
+              <li key={cat} onClick={() => handleCategoryClick(cat)} style={activeCategory === cat ? {color:'#667eea', fontWeight:'600', backgroundColor:'#f0f2ff'} : {}}>{cat}</li>
             ))}
           </ul>
         </aside>
@@ -929,6 +917,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
               <div className="board-header">
                 <h2>
                   {activeCategory === '전체' ? '중국 생활 정보 게시판' : activeCategory}
+                  {activeCityName !== '전체' && <span style={{fontSize: '14px', color: '#667eea', marginLeft: '8px'}}>📍 {activeCityName}</span>}
                 </h2>
                 <button className="btn-analyze">통계 보기</button>
               </div>
@@ -938,17 +927,32 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                 {['전체', ...CITY_ROOMS.map(room => room.name)].map(name => (
                   <button
                     key={name}
-                    onClick={() => handleCategoryClick(name)}
+                    onClick={() => setActiveCityName(name)}
                     style={{
                       padding: '4px 10px', borderRadius: '999px', fontSize: '12px', cursor: 'pointer',
-                      border: activeCategory === name ? '1px solid #667eea' : '1px solid #ddd',
-                      background: activeCategory === name ? '#667eea' : 'white',
-                      color: activeCategory === name ? 'white' : '#555',
+                      border: activeCityName === name ? '1px solid #667eea' : '1px solid #ddd',
+                      background: activeCityName === name ? '#667eea' : 'white',
+                      color: activeCityName === name ? 'white' : '#555',
                     }}
-                  >{name}</button>
+                  >{name === '전체' ? '전체 지역' : name}</button>
                 ))}
               </div>
               {activeCity && <CityRoomCard room={activeCity} />}
+
+              {/* 분류 → 메뉴 섹션 정보로 연결 */}
+              {categoryPage && onNavigate && (
+                <button
+                  onClick={() => onNavigate(categoryPage.page)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 14px', marginBottom: '12px', borderRadius: '8px', cursor: 'pointer',
+                    border: '1px solid #cdeee8', background: '#f0fbf9', color: '#0f766e', fontSize: '13px', fontWeight: 600,
+                  }}
+                >
+                  <span>📋 {categoryPage.label}</span>
+                  <span>→</span>
+                </button>
+              )}
 
               {/* 검색바 */}
               <div style={{

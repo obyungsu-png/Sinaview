@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MemberStories } from './MemberStories';
 import { Home, TrendingUp, ExternalLink, X, Search, MapPin, Bed, Bath, Square, Filter } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -329,6 +330,7 @@ export function RealEstateSection({ category = '부동산', onMoreClick, userCit
           </div>
         </div>
       )}
+      <MemberStories category="부동산" />
     </Card>
   );
 }

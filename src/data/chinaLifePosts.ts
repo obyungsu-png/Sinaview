@@ -1,10 +1,24 @@
 // 중국생활 커뮤니티 게시글 (예시 데이터) - 게시판과 메인 인기글에서 함께 사용
 
+// 게시판 분류 - 상단 메뉴와 같은 이름 (글쓰기 시 이 중 하나 선택)
+export const BOARD_CATEGORIES = ['비자/서류', '교육', '부동산', '자동차', '중고장터', '생활', '자유'] as const;
+export type BoardCategory = typeof BOARD_CATEGORIES[number];
+
+// 분류 → 메뉴 섹션 페이지 (게시판에서 "정보 보기" 링크, 섹션에서 "회원 이야기" 연결)
+export const CATEGORY_PAGES: Partial<Record<BoardCategory, { page: string; label: string }>> = {
+  '비자/서류': { page: 'visadocument', label: '비자/서류 정보 보기' },
+  '교육': { page: 'education', label: '교육 정보 보기' },
+  '부동산': { page: 'realestate', label: '부동산 매물 보기' },
+  '자동차': { page: 'auto', label: '자동차 정보 보기' },
+  '중고장터': { page: 'usedmarket', label: '중고장터 바로가기' },
+};
+
 export interface Post {
   id: number;
   badge?: string;
   badgeType?: 'notice' | 'important';
   title: string;
+  category: BoardCategory;
   author: string;
   authorBadge?: string;
   date: string;
@@ -15,11 +29,145 @@ export interface Post {
 }
 
 export const CHINA_LIFE_POSTS: Post[] = [
+  {
+    id: 1061,
+    title: '귀국 정리합니다 - 가전·가구 일괄 판매 (대련)',
+    category: '중고장터',
+    author: '대련귀국',
+    date: '2025.12.26',
+    views: 412,
+    likes: 6,
+    comments: 9,
+    content: `귀국 정리로 냉장고, 세탁기, 소파, 책상 판매합니다.
+
+- 일괄 구매 시 할인
+- 개발구 아파트, 직접 가져가셔야 해요
+
+쪽지 주세요!`
+  },
+  {
+    id: 1060,
+    title: 'BYD 전기차 구매 후기 (6개월 차)',
+    category: '자동차',
+    author: '전기차초보',
+    date: '2025.12.26',
+    views: 1580,
+    likes: 31,
+    comments: 24,
+    content: `BYD 사고 6개월 지났습니다.
+
+✅ 좋은 점: 충전비 저렴, 번호판 바로 발급
+⚠️ 아쉬운 점: 겨울 주행거리 감소
+
+궁금한 점 댓글로 물어보세요.`
+  },
+  {
+    id: 1059,
+    title: '중국 운전면허 필기시험 한국어로 봤어요 (후기)',
+    category: '자동차',
+    author: '면허땄다',
+    date: '2025.12.25',
+    views: 2210,
+    likes: 27,
+    comments: 18,
+    content: `한국 면허 교환이 안 돼서 필기시험 봤습니다.
+
+- 한국어 시험 선택 가능
+- 문제은행 앱으로 1주일 공부
+- 90점 이상 합격
+
+생각보다 어렵지 않아요!`
+  },
+  {
+    id: 1058,
+    title: '상해 푸동 2룸 월세 요즘 시세 어떤가요?',
+    category: '부동산',
+    author: '푸동이사',
+    date: '2025.12.25',
+    views: 980,
+    likes: 8,
+    comments: 15,
+    content: `내년 3월에 푸동으로 이사 예정입니다.
+한인 많이 사는 쪽 2룸 월세 시세 아시는 분 계실까요?
+중개비는 보통 얼마 내셨는지도 궁금해요.`
+  },
+  {
+    id: 1057,
+    title: '청도 중국어 과외 선생님 추천 부탁드려요',
+    category: '교육',
+    author: '청도맘',
+    date: '2025.12.25',
+    views: 640,
+    likes: 5,
+    comments: 11,
+    content: `초등학생 아이 중국어 과외 선생님 찾고 있어요.
+청도 성양구 쪽이면 좋겠습니다.
+시간당 비용도 알려주시면 감사하겠습니다.`
+  },
+  {
+    id: 1056,
+    title: '북경 한국국제학교 vs 국제학교, 고민입니다',
+    category: '교육',
+    author: '북경아빠',
+    date: '2025.12.24',
+    views: 1730,
+    likes: 19,
+    comments: 33,
+    content: `중학생 아이 학교 고민 중입니다.
+
+한국 대학 특례를 생각하면 한국학교,
+영어 환경을 생각하면 국제학교...
+
+경험 있으신 분들 조언 부탁드려요.`
+  },
+  {
+    id: 1055,
+    title: '한국 서류 아포스티유, 중국에서 받는 방법 질문',
+    category: '비자/서류',
+    author: '서류지옥',
+    date: '2025.12.24',
+    views: 870,
+    likes: 7,
+    comments: 12,
+    content: `가족관계증명서 아포스티유가 필요한데
+중국에서 온라인으로 신청할 수 있나요?
+해 보신 분 방법 공유 부탁드려요.`
+  },
+  {
+    id: 1054,
+    title: 'Z비자 → 거류증 전환, 건강검진 어디서 받으셨나요?',
+    category: '비자/서류',
+    author: '신입주재원',
+    date: '2025.12.23',
+    views: 1320,
+    likes: 12,
+    comments: 21,
+    content: `이번에 Z비자로 입국했습니다.
+거류증 전환할 때 건강검진은 지정 병원에서만 되나요?
+예약 방법도 궁금합니다.`
+  },
+  {
+    id: 1053,
+    title: '거류증 연장 다녀왔어요, 서류·기간 후기 (상하이)',
+    category: '비자/서류',
+    author: '상하이3년차',
+    date: '2025.12.23',
+    views: 2450,
+    likes: 36,
+    comments: 27,
+    content: `거류증 연장 후기 공유합니다.
+
+📋 서류: 여권, 사진, 재직증명, 임대계약서, 주숙등기
+⏱ 기간: 접수 후 7영업일
+
+출입경관리국 예약은 미리 해 두세요!`
+  },
   { 
     id: 1052, 
     badge: '필독', 
     badgeType: 'important',
     title: '🚨 2025년 중국 생활 필수 앱 총정리 (최신판)', 
+    category: '생활',
     author: '중국생활관리자', 
     authorBadge: 'S',
     date: '2025.12.24', 
@@ -79,6 +227,7 @@ export const CHINA_LIFE_POSTS: Post[] = [
     badge: '필독', 
     badgeType: 'important',
     title: '📅 2025년 중국 공휴일 & 연휴 일정 정리', 
+    category: '생활',
     author: '중국생활관리자', 
     authorBadge: 'S',
     date: '2025.12.23', 
@@ -102,6 +251,7 @@ export const CHINA_LIFE_POSTS: Post[] = [
     badge: '공지', 
     badgeType: 'notice',
     title: '중국 택배 수령 방법 총정리 (스마트함, 집앞배달)', 
+    category: '생활',
     author: '매니저', 
     authorBadge: 'M',
     date: '2025.12.20', 
@@ -128,6 +278,7 @@ export const CHINA_LIFE_POSTS: Post[] = [
     badge: '공지', 
     badgeType: 'notice',
     title: '중국 병원 이용 방법 & 한국어 가능 병원 리스트 ✍️', 
+    category: '생활',
     author: '매니저', 
     authorBadge: 'M',
     date: '2025.12.18', 
@@ -153,6 +304,7 @@ export const CHINA_LIFE_POSTS: Post[] = [
   { 
     id: 1048, 
     title: '베이징 맛집 추천 좀 해주세요! (한식, 중식 둘 다)', 
+    category: '자유',
     author: '베이징러', 
     date: '14:20', 
     views: 452, 
@@ -163,6 +315,7 @@ export const CHINA_LIFE_POSTS: Post[] = [
   { 
     id: 1047, 
     title: '중국 전화번호 개통 어디서 하는 게 좋을까요?', 
+    category: '생활',
     author: '초보차이나', 
     date: '13:10', 
     views: 688, 
@@ -173,6 +326,7 @@ export const CHINA_LIFE_POSTS: Post[] = [
   { 
     id: 1046, 
     title: '중국 아파트 월세 계약 시 주의사항 (경험담)', 
+    category: '부동산',
     author: '집구하기힘들어', 
     date: '12:05', 
     views: 1210, 
@@ -191,6 +345,7 @@ export const CHINA_LIFE_POSTS: Post[] = [
   { 
     id: 1045, 
     title: '타오바오 구매대행 vs 직구, 어떤 게 나을까요?', 
+    category: '중고장터',
     author: '쇼핑러버', 
     date: '2025.12.23', 
     views: 840, 
@@ -201,6 +356,7 @@ export const CHINA_LIFE_POSTS: Post[] = [
   { 
     id: 1044, 
     title: '중국에서 한국 음식 만들기 재료 구하는 곳', 
+    category: '생활',
     author: '요리왕', 
     date: '2025.12.22', 
     views: 1560, 
@@ -223,6 +379,7 @@ export const CHINA_LIFE_POSTS: Post[] = [
   { 
     id: 1043, 
     title: '중국 VPN 추천 부탁드립니다 (유료/무료)', 
+    category: '생활',
     author: '넷플릭스보고싶어', 
     date: '2025.12.21', 
     views: 2190, 
@@ -233,6 +390,7 @@ export const CHINA_LIFE_POSTS: Post[] = [
   { 
     id: 1042, 
     title: '중국 생활 1년차, 이것만은 꼭 알아두세요!', 
+    category: '자유',
     author: '중국1년차', 
     date: '2025.12.20', 
     views: 3450, 

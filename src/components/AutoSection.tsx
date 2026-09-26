@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MemberStories } from './MemberStories';
 import { ExternalLink, ChevronDown } from 'lucide-react@0.487.0';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -234,6 +235,7 @@ export function AutoSection({ category, onMoreClick, onDriverLicenseClick }: Aut
           {activeSubcategory} 카테고리에서 더보기 &gt;
         </button>
       </div>
+      <MemberStories category="자동차" />
     </Card>
   );
 }

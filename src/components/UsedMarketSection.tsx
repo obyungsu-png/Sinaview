@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { MemberStories } from './MemberStories';
 import { Package, MapPin, User, Phone, Clock, MessageCircle, ArrowLeft, Eye, Heart, Share2 } from 'lucide-react@0.487.0';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -1101,6 +1102,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
             )}
           </div>
         )}
+        <MemberStories category="중고장터" />
       </Card>
     </div>
   );
