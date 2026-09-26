@@ -4,7 +4,6 @@ import { CITY_ROOMS } from '../config/communityLinks';
 import { createPost } from '../utils/community';
 
 interface WritePostFormProps {
-  author: { author: string; authorKey: string };
   defaultCategory?: string;
   defaultCity?: string;
   onDone: (post: Post) => void;
@@ -17,7 +16,7 @@ const field: React.CSSProperties = {
 const label: React.CSSProperties = { display: 'block', fontSize: '13px', fontWeight: 600, color: '#333', marginBottom: '6px' };
 
 /** 게시판 글쓰기 - 분류(필수)·지역(선택)·제목·내용 */
-export function WritePostForm({ author, defaultCategory, defaultCity, onDone, onCancel }: WritePostFormProps) {
+export function WritePostForm({ defaultCategory, defaultCity, onDone, onCancel }: WritePostFormProps) {
   const [category, setCategory] = useState<BoardCategory | ''>(
     (BOARD_CATEGORIES as readonly string[]).includes(defaultCategory || '') ? defaultCategory as BoardCategory : ''
   );
@@ -34,7 +33,7 @@ export function WritePostForm({ author, defaultCategory, defaultCity, onDone, on
     setSaving(true);
     setError('');
     try {
-      const post = await createPost({ title: title.trim(), content: content.trim(), category, city: city || undefined, ...author });
+      const post = await createPost({ title: title.trim(), content: content.trim(), category, city: city || undefined });
       onDone(post);
     } catch (e: any) {
       setError(e.message || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');

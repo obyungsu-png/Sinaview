@@ -19,6 +19,7 @@ const WeatherWidget         = lazy(() => import('./WeatherWidget').then(m=>({def
 const HospitalWidget        = lazy(() => import('./HospitalWidget').then(m=>({default:m.HospitalWidget})));
 const BlogSection           = lazy(() => import('./BlogSection').then(m=>({default:m.BlogSection})));
 import { PopularPosts } from './PopularPosts';
+import { signIn } from '../utils/auth';
 const RegionalNewsWidget    = lazy(() => import('./RegionalNewsWidget').then(m=>({default:m.RegionalNewsWidget})));
 
 const Spinner = () => (
@@ -137,13 +138,9 @@ export function MobileHome({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const handleLogin = e => {
     e.preventDefault(); setIsSubmitting(true);
-    setTimeout(() => {
-      const users = JSON.parse(localStorage.getItem('registeredUsers')||'[]');
-      const user = users.find(u => u.username===username && u.password===password);
-      setIsSubmitting(false);
-      if (user) { localStorage.setItem('currentUser', JSON.stringify(user)); window.location.reload(); }
-      else alert('아이디 또는 비밀번호가 올바르지 않습니다.');
-    }, 700);
+    signIn(username, password)
+      .then(() => window.location.reload())
+      .catch(err => { setIsSubmitting(false); alert(err.message || '아이디 또는 비밀번호가 올바르지 않습니다.'); });
   };
 
   const [showAdModal, setShowAdModal] = useState(false);

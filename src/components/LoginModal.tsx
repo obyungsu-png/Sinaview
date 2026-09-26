@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Smartphone, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
+import { signIn, signUp } from '../utils/auth';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -73,171 +74,44 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
     }
   }, [isOpen, initialTab]);
 
-  // 인증 코드 전송
-  const handleSendCode = () => {
-    if (!formData.phone) {
-      toast.error('전화번호를 입력해주세요.');
-      return;
-    }
-    
-    let count = 60;
-    setCountdown(count);
-    
-    const timer = setInterval(() => {
-      count--;
-      setCountdown(count);
-      if (count === 0) {
-        clearInterval(timer);
-      }
-    }, 1000);
-    
-    toast.success(`인증 코드가 ${countryCode}${formData.phone}로 전송되었습니다!`);
-  };
-
-  // 비밀번호 로그인
-  const handlePasswordLogin = (e: React.FormEvent) => {
+  // 비밀번호 로그인 (Supabase Auth)
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (formData.captcha.toLowerCase() !== captchaCode.toLowerCase()) {
-      toast.error('인증 코드가 올바르지 않습니다.');
-      generateCaptcha();
-      return;
-    }
-    
     setIsSubmitting(true);
-    
-    setTimeout(() => {
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const user = registeredUsers.find((u: any) => 
-        u.username === formData.username && u.password === formData.password
-      );
-      
-      setIsSubmitting(false);
-      
-      if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        toast.success('로그인 성공!');
-        if (onLoginSuccess) {
-          onLoginSuccess();
-        }
-        onClose();
-      } else {
-        // 귀여운 에러 메시지
-        const registeredUser = registeredUsers.find((u: any) => u.username === formData.username);
-        if (!registeredUser) {
-          toast.error('🐰 이런! 등록되지 않은 회원이에요. 먼저 회원가입을 해주세요~ 💕', {
-            duration: 4000
-          });
-        } else {
-          toast.error('🔐 비밀번호가 틀렸어요! 다시 확인해주세요~', {
-            duration: 3000
-          });
-        }
-        generateCaptcha();
-      }
-    }, 1000);
-  };
-
-  // 휴대폰 로그인
-  const handlePhoneLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    setIsSubmitting(true);
-    
-    setTimeout(() => {
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const fullPhone = countryCode + formData.phone;
-      const user = registeredUsers.find((u: any) => u.phone === fullPhone);
-      
-      setIsSubmitting(false);
-      
-      if (!user) {
-        // 등록되지 않은 전화번호
-        toast.error('🐰 이런! 등록되지 않은 전화번호예요. 먼저 회원가입을 해주세요~ 💕', {
-          duration: 4000
-        });
-        return;
-      }
-      
-      if (user && formData.verificationCode === '123456') {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        toast.success('로그인 성공!');
-        if (onLoginSuccess) {
-          onLoginSuccess();
-        }
-        onClose();
-      } else {
-        toast.error('🔑 인증 코드가 올바르지 않아요! 다시 확인해주세요~', {
-          duration: 3000
-        });
-      }
-    }, 1000);
-  };
-
-  // 웨이신 로그인
-  const handleWeChatLogin = () => {
-    setIsSubmitting(true);
-    
-    // 웨이신 로그인 시뮬레이션
-    setTimeout(() => {
-      const wechatUser = {
-        username: 'wechat_user_' + Date.now(),
-        phone: '+86' + Math.floor(Math.random() * 1000000000),
-        region: '대련',
-        loginMethod: 'wechat',
-        createdAt: new Date().toISOString()
-      };
-      
-      localStorage.setItem('currentUser', JSON.stringify(wechatUser));
-      setIsSubmitting(false);
-      toast.success('웨이신 로그인 성공!');
-      
-      if (onLoginSuccess) {
-        onLoginSuccess();
-      }
+    try {
+      await signIn(formData.username, formData.password);
+      toast.success('로그인 성공!');
+      onLoginSuccess?.();
       onClose();
-    }, 2000);
+    } catch (err: any) {
+      toast.error(err.message || '🔐 아이디 또는 비밀번호가 올바르지 않아요.', { duration: 3000 });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // 회원가입
-  const handleSignup = (e: React.FormEvent) => {
+  // 회원가입 (Supabase Auth)
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (!/^[a-zA-Z0-9_]{4,20}$/.test(formData.username)) {
+      toast.error('아이디는 영문·숫자·밑줄(_) 4~20자로 만들어 주세요.');
+      return;
+    }
     if (formData.password.length < 6) {
       toast.error('비밀번호는 6자리 이상이어야 합니다.');
       return;
     }
-    
     setIsSubmitting(true);
-    
-    setTimeout(() => {
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const user = registeredUsers.find((u: any) => u.username === formData.username);
-      
+    try {
+      await signUp(formData.username, formData.password, formData.region);
+      toast.success('회원가입 성공! 환영합니다!');
+      onLoginSuccess?.();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || '회원가입에 실패했습니다.');
+    } finally {
       setIsSubmitting(false);
-      
-      if (user) {
-        toast.error('이미 존재하는 아이디입니다.');
-      } else {
-        const newUser = {
-          username: formData.username,
-          password: formData.password,
-          region: formData.region,
-          loginMethod: 'password',
-          createdAt: new Date().toISOString()
-        };
-        
-        registeredUsers.push(newUser);
-        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-        localStorage.setItem('currentUser', JSON.stringify(newUser));
-        toast.success('회원가입 성공! 환영합니다!');
-        
-        if (onLoginSuccess) {
-          onLoginSuccess();
-        }
-        onClose();
-      }
-    }, 1000);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -245,8 +119,6 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
       handlePasswordLogin(e);
     } else if (loginMethod === 'signup') {
       handleSignup(e);
-    } else if (loginMethod === 'phone') {
-      handlePhoneLogin(e);
     }
   };
 
@@ -287,7 +159,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
           <form onSubmit={handleSubmit} className="space-y-3">
             <input
               type="text"
-              placeholder="아이디"
+              placeholder="아이디 (영문·숫자 4~20자)"
               required
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
@@ -299,13 +171,6 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, initialTab = 'pass
               required
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-gray-400 transition-colors text-sm"
-            />
-            <input
-              type="text"
-              placeholder="인증코드"
-              value={formData.verificationCode || ''}
-              onChange={(e) => setFormData({ ...formData, verificationCode: e.target.value })}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-gray-400 transition-colors text-sm"
             />
             <div className="relative">

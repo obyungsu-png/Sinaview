@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { signOut } from '../utils/auth';
 import { User, LogOut, Settings } from 'lucide-react@0.487.0';
 
 interface UserProfileDropdownProps {
@@ -28,9 +29,9 @@ export function UserProfileDropdown({ currentUser, onLogout, onLoginClick }: Use
     };
   }, [isOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('currentUser');
+  const handleLogout = async () => {
     setIsOpen(false);
+    await signOut();
     if (onLogout) {
       onLogout();
     }

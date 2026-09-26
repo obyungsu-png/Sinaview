@@ -5,6 +5,7 @@ import * as kv from "./kv_store.tsx";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3";
 import OpenAI from "npm:openai";
+import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 
 const app = new Hono();
 
@@ -739,16 +740,109 @@ app.get("/make-server-c6687586/market/news", async (c) => {
   return c.json({ success: true, items: cached?.items || [], updatedAt: cached?.updatedAt || null, refreshing: stale });
 });
 
-// ===== 커뮤니티 게시판: 회원 글 저장 =====
+// ===== 회원 로그인 (Supabase Auth) =====
+// 아이디로 가입·로그인할 수 있도록 내부적으로 "아이디@도메인" 이메일을 사용한다 (메일은 보내지 않음)
+// 가입된 회원이 생긴 뒤에는 바꾸지 말 것 (바꾸면 기존 회원이 로그인할 수 없음)
+const LOGIN_EMAIL_DOMAIN = Deno.env.get("LOGIN_EMAIL_DOMAIN") || "users.example.com";
+const toLoginEmail = (username: string) => `${username.toLowerCase()}@${LOGIN_EMAIL_DOMAIN}`;
+const USERNAME_RE = /^[a-zA-Z0-9_]{4,20}$/;
+
+const supabaseAdmin = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
+
+// 요청 헤더의 로그인 토큰으로 회원 확인 (없거나 틀리면 null)
+async function getAuthUser(c: any) {
+  const token = c.req.header("Authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) return null;
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !data.user) return null;
+  const meta = data.user.user_metadata || {};
+  return { id: data.user.id, username: String(meta.username || data.user.email?.split("@")[0] || "회원") };
+}
+
+app.post("/make-server-c6687586/auth/signup", async (c) => {
+  try {
+    const { username, password, region } = await c.req.json();
+    if (!USERNAME_RE.test(String(username || ""))) {
+      return c.json({ success: false, error: "아이디는 영문·숫자·밑줄(_) 4~20자로 만들어 주세요." }, 400);
+    }
+    if (String(password || "").length < 6) {
+      return c.json({ success: false, error: "비밀번호는 6자리 이상이어야 합니다." }, 400);
+    }
+    const { error } = await supabaseAdmin.auth.admin.createUser({
+      email: toLoginEmail(String(username)),
+      password: String(password),
+      email_confirm: true,
+      user_metadata: { username: String(username), region: String(region || "") },
+    });
+    if (error) {
+      const taken = /already|registered|exists/i.test(error.message);
+      return c.json({ success: false, error: taken ? "이미 사용 중인 아이디입니다." : error.message }, taken ? 409 : 400);
+    }
+    return c.json({ success: true });
+  } catch (error) {
+    console.error(`Signup error: ${error.message}`);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// 아이디·비밀번호 로그인 → 브라우저에서 supabase.auth.setSession() 으로 사용할 세션 반환
+app.post("/make-server-c6687586/auth/login", async (c) => {
+  try {
+    const { username, password } = await c.req.json();
+    if (!username || !password) return c.json({ success: false, error: "아이디와 비밀번호를 입력해 주세요." }, 400);
+    const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await client.auth.signInWithPassword({ email: toLoginEmail(String(username)), password: String(password) });
+    if (error || !data.session) {
+      return c.json({ success: false, error: "아이디 또는 비밀번호가 올바르지 않습니다." }, 401);
+    }
+    return c.json({
+      success: true,
+      session: { access_token: data.session.access_token, refresh_token: data.session.refresh_token },
+    });
+  } catch (error) {
+    console.error(`Login error: ${error.message}`);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// ===== 커뮤니티 게시판: 글·댓글·좋아요·조회수 =====
 const COMMUNITY_POSTS_KEY = "community:posts";
+const COMMUNITY_STATS_KEY = "community:stats";          // { [postId]: { views, likes, comments } } - 예시 글 포함 모든 글
+const commentsKey = (postId: number) => `community:comments:${postId}`;
+const likesKey = (postId: number) => `community:likes:${postId}`; // 좋아요 누른 회원 id 목록
 const BOARD_CATEGORIES = ["비자/서류", "교육", "부동산", "자동차", "중고장터", "생활", "자유"];
 const MAX_TITLE = 100;
 const MAX_CONTENT = 5000;
+const MAX_COMMENT = 1000;
+
+function formatDate(d: Date, withTime = false) {
+  // 한국/중국 사용자 기준 표시 (UTC+8)
+  const t = new Date(d.getTime() + 8 * 3600 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const date = `${t.getUTCFullYear()}.${pad(t.getUTCMonth() + 1)}.${pad(t.getUTCDate())}`;
+  return withTime ? `${date} ${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}` : date;
+}
+
+async function updateStats(postId: number, change: (s: { views: number; likes: number; comments: number }) => void) {
+  const stats = (await kv.get(COMMUNITY_STATS_KEY)) || {};
+  const s = stats[postId] || { views: 0, likes: 0, comments: 0 };
+  change(s);
+  stats[postId] = s;
+  await kv.set(COMMUNITY_STATS_KEY, stats);
+  return s;
+}
+
+const requireLogin = (c: any) => c.json({ success: false, error: "로그인이 필요합니다." }, 401);
 
 app.get("/make-server-c6687586/community/posts", async (c) => {
   try {
-    const posts = (await kv.get(COMMUNITY_POSTS_KEY)) || [];
-    return c.json({ success: true, posts });
+    const [posts, stats] = await Promise.all([kv.get(COMMUNITY_POSTS_KEY), kv.get(COMMUNITY_STATS_KEY)]);
+    return c.json({ success: true, posts: posts || [], stats: stats || {} });
   } catch (error) {
     return c.json({ success: false, error: error.message }, 500);
   }
@@ -756,45 +850,35 @@ app.get("/make-server-c6687586/community/posts", async (c) => {
 
 app.post("/make-server-c6687586/community/posts", async (c) => {
   try {
+    const user = await getAuthUser(c);
+    if (!user) return requireLogin(c);
     const body = await c.req.json();
     const title = String(body.title || "").trim();
     const content = String(body.content || "").trim();
     const category = String(body.category || "");
     const city = body.city ? String(body.city).slice(0, 20) : undefined;
-    const author = String(body.author || "").trim().slice(0, 30);
-    const authorKey = String(body.authorKey || "").slice(0, 60);
 
-    if (!title || !content || !author || !authorKey) {
-      return c.json({ success: false, error: "제목, 내용, 작성자가 필요합니다." }, 400);
-    }
+    if (!title || !content) return c.json({ success: false, error: "제목과 내용을 입력해 주세요." }, 400);
     if (title.length > MAX_TITLE || content.length > MAX_CONTENT) {
       return c.json({ success: false, error: `제목은 ${MAX_TITLE}자, 내용은 ${MAX_CONTENT}자 이내로 써 주세요.` }, 400);
     }
-    if (!BOARD_CATEGORIES.includes(category)) {
-      return c.json({ success: false, error: "분류를 선택해 주세요." }, 400);
-    }
+    if (!BOARD_CATEGORIES.includes(category)) return c.json({ success: false, error: "분류를 선택해 주세요." }, 400);
 
     const posts = (await kv.get(COMMUNITY_POSTS_KEY)) || [];
     // 같은 사람이 30초 안에 연속으로 올리는 것 방지
-    const last = posts.find((p: any) => p.authorKey === authorKey);
+    const last = posts.find((p: any) => p.authorKey === user.id);
     if (last && Date.now() - last.id < 30_000) {
       return c.json({ success: false, error: "잠시 후 다시 시도해 주세요." }, 429);
     }
 
     const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
     const post = {
       id: now.getTime(),
-      title,
-      content,
-      category,
-      city,
-      author,
-      authorKey,
-      date: `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())}`,
-      views: 0,
-      likes: 0,
-      comments: 0,
+      title, content, category, city,
+      author: user.username,
+      authorKey: user.id,
+      date: formatDate(now),
+      views: 0, likes: 0, comments: 0,
     };
     await kv.set(COMMUNITY_POSTS_KEY, [post, ...posts]);
     return c.json({ success: true, post });
@@ -806,16 +890,100 @@ app.post("/make-server-c6687586/community/posts", async (c) => {
 
 app.delete("/make-server-c6687586/community/posts/:id", async (c) => {
   try {
+    const user = await getAuthUser(c);
+    if (!user) return requireLogin(c);
     const id = Number(c.req.param("id"));
-    const { authorKey } = await c.req.json().catch(() => ({}));
     const posts = (await kv.get(COMMUNITY_POSTS_KEY)) || [];
     const target = posts.find((p: any) => p.id === id);
     if (!target) return c.json({ success: false, error: "글을 찾을 수 없습니다." }, 404);
-    if (!authorKey || target.authorKey !== authorKey) {
-      return c.json({ success: false, error: "본인 글만 삭제할 수 있습니다." }, 403);
-    }
+    if (target.authorKey !== user.id) return c.json({ success: false, error: "본인 글만 삭제할 수 있습니다." }, 403);
     await kv.set(COMMUNITY_POSTS_KEY, posts.filter((p: any) => p.id !== id));
+    await Promise.all([kv.del(commentsKey(id)), kv.del(likesKey(id))]);
     return c.json({ success: true });
+  } catch (error) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// 조회수 +1 (중복 방지는 브라우저에서 세션당 1회)
+app.post("/make-server-c6687586/community/posts/:id/view", async (c) => {
+  try {
+    const id = Number(c.req.param("id"));
+    if (!id) return c.json({ success: false, error: "잘못된 글 번호" }, 400);
+    const s = await updateStats(id, (s) => { s.views += 1; });
+    return c.json({ success: true, stats: s });
+  } catch (error) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// 글 상세: 댓글 목록 + 내가 좋아요 눌렀는지
+app.get("/make-server-c6687586/community/posts/:id/detail", async (c) => {
+  try {
+    const id = Number(c.req.param("id"));
+    const [comments, likes, user] = await Promise.all([kv.get(commentsKey(id)), kv.get(likesKey(id)), getAuthUser(c)]);
+    return c.json({
+      success: true,
+      comments: comments || [],
+      liked: !!user && (likes || []).includes(user.id),
+    });
+  } catch (error) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// 좋아요 누르기/취소 (회원당 1번)
+app.post("/make-server-c6687586/community/posts/:id/like", async (c) => {
+  try {
+    const user = await getAuthUser(c);
+    if (!user) return requireLogin(c);
+    const id = Number(c.req.param("id"));
+    const likes: string[] = (await kv.get(likesKey(id))) || [];
+    const liked = !likes.includes(user.id);
+    const next = liked ? [...likes, user.id] : likes.filter((u) => u !== user.id);
+    await kv.set(likesKey(id), next);
+    const s = await updateStats(id, (s) => { s.likes = next.length; });
+    return c.json({ success: true, liked, stats: s });
+  } catch (error) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+app.post("/make-server-c6687586/community/posts/:id/comments", async (c) => {
+  try {
+    const user = await getAuthUser(c);
+    if (!user) return requireLogin(c);
+    const id = Number(c.req.param("id"));
+    const content = String((await c.req.json()).content || "").trim();
+    if (!content) return c.json({ success: false, error: "댓글 내용을 입력해 주세요." }, 400);
+    if (content.length > MAX_COMMENT) return c.json({ success: false, error: `댓글은 ${MAX_COMMENT}자 이내로 써 주세요.` }, 400);
+
+    const comments = (await kv.get(commentsKey(id))) || [];
+    const now = new Date();
+    const comment = { id: now.getTime(), author: user.username, authorKey: user.id, content, date: formatDate(now, true) };
+    const next = [...comments, comment];
+    await kv.set(commentsKey(id), next);
+    const s = await updateStats(id, (s) => { s.comments = next.length; });
+    return c.json({ success: true, comment, stats: s });
+  } catch (error) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+app.delete("/make-server-c6687586/community/posts/:id/comments/:commentId", async (c) => {
+  try {
+    const user = await getAuthUser(c);
+    if (!user) return requireLogin(c);
+    const id = Number(c.req.param("id"));
+    const commentId = Number(c.req.param("commentId"));
+    const comments = (await kv.get(commentsKey(id))) || [];
+    const target = comments.find((cm: any) => cm.id === commentId);
+    if (!target) return c.json({ success: false, error: "댓글을 찾을 수 없습니다." }, 404);
+    if (target.authorKey !== user.id) return c.json({ success: false, error: "본인 댓글만 삭제할 수 있습니다." }, 403);
+    const next = comments.filter((cm: any) => cm.id !== commentId);
+    await kv.set(commentsKey(id), next);
+    const s = await updateStats(id, (s) => { s.comments = next.length; });
+    return c.json({ success: true, stats: s });
   } catch (error) {
     return c.json({ success: false, error: error.message }, 500);
   }

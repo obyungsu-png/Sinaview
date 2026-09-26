@@ -5,6 +5,7 @@ import { CenterAdBanner } from './CenterAdBanner';
 import { AiAssistantWidget } from './AiAssistantWidget';
 import { PopularPosts } from './PopularPosts';
 import { CommunityNavContext } from './MemberStories';
+import { syncCurrentUser, signOut } from '../utils/auth';
 
 // Lazy load LoginModal (only shown on user click)
 const LoginModal = lazy(() => import('./LoginModal').then(m => ({ default: m.LoginModal })));
@@ -138,10 +139,8 @@ export function Portal() {
     const timer = setTimeout(() => {
       // 서버 health check 제거 (CORS 에러 방지)
     }, 5000);
-    const user = localStorage.getItem('currentUser');
-    if (user) {
-      setCurrentUser(JSON.parse(user));
-    }
+    // Supabase 로그인 세션 기준으로 회원 정보 확인 (예전 방식 로그인 표시는 지워짐)
+    syncCurrentUser().then(setCurrentUser);
     return () => clearTimeout(timer);
   }, []);
 
@@ -344,7 +343,7 @@ export function Portal() {
                   onLoginClick={() => setIsLoginModalOpen(true)} 
                   onSignupClick={() => setIsSignupModalOpen(true)}
                   currentUser={currentUser}
-                  onLogout={() => { localStorage.removeItem('currentUser'); window.location.reload(); }}
+                  onLogout={() => { signOut().then(() => window.location.reload()); }}
                   onNavigate={handleNavigate}
                 />
               )}
@@ -402,7 +401,7 @@ export function Portal() {
               onOpenCommunityPost={handleOpenCommunityPost}
               onLoginClick={() => setIsLoginModalOpen(true)}
               onSignupClick={() => setIsSignupModalOpen(true)}
-              onLogout={() => { localStorage.removeItem('currentUser'); window.location.reload(); }}
+              onLogout={() => { signOut().then(() => window.location.reload()); }}
               onNavigate={handleNavigate}
               onVisaArticleClick={handleVisaArticleClick}
               onEducationArticleClick={handleEducationArticleClick}

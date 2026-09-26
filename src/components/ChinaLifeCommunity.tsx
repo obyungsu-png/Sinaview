@@ -1,18 +1,11 @@
 import { useState, useEffect } from 'react';
 import { CITY_ROOMS, NAVER_CAFE_URL } from '../config/communityLinks';
 import { Post, BOARD_CATEGORIES, CATEGORY_PAGES } from '../data/chinaLifePosts';
-import { useCommunityPosts, getAuthor, deletePost } from '../utils/community';
+import { useCommunityPosts, deletePost, recordView, fetchPostDetail, toggleLike, addComment, deleteComment, PostComment } from '../utils/community';
 import { WritePostForm } from './WritePostForm';
 import { CityRoomCard, ShareButtons } from './CommunityConnect';
 
 
-interface Comment {
-  id: number;
-  author: string;
-  content: string;
-  date: string;
-  likes: number;
-}
 
 interface ChinaLifeCommunityProps {
   currentUser?: { id?: string; name?: string; username?: string } | null;
@@ -23,40 +16,36 @@ interface ChinaLifeCommunityProps {
   onNavigate?: (page: string) => void;
 }
 
-const SAMPLE_COMMENTS: Comment[] = [
-  {
-    id: 1,
-    author: '베이징러버',
-    content: '정말 유용한 정보네요! 감사합니다 ^^',
-    date: '2025.12.24 15:30',
-    likes: 5
-  },
-  {
-    id: 2,
-    author: '상하이맨',
-    content: '저도 이 정보 필요했는데 딱 좋네요!',
-    date: '2025.12.24 16:15',
-    likes: 3
-  }
-];
-
 export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId, initialCategory, onNavigate }: ChinaLifeCommunityProps) {
   // 회원 글 + 예시 글. 필독(공지) 글을 위로, 나머지는 최신순
   const posts = [...useCommunityPosts()].sort((a, b) => Number(!!b.badgeType) - Number(!!a.badgeType) || b.id - a.id);
   const [selectedPost, setSelectedPost] = useState<Post | null>(() => posts.find(p => p.id === initialPostId) ?? null);
   const [isWriting, setIsWriting] = useState(false);
-  const author = getAuthor(currentUser);
+  // 서버가 로그인 토큰으로 확인한 회원 id (본인 글·댓글 판별용)
+  const myId = currentUser?.id;
+  const isLoggedIn = !!myId;
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeCategory, setActiveCategory] = useState(initialCategory || '전체');
   // 지역은 분류와 따로 선택 (분류 + 지역 조합)
   const [activeCityName, setActiveCityName] = useState('전체');
-  const [comments, setComments] = useState<Comment[]>(SAMPLE_COMMENTS);
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [liked, setLiked] = useState(false);
   const [newComment, setNewComment] = useState('');
-  // 예시 댓글은 예시 글에만 표시 (회원 글은 빈 댓글로 시작)
+  // 글을 열면 조회수 +1, 댓글·좋아요 상태 불러오기
   useEffect(() => {
-    setComments(selectedPost?.authorKey ? [] : SAMPLE_COMMENTS);
+    if (!selectedPost) return;
+    setComments([]);
+    setLiked(false);
+    recordView(selectedPost.id);
+    let cancelled = false;
+    fetchPostDetail(selectedPost.id)
+      .then(detail => { if (!cancelled) { setComments(detail.comments); setLiked(detail.liked); } })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [selectedPost?.id]);
+  // 목록에서 최신 조회수·좋아요 수를 반영한 글
+  const currentPost = selectedPost && (posts.find(p => p.id === selectedPost.id) || selectedPost);
 
 
   const handlePostClick = (post: Post) => {
@@ -97,23 +86,34 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
     return matchesSearch && matchesCategory && matchesCity;
   });
 
-  const handleAddComment = () => {
-    if (newComment.trim() && currentUser) {
-      const comment: Comment = {
-        id: comments.length + 1,
-        author: currentUser.name,
-        content: newComment,
-        date: new Date().toLocaleString('ko-KR'),
-        likes: 0
-      };
-      setComments([...comments, comment]);
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !selectedPost) return;
+    try {
+      const comment = await addComment(selectedPost.id, newComment.trim());
+      setComments(prev => [...prev, comment]);
       setNewComment('');
+    } catch (e: any) {
+      alert(e.message);
     }
   };
 
-  const handleDeleteComment = (commentId: number) => {
-    if (isAdmin) {
-      setComments(comments.filter(c => c.id !== commentId));
+  const handleDeleteComment = async (commentId: number) => {
+    if (!selectedPost || !confirm('댓글을 삭제할까요?')) return;
+    try {
+      await deleteComment(selectedPost.id, commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  const handleLike = async () => {
+    if (!selectedPost) return;
+    if (!isLoggedIn) return alert('좋아요는 로그인 후 이용 가능합니다.');
+    try {
+      setLiked(await toggleLike(selectedPost.id));
+    } catch (e: any) {
+      alert(e.message);
     }
   };
 
@@ -921,9 +921,8 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
 
         {/* 우측 메인 콘텐츠 */}
         <main className="community-content">
-          {isWriting && author ? (
+          {isWriting && isLoggedIn ? (
             <WritePostForm
-              author={author}
               defaultCategory={activeCategory}
               defaultCity={activeCityName}
               onCancel={() => setIsWriting(false)}
@@ -1104,7 +1103,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                   <input type="checkbox" /> 전체선택
                   <button style={{marginLeft:'10px'}}>선택삭제</button>
                 </div>
-                {author ? (
+                {isLoggedIn ? (
                   <button className="btn-write-blue" onClick={() => { setIsWriting(true); window.scrollTo({ top: 0 }); }}><i className="fa-solid fa-pen"></i> 글쓰기</button>
                 ) : (
                   <button
@@ -1146,7 +1145,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                   <span>{selectedPost.date}</span>
                   <span>•</span>
                   <div className="post-stats">
-                    <span><i className="fa-regular fa-eye"></i> {selectedPost.views.toLocaleString()}</span>
+                    <span><i className="fa-regular fa-eye"></i> 조회 {(currentPost?.views ?? selectedPost.views).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -1156,22 +1155,25 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
               </div>
 
               <div className="post-actions">
-                <button className="action-btn">
-                  <i className="fa-regular fa-heart"></i>
-                  좋아요 {selectedPost.likes}
+                <button
+                  className="action-btn"
+                  onClick={handleLike}
+                  style={liked ? { color: '#e53e3e', borderColor: '#fbb6b6', background: '#fff5f5' } : undefined}
+                >
+                  {liked ? '❤️' : '🤍'} 좋아요 {currentPost?.likes ?? selectedPost.likes}
                 </button>
                 <button className="action-btn">
                   <i className="fa-regular fa-bookmark"></i>
                   북마크
                 </button>
-                {author && selectedPost.authorKey === author.authorKey && (
+                {isLoggedIn && selectedPost.authorKey === myId && (
                   <button
                     className="action-btn"
                     style={{ marginLeft: 'auto', color: '#e53e3e' }}
                     onClick={async () => {
                       if (!confirm('이 글을 삭제할까요?')) return;
                       try {
-                        await deletePost(selectedPost.id, author.authorKey);
+                        await deletePost(selectedPost.id);
                         setSelectedPost(null);
                       } catch (e: any) {
                         alert(e.message);
@@ -1203,7 +1205,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                           <div className="comment-date">{comment.date}</div>
                         </div>
                       </div>
-                      {isAdmin && (
+                      {isLoggedIn && comment.authorKey === myId && (
                         <button 
                           className="comment-delete-btn"
                           onClick={() => handleDeleteComment(comment.id)}
@@ -1213,16 +1215,10 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                       )}
                     </div>
                     <div className="comment-content">{comment.content}</div>
-                    <div className="comment-actions">
-                      <button className="comment-action-btn">
-                        <i className="fa-regular fa-heart"></i>
-                        좋아요 {comment.likes}
-                      </button>
-                    </div>
                   </div>
                 ))}
 
-                {currentUser ? (
+                {isLoggedIn ? (
                   <div className="comment-input-wrapper">
                     <div className="comment-input-header">댓글 작성</div>
                     <div className="comment-input-box">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { signIn } from '../utils/auth';
 import { Eye, EyeOff, FileText, GraduationCap, Building2, CalendarDays, Mail, Settings, TrendingUp, ShoppingBag, Car, BookOpen, MessageCircle, Home, Plane, Stethoscope, X, Check } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
@@ -45,18 +46,15 @@ export function LoginSection({ onLoginClick, onSignupClick, currentUser, onLogou
     e.preventDefault();
     if (!username || !password) { toast.error('아이디와 비밀번호를 입력해주세요.'); return; }
     setIsSubmitting(true);
-    setTimeout(() => {
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const user = registeredUsers.find((u: any) => u.username === username && u.password === password);
-      setIsSubmitting(false);
-      if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
+    signIn(username, password)
+      .then(() => {
         toast.success('로그인 성공!');
         window.location.reload();
-      } else {
-        toast.error('아이디 또는 비밀번호가 올바르지 않습니다.');
-      }
-    }, 800);
+      })
+      .catch((err) => {
+        setIsSubmitting(false);
+        toast.error(err.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
+      });
   };
 
   const handleTabToggle = (id: string) => {
