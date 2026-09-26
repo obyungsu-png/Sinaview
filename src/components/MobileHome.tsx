@@ -167,6 +167,7 @@ export function MobileHome({
         </button>
         <span className="font-semibold text-gray-900 text-[15px]">{CONTENT_LABELS[contentTab]}</span>
       </div>
+      <div className="mobile-compact">
       <Suspense fallback={<Spinner/>}>
         {contentTab==='news'       && <NewsSection category="중국소식" onMoreClick={()=>onNavigate?.('news')}/>}
         {contentTab==='visa'       && <VisaDocumentSection category="비자/서류" onMoreClick={()=>onNavigate?.('visadocument')} onArticleClick={onVisaArticleClick}/>}
@@ -181,6 +182,7 @@ export function MobileHome({
         {contentTab==='weather'    && <WeatherWidget/>}
         {contentTab==='hospital'   && <HospitalWidget userCity={currentUser?.city||'베이징'}/>}
       </Suspense>
+      </div>
       <BottomTabBar active={bottomTab} onSelect={t=>{ if(t==='home') goHome(); else { setBottomTab(t); setContentTab(''); } }}/>
     </div>
   );
@@ -358,11 +360,13 @@ export function MobileHome({
       {bottomTab==='news' && (
         <div>
           <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-sm">
-            <p className="font-bold text-gray-900 text-[16px]">📰 중국 소식</p>
+            <p className="font-semibold text-gray-900 text-[15px]">📰 중국 소식</p>
           </div>
-          <Suspense fallback={<Spinner/>}>
-            <NewsSection category="중국소식" onMoreClick={()=>onNavigate?.('news')}/>
-          </Suspense>
+          <div className="mobile-compact">
+            <Suspense fallback={<Spinner/>}>
+              <NewsSection category="중국소식" onMoreClick={()=>onNavigate?.('news')}/>
+            </Suspense>
+          </div>
         </div>
       )}
 

@@ -156,6 +156,16 @@
     }
   }
 
+  /* 모바일: PC 섹션 카드를 모바일 홈과 같은 글씨 크기로 축소 */
+  @media (max-width: 1023px) {
+    .mobile-compact .text-xl { font-size: 16px !important; }
+    .mobile-compact .text-lg { font-size: 15px !important; }
+    .mobile-compact .text-base { font-size: 14px !important; }
+    .mobile-compact .text-sm { font-size: 13px !important; }
+    .mobile-compact .text-xs { font-size: 11px !important; }
+    .mobile-compact [data-slot="card"] { gap: 12px; }
+  }
+
   /* 한글 글자가 세로로 깨지는 것을 방지 - 전역 보호 */
   body {
     writing-mode: horizontal-tb !important;
