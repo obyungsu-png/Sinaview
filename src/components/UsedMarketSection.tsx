@@ -393,7 +393,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
     }
   ];
 
-  // 우리장터 아이템 (한인이 직접 만든 제품)
+  // 우리장터 아이템 (우리 이웃이 직접 만든 제품)
   const handmadeItems: MarketItem[] = [
     {
       id: 101,
@@ -947,7 +947,7 @@ export function UsedMarketSection({ category, onMoreClick, userRegion, currentUs
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">{category}</h2>
             <span className="text-xs text-gray-400">
-              {activeMainTab === 'used' ? '중국 거주 한인 직거래' : '한인이 직접 만든 제품'}
+              {activeMainTab === 'used' ? '중국 거주 한인 직거래' : '우리 이웃이 직접 만든 제품'}
             </span>
           </div>
 
