@@ -154,7 +154,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
         /* 레이아웃 컨테이너 */
         .community-wrapper {
             display: flex;
-            max-width: 1080px;
+            max-width: 1280px; /* 메인 화면(max-w-7xl)과 같은 폭 */
             margin: 0 auto;
             background-color: #fff;
             min-height: calc(100vh - 60px);
