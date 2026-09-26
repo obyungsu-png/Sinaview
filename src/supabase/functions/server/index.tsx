@@ -574,15 +574,24 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 8000) 
 }
 
 // --- 1) 지수·주가 (텐센트 증권 공개 시세) ---
+// 중국·홍콩 증시만 (type: 지수/종목, market: 표시용 시장, currency: 표시 통화)
 const QUOTE_SYMBOLS = [
-  { code: "sh000001", name: "상하이종합" },
-  { code: "sz399001", name: "선전성분" },
-  { code: "hkHSI", name: "항셍지수" },
-  { code: "hk09988", name: "알리바바" },
-  { code: "hk00700", name: "텐센트" },
-  { code: "hk09888", name: "바이두" },
-  { code: "hk01810", name: "샤오미" },
-  { code: "hk01211", name: "BYD" },
+  { code: "sh000001", name: "상하이종합", type: "index", market: "상하이", currency: "" },
+  { code: "sz399001", name: "선전성분", type: "index", market: "선전", currency: "" },
+  { code: "sh000300", name: "CSI300", type: "index", market: "상하이·선전", currency: "" },
+  { code: "sz399006", name: "창업판", type: "index", market: "선전", currency: "" },
+  { code: "hkHSI", name: "항셍지수", type: "index", market: "홍콩", currency: "" },
+  { code: "hkHSTECH", name: "항셍테크", type: "index", market: "홍콩", currency: "" },
+  { code: "hk00700", name: "텐센트", type: "stock", market: "홍콩", currency: "HK$" },
+  { code: "hk09988", name: "알리바바", type: "stock", market: "홍콩", currency: "HK$" },
+  { code: "hk01211", name: "BYD", type: "stock", market: "홍콩", currency: "HK$" },
+  { code: "hk01810", name: "샤오미", type: "stock", market: "홍콩", currency: "HK$" },
+  { code: "hk03690", name: "메이퇀", type: "stock", market: "홍콩", currency: "HK$" },
+  { code: "hk09618", name: "징둥닷컴", type: "stock", market: "홍콩", currency: "HK$" },
+  { code: "hk09888", name: "바이두", type: "stock", market: "홍콩", currency: "HK$" },
+  { code: "sh600519", name: "구이저우마오타이", type: "stock", market: "상하이", currency: "¥" },
+  { code: "sz300750", name: "CATL(닝더스다이)", type: "stock", market: "선전", currency: "¥" },
+  { code: "sh601318", name: "핑안보험", type: "stock", market: "상하이", currency: "¥" },
 ];
 const QUOTES_KEY = "market:quotes";
 const QUOTES_TTL_MS = 5 * 60 * 1000;
@@ -590,7 +599,7 @@ const QUOTES_TTL_MS = 5 * 60 * 1000;
 // 응답 형식: v_sh000001="1~이름~코드~현재가~전일종가~시가~...";
 export function parseTencentQuotes(text: string) {
   const quotes = [];
-  for (const { code, name } of QUOTE_SYMBOLS) {
+  for (const { code, name, type, market, currency } of QUOTE_SYMBOLS) {
     const m = text.match(new RegExp(`v_${code}="([^"]*)"`));
     if (!m) continue;
     const f = m[1].split("~");
@@ -601,6 +610,9 @@ export function parseTencentQuotes(text: string) {
     quotes.push({
       code,
       name,
+      type,
+      market,
+      currency,
       price,
       change,
       percent: (change / prevClose) * 100,
@@ -720,7 +732,25 @@ async function refreshNews() {
       category: NEWS_CATEGORIES.includes(t.category) ? t.category : "A주",
     }));
   if (items.length === 0) throw new Error("요약된 뉴스 없음");
-  const data = { items, updatedAt: new Date().toISOString() };
+
+  // AI 시장 브리핑: 오늘 지수 + 뉴스 제목으로 3~5줄 요약 (실패해도 뉴스는 저장)
+  let briefing = "";
+  try {
+    const quotes = (await kv.get(QUOTES_KEY))?.quotes || [];
+    const indexes = quotes.filter((q: any) => q.type === "index")
+      .map((q: any) => `${q.name} ${q.price.toFixed(2)} (${q.percent >= 0 ? "+" : ""}${q.percent.toFixed(2)}%)`);
+    briefing = (await callGLM(
+      "당신은 재중 한인을 위한 중국 증시 브리핑 작성자입니다. 사실만 간결하게 한국어로 씁니다. " +
+      "특정 종목의 매수·매도를 권하거나 가격을 예측하지 마세요.",
+      `오늘 중국·홍콩 증시 흐름을 '- '로 시작하는 3~5줄로 요약해 주세요. 다른 말은 쓰지 마세요.\n\n` +
+      `지수: ${indexes.join(", ") || "정보 없음"}\n뉴스: ${items.map((i: any) => i.title).join(" / ")}`,
+      1500,
+    )).replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  } catch (e) {
+    console.error(`Briefing failed: ${e.message}`);
+  }
+
+  const data = { items, briefing, updatedAt: new Date().toISOString() };
   await kv.set(NEWS_KEY, data);
   return data;
 }
@@ -737,7 +767,13 @@ app.get("/make-server-c6687586/market/news", async (c) => {
     }
   }
   // AI 요약은 시간이 걸리므로 저장된 뉴스를 바로 돌려준다
-  return c.json({ success: true, items: cached?.items || [], updatedAt: cached?.updatedAt || null, refreshing: stale });
+  return c.json({
+    success: true,
+    items: cached?.items || [],
+    briefing: cached?.briefing || "",
+    updatedAt: cached?.updatedAt || null,
+    refreshing: stale,
+  });
 });
 
 // ===== 회원 로그인 (Supabase Auth) =====

@@ -3,6 +3,9 @@ import { serverFetch } from './supabase/client';
 export interface MarketQuote {
   code: string;
   name: string;
+  type?: 'index' | 'stock';
+  market?: string;
+  currency?: string;
   price: number;
   change: number;
   percent: number;
@@ -29,7 +32,7 @@ export async function fetchMarketQuotes(): Promise<{ quotes: MarketQuote[]; upda
 }
 
 /** 서버에 저장된 AI 한국어 요약 증권 뉴스 */
-export async function fetchMarketNews(): Promise<{ items: MarketNewsItem[]; updatedAt: string | null } | null> {
+export async function fetchMarketNews(): Promise<{ items: MarketNewsItem[]; briefing?: string; updatedAt: string | null } | null> {
   try {
     const res = await serverFetch('/market/news');
     return res.success && res.items?.length ? res : null;
