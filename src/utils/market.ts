@@ -33,11 +33,18 @@ export async function fetchMarketQuotes(): Promise<{ quotes: MarketQuote[]; upda
   }
 }
 
-/** 서버에 저장된 AI 한국어 요약 증권 뉴스 */
+// 한자·일본어 글자가 섞였는지 (한국어로만 보여 주기 위해)
+const hasForeignScript = (text = '') => /[\u3040-\u30ff\u4e00-\u9fff]/.test(text);
+
+/** 서버에 저장된 AI 한국어 증권 기사 - 본문이 있고 한국어로만 된 기사만 */
 export async function fetchMarketNews(): Promise<{ items: MarketNewsItem[]; briefing?: string; updatedAt: string | null } | null> {
   try {
     const res = await serverFetch('/market/news');
-    return res.success && res.items?.length ? res : null;
+    if (!res.success) return null;
+    const items = (res.items || []).filter((i: MarketNewsItem) =>
+      i.content && ![i.title, i.summary, i.content, i.source].some(hasForeignScript));
+    const briefing = hasForeignScript(res.briefing) ? '' : res.briefing;
+    return items.length || briefing ? { ...res, items, briefing } : null;
   } catch {
     return null;
   }

@@ -139,7 +139,7 @@ export function SecuritiesSection({ category, onMoreClick }: SecuritiesSectionPr
   const [liveNews, setLiveNews] = useState<MarketNewsItem[] | null>(null);
   const [openArticle, setOpenArticle] = useState<MarketNewsItem | null>(null);
   useEffect(() => {
-    fetchMarketNews().then(data => { if (data) setLiveNews(data.items); });
+    fetchMarketNews().then(data => { if (data?.items.length) setLiveNews(data.items); });
   }, []);
   const liveItems = liveNews && (activeSubcategory === '전체'
     ? liveNews

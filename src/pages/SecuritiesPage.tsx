@@ -52,7 +52,7 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
     loadQuotes();
     fetchMarketNews().then(data => {
       if (!data) return;
-      setNews(data.items);
+      if (data.items.length) setNews(data.items);
       setBriefing(data.briefing || '');
       setNewsUpdatedAt(data.updatedAt);
     });
