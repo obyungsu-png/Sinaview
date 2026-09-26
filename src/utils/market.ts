@@ -12,6 +12,8 @@ export interface MarketQuote {
 }
 
 export interface MarketNewsItem {
+  id?: string;
+  content?: string;   // AI가 쓴 한국어 기사 본문
   title: string;
   originalTitle: string;
   summary: string;

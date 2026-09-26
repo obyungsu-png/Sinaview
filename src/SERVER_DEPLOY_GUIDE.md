@@ -21,7 +21,9 @@ supabase functions deploy make-server-c6687586 --project-ref rpxmiyieukfuyhldqdt
 ## 1. 증권 시세·뉴스 자동 갱신
 - `GET /market/quotes`: 텐센트 증권 공개 시세 → 5분 캐시 (`market:quotes`)
   - 중국·홍콩만: 지수 6개(상하이종합·선전성분·CSI300·창업판·항셍·항셍테크) + 종목 10개(텐센트·알리바바·BYD·샤오미·메이퇀·징둥·바이두·마오타이·CATL·핑안)
-- `GET /market/news`: 시나 재경 뉴스 → GLM(`glm-z1-flash`) 한국어 제목·요약·분류 + **AI 시장 브리핑**(3~5줄, 매수·매도 권유 없음) → 1시간 캐시 (`market:news`)
+- `GET /market/news`: 시나 재경 뉴스 → 원문 본문을 읽어 GLM(`glm-z1-flash`)이 **한국어 기사**(제목·요약·본문 4~6문단·분류)를 작성 + **AI 시장 브리핑**(3~5줄, 매수·매도 권유 없음) → 1시간마다 (`market:news`)
+  - 1시간에 새 기사 최대 8건 검토, 최근 40건 보관. 중국·홍콩 증시와 무관하거나 한자·일본어가 남은 기사는 버림
+  - 사이트에서는 링크 대신 기사 창으로 열림
 - 방문자가 들어왔을 때 오래됐으면 서버가 새로 가져옵니다. 별도 cron 불필요.
 - 실패하면 마지막 저장값을, 저장값도 없으면 화면은 예시 데이터를 보여 줍니다.
 - 종목 변경: `QUOTE_SYMBOLS`, 뉴스 소스: `NEWS_SOURCES`, 주기: `QUOTES_TTL_MS`·`NEWS_TTL_MS`

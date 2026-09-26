@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, TrendingUp, TrendingDown, Globe, ExternalLink, Sparkles } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Globe, Sparkles } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { fetchMarketQuotes, fetchMarketNews, formatUpdatedAt, timeAgo, MarketQuote, MarketNewsItem } from '../utils/market';
+import { MarketArticleModal } from '../components/MarketArticleModal';
 
 interface SecuritiesPageProps {
   onBack: () => void;
@@ -41,6 +42,7 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
   const [news, setNews] = useState<MarketNewsItem[] | null>(null);
   const [briefing, setBriefing] = useState('');
   const [newsUpdatedAt, setNewsUpdatedAt] = useState<string | null>(null);
+  const [openArticle, setOpenArticle] = useState<MarketNewsItem | null>(null);
 
   useEffect(() => {
     const loadQuotes = async () => {
@@ -146,7 +148,7 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">중국 증시 뉴스</h3>
-                {newsUpdatedAt && <span className="text-xs text-gray-500">AI 요약 · {formatUpdatedAt(newsUpdatedAt)} 업데이트</span>}
+                {newsUpdatedAt && <span className="text-xs text-gray-500">AI 기사 · {formatUpdatedAt(newsUpdatedAt)} 업데이트</span>}
               </div>
               <div className="grid gap-3">
                 {newsItems.map((item, i) => {
@@ -154,18 +156,17 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
                     <>
                       <div className="flex items-center space-x-2 mb-1">
                         <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                        <span className="text-xs text-gray-500">{item.source} · {timeAgo(item.publishedAt)}</span>
+                        <span className="text-xs text-gray-500">{item.content ? 'AI 기사 · ' : ''}{timeAgo(item.publishedAt)}</span>
                       </div>
                       <h4 className="font-medium line-clamp-2">{item.title}</h4>
                       {item.summary && <p className="text-sm text-gray-600 mt-1">{item.summary}</p>}
                     </>
                   );
-                  return item.url ? (
-                    <a key={item.url} href={item.url} target="_blank" rel="noopener noreferrer" title={item.originalTitle}
-                      className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100">
-                      <div className="flex-1 min-w-0">{body}</div>
-                      <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" />
-                    </a>
+                  return item.content ? (
+                    <button key={item.url} onClick={() => setOpenArticle(item)}
+                      className="w-full text-left p-4 bg-gray-50 rounded-lg hover:bg-gray-100">
+                      {body}
+                    </button>
                   ) : (
                     <div key={i} className="p-4 bg-gray-50 rounded-lg">{body}</div>
                   );
@@ -194,6 +195,8 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
           </TabsContent>
         </Tabs>
       </div>
+
+      {openArticle && <MarketArticleModal article={openArticle} onClose={() => setOpenArticle(null)} />}
 
       {/* Footer */}
       <div className="bg-white border-t">

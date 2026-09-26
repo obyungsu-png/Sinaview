@@ -655,7 +655,9 @@ const NEWS_SOURCES = [
 const NEWS_KEY = "market:news";
 const NEWS_LOCK_KEY = "market:news:lock";
 const NEWS_TTL_MS = 60 * 60 * 1000;
-const NEWS_LOCK_MS = 5 * 60 * 1000;
+const NEWS_LOCK_MS = 10 * 60 * 1000;
+const NEWS_MAX_STORED = 40;     // 사이트에 쌓아 두는 AI 기사 수
+const NEWS_NEW_PER_RUN = 8;     // 한 번 갱신할 때 새로 검토하는 기사 수
 const NEWS_CATEGORIES = ["상하이증시", "홍콩증시", "A주", "중국펀드"];
 
 async function fetchChineseNews() {
@@ -666,7 +668,7 @@ async function fetchChineseNews() {
       const json = await res.json();
       const items = (json?.result?.data || [])
         .filter((d: any) => d.title && d.url)
-        .slice(0, 10)
+        .slice(0, 20)
         .map((d: any) => ({
           title: String(d.title),
           intro: String(d.intro || d.summary || "").slice(0, 300),
@@ -711,27 +713,87 @@ export function extractJsonArray(text: string) {
   return JSON.parse(cleaned.slice(start, end + 1));
 }
 
+// 원문 페이지에서 본문 문단만 뽑기 (실패하면 빈 문자열 → 목록의 요약문 사용)
+async function fetchArticleText(url: string) {
+  try {
+    const res = await fetchWithTimeout(url, { headers: { Referer: "https://finance.sina.com.cn/" } }, 8000);
+    if (!res.ok) return "";
+    const html = await res.text();
+    const paragraphs = [...html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+      .map((m) => m[1].replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&[a-z]+;/g, "").trim())
+      .filter((t) => t.length >= 20 && /[一-鿿]/.test(t));
+    return paragraphs.join("\n").slice(0, 3000);
+  } catch {
+    return "";
+  }
+}
+
+export function extractJsonObject(text: string) {
+  const cleaned = text.replace(/<think>[\s\S]*?<\/think>/g, "");
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("GLM 응답에 JSON 없음");
+  return JSON.parse(cleaned.slice(start, end + 1));
+}
+
+// 한국어 기사에 한자·일본어 글자가 남아 있으면 번역 실패로 본다
+export const hasForeignScript = (text: string) => /[぀-ヿ一-鿿]/.test(text);
+
+const newsId = (url: string) => url.replace(/^https?:\/\//, "").replace(/[^a-zA-Z0-9]/g, "").slice(-40);
+
+// 기사 1건 → AI 한국어 기사 (중국·홍콩 증시와 관련 없으면 null)
+async function writeKoreanArticle(raw: any) {
+  const body = (await fetchArticleText(raw.url)) || raw.intro;
+  const result = extractJsonObject(await callGLM(
+    "당신은 재중 한인을 위한 한국어 경제 기자입니다. 중국어 기사를 읽고 한국 독자를 위한 한국어 기사로 다시 씁니다. " +
+    "규칙: 1) 모든 문장은 한국어로만 쓰고 한자·일본어 글자를 쓰지 마세요(인명·지명·기업명은 한글 표기). " +
+    "2) 원문에 없는 사실·숫자를 지어내지 마세요. 3) 매수·매도 권유나 가격 예측을 하지 마세요. " +
+    "4) 반드시 JSON 객체 하나만 출력하세요.",
+    `아래 기사가 중국 본토·홍콩 증시, 중국 기업, 중국 경제·금융 정책과 관련 있으면 relevant를 true로, ` +
+    `미국 등 다른 나라 증시가 주제이면 false로 하세요.\n` +
+    `형식: {"relevant":true,"category":"${NEWS_CATEGORIES.join("|")} 중 하나","title":"한국어 제목(40자 이내)",` +
+    `"summary":"한국어 2문장 요약","content":"한국어 본문 4~6문단(문단 사이는 빈 줄), 600~1000자",` +
+    `"source":"언론사 이름 한글 표기(예: 중국증권보)"}\n\n` +
+    `언론사: ${raw.source}\n제목: ${raw.title}\n본문:\n${body}`,
+    4000,
+  ));
+  if (!result.relevant) return null;
+  const title = String(result.title || "").trim();
+  const content = String(result.content || "").trim();
+  if (!title || content.length < 100 || hasForeignScript(title) || hasForeignScript(content)) return null;
+  return {
+    id: newsId(raw.url),
+    title,
+    summary: String(result.summary || "").trim(),
+    content,
+    category: NEWS_CATEGORIES.includes(result.category) ? result.category : "A주",
+    originalTitle: raw.title,
+    source: result.source && !hasForeignScript(String(result.source)) ? String(result.source) : "중국 현지 언론",
+    url: raw.url,
+    publishedAt: raw.publishedAt,
+  };
+}
+
 async function refreshNews() {
-  const raw = await fetchChineseNews();
-  const system =
-    "당신은 재중 한인을 위한 중국 증시 뉴스 편집자입니다. 중국어 기사 제목과 요약을 한국어로 번역·요약합니다. " +
-    "반드시 JSON 배열만 출력하세요. 설명이나 코드블록 없이.";
-  const user =
-    `다음 기사들을 각각 한국어로 정리해 주세요.\n` +
-    `형식: [{"id":번호,"title":"자연스러운 한국어 제목","summary":"핵심만 2~3문장 한국어 요약","category":"${NEWS_CATEGORIES.join("|")} 중 하나"}]\n` +
-    `증시와 관련 없는 기사는 배열에서 빼세요.\n\n` +
-    JSON.stringify(raw.map((r, i) => ({ id: i, title: r.title, intro: r.intro })));
-  const translated = extractJsonArray(await callGLM(system, user));
-  const items = translated
-    .filter((t: any) => raw[t.id] && t.title)
-    .map((t: any) => ({
-      ...raw[t.id],
-      originalTitle: raw[t.id].title,
-      title: String(t.title),
-      summary: String(t.summary || ""),
-      category: NEWS_CATEGORIES.includes(t.category) ? t.category : "A주",
-    }));
-  if (items.length === 0) throw new Error("요약된 뉴스 없음");
+  const cached = (await kv.get(NEWS_KEY).catch(() => null)) || {};
+  // 예전 방식(링크만 있는) 뉴스는 버리고, AI 기사만 유지
+  const existing = (cached.items || []).filter((i: any) => i.content);
+  const known = new Set(existing.map((i: any) => i.url));
+  const raw = (await fetchChineseNews()).filter((r: any) => !known.has(r.url)).slice(0, NEWS_NEW_PER_RUN);
+
+  // 동시에 3건씩 작성
+  const written: any[] = [];
+  for (let k = 0; k < raw.length; k += 3) {
+    const batch = await Promise.allSettled(raw.slice(k, k + 3).map(writeKoreanArticle));
+    for (const r of batch) {
+      if (r.status === "fulfilled" && r.value) written.push(r.value);
+      else if (r.status === "rejected") console.error(`Article failed: ${r.reason?.message}`);
+    }
+  }
+  const items = [...written, ...existing]
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, NEWS_MAX_STORED);
+  if (items.length === 0) throw new Error("작성된 기사 없음");
 
   // AI 시장 브리핑: 오늘 지수 + 뉴스 제목으로 3~5줄 요약 (실패해도 뉴스는 저장)
   let briefing = "";
@@ -740,24 +802,26 @@ async function refreshNews() {
     const indexes = quotes.filter((q: any) => q.type === "index")
       .map((q: any) => `${q.name} ${q.price.toFixed(2)} (${q.percent >= 0 ? "+" : ""}${q.percent.toFixed(2)}%)`);
     briefing = (await callGLM(
-      "당신은 재중 한인을 위한 중국 증시 브리핑 작성자입니다. 사실만 간결하게 한국어로 씁니다. " +
+      "당신은 재중 한인을 위한 중국 증시 브리핑 작성자입니다. 사실만 간결하게 한국어로만 씁니다(한자·일본어 글자 금지). " +
       "특정 종목의 매수·매도를 권하거나 가격을 예측하지 마세요.",
       `오늘 중국·홍콩 증시 흐름을 '- '로 시작하는 3~5줄로 요약해 주세요. 다른 말은 쓰지 마세요.\n\n` +
-      `지수: ${indexes.join(", ") || "정보 없음"}\n뉴스: ${items.map((i: any) => i.title).join(" / ")}`,
+      `지수: ${indexes.join(", ") || "정보 없음"}\n뉴스: ${items.slice(0, 10).map((i: any) => i.title).join(" / ")}`,
       1500,
     )).replace(/<think>[\s\S]*?<\/think>/g, "").trim();
   } catch (e) {
     console.error(`Briefing failed: ${e.message}`);
   }
 
-  const data = { items, briefing, updatedAt: new Date().toISOString() };
+  const data = { items, briefing: briefing || cached.briefing || "", updatedAt: new Date().toISOString() };
   await kv.set(NEWS_KEY, data);
   return data;
 }
 
 app.get("/make-server-c6687586/market/news", async (c) => {
   const cached = await kv.get(NEWS_KEY).catch(() => null);
-  const stale = !cached || Date.now() - new Date(cached.updatedAt).getTime() > NEWS_TTL_MS;
+  // AI 기사(본문 포함)만 보여 준다. 예전 형식만 있으면 바로 새로 만든다.
+  const articles = (cached?.items || []).filter((i: any) => i.content);
+  const stale = !cached || articles.length === 0 || Date.now() - new Date(cached.updatedAt).getTime() > NEWS_TTL_MS;
   if (stale) {
     // 동시에 여러 번 갱신하지 않도록 잠금
     const lock = await kv.get(NEWS_LOCK_KEY).catch(() => null);
@@ -769,7 +833,7 @@ app.get("/make-server-c6687586/market/news", async (c) => {
   // AI 요약은 시간이 걸리므로 저장된 뉴스를 바로 돌려준다
   return c.json({
     success: true,
-    items: cached?.items || [],
+    items: articles,
     briefing: cached?.briefing || "",
     updatedAt: cached?.updatedAt || null,
     refreshing: stale,
