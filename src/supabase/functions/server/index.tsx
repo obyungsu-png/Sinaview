@@ -739,4 +739,86 @@ app.get("/make-server-c6687586/market/news", async (c) => {
   return c.json({ success: true, items: cached?.items || [], updatedAt: cached?.updatedAt || null, refreshing: stale });
 });
 
+// ===== 커뮤니티 게시판: 회원 글 저장 =====
+const COMMUNITY_POSTS_KEY = "community:posts";
+const BOARD_CATEGORIES = ["비자/서류", "교육", "부동산", "자동차", "중고장터", "생활", "자유"];
+const MAX_TITLE = 100;
+const MAX_CONTENT = 5000;
+
+app.get("/make-server-c6687586/community/posts", async (c) => {
+  try {
+    const posts = (await kv.get(COMMUNITY_POSTS_KEY)) || [];
+    return c.json({ success: true, posts });
+  } catch (error) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+app.post("/make-server-c6687586/community/posts", async (c) => {
+  try {
+    const body = await c.req.json();
+    const title = String(body.title || "").trim();
+    const content = String(body.content || "").trim();
+    const category = String(body.category || "");
+    const city = body.city ? String(body.city).slice(0, 20) : undefined;
+    const author = String(body.author || "").trim().slice(0, 30);
+    const authorKey = String(body.authorKey || "").slice(0, 60);
+
+    if (!title || !content || !author || !authorKey) {
+      return c.json({ success: false, error: "제목, 내용, 작성자가 필요합니다." }, 400);
+    }
+    if (title.length > MAX_TITLE || content.length > MAX_CONTENT) {
+      return c.json({ success: false, error: `제목은 ${MAX_TITLE}자, 내용은 ${MAX_CONTENT}자 이내로 써 주세요.` }, 400);
+    }
+    if (!BOARD_CATEGORIES.includes(category)) {
+      return c.json({ success: false, error: "분류를 선택해 주세요." }, 400);
+    }
+
+    const posts = (await kv.get(COMMUNITY_POSTS_KEY)) || [];
+    // 같은 사람이 30초 안에 연속으로 올리는 것 방지
+    const last = posts.find((p: any) => p.authorKey === authorKey);
+    if (last && Date.now() - last.id < 30_000) {
+      return c.json({ success: false, error: "잠시 후 다시 시도해 주세요." }, 429);
+    }
+
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const post = {
+      id: now.getTime(),
+      title,
+      content,
+      category,
+      city,
+      author,
+      authorKey,
+      date: `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())}`,
+      views: 0,
+      likes: 0,
+      comments: 0,
+    };
+    await kv.set(COMMUNITY_POSTS_KEY, [post, ...posts]);
+    return c.json({ success: true, post });
+  } catch (error) {
+    console.error(`Error creating post: ${error.message}`);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+app.delete("/make-server-c6687586/community/posts/:id", async (c) => {
+  try {
+    const id = Number(c.req.param("id"));
+    const { authorKey } = await c.req.json().catch(() => ({}));
+    const posts = (await kv.get(COMMUNITY_POSTS_KEY)) || [];
+    const target = posts.find((p: any) => p.id === id);
+    if (!target) return c.json({ success: false, error: "글을 찾을 수 없습니다." }, 404);
+    if (!authorKey || target.authorKey !== authorKey) {
+      return c.json({ success: false, error: "본인 글만 삭제할 수 있습니다." }, 403);
+    }
+    await kv.set(COMMUNITY_POSTS_KEY, posts.filter((p: any) => p.id !== id));
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
 Deno.serve(app.fetch);

@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { CITY_ROOMS, NAVER_CAFE_URL } from '../config/communityLinks';
-import { Post, CHINA_LIFE_POSTS, BOARD_CATEGORIES, CATEGORY_PAGES } from '../data/chinaLifePosts';
-
-// 필독(공지) 글을 위로, 나머지는 최신순
-const posts = [...CHINA_LIFE_POSTS].sort((a, b) => Number(!!b.badgeType) - Number(!!a.badgeType) || b.id - a.id);
+import { Post, BOARD_CATEGORIES, CATEGORY_PAGES } from '../data/chinaLifePosts';
+import { useCommunityPosts, getAuthor, deletePost } from '../utils/community';
+import { WritePostForm } from './WritePostForm';
 import { CityRoomCard, ShareButtons } from './CommunityConnect';
 
 
@@ -16,7 +15,7 @@ interface Comment {
 }
 
 interface ChinaLifeCommunityProps {
-  currentUser?: { id: string; name: string } | null;
+  currentUser?: { id?: string; name?: string; username?: string } | null;
   isAdmin?: boolean;
   onBack?: () => void;
   initialPostId?: number | null;
@@ -24,30 +23,40 @@ interface ChinaLifeCommunityProps {
   onNavigate?: (page: string) => void;
 }
 
+const SAMPLE_COMMENTS: Comment[] = [
+  {
+    id: 1,
+    author: '베이징러버',
+    content: '정말 유용한 정보네요! 감사합니다 ^^',
+    date: '2025.12.24 15:30',
+    likes: 5
+  },
+  {
+    id: 2,
+    author: '상하이맨',
+    content: '저도 이 정보 필요했는데 딱 좋네요!',
+    date: '2025.12.24 16:15',
+    likes: 3
+  }
+];
+
 export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId, initialCategory, onNavigate }: ChinaLifeCommunityProps) {
+  // 회원 글 + 예시 글. 필독(공지) 글을 위로, 나머지는 최신순
+  const posts = [...useCommunityPosts()].sort((a, b) => Number(!!b.badgeType) - Number(!!a.badgeType) || b.id - a.id);
   const [selectedPost, setSelectedPost] = useState<Post | null>(() => posts.find(p => p.id === initialPostId) ?? null);
+  const [isWriting, setIsWriting] = useState(false);
+  const author = getAuthor(currentUser);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeCategory, setActiveCategory] = useState(initialCategory || '전체');
   // 지역은 분류와 따로 선택 (분류 + 지역 조합)
   const [activeCityName, setActiveCityName] = useState('전체');
-  const [comments, setComments] = useState<Comment[]>([
-    {
-      id: 1,
-      author: '베이징러버',
-      content: '정말 유용한 정보네요! 감사합니다 ^^',
-      date: '2025.12.24 15:30',
-      likes: 5
-    },
-    {
-      id: 2,
-      author: '상하이맨',
-      content: '저도 이 정보 필요했는데 딱 좋네요!',
-      date: '2025.12.24 16:15',
-      likes: 3
-    }
-  ]);
+  const [comments, setComments] = useState<Comment[]>(SAMPLE_COMMENTS);
   const [newComment, setNewComment] = useState('');
+  // 예시 댓글은 예시 글에만 표시 (회원 글은 빈 댓글로 시작)
+  useEffect(() => {
+    setComments(selectedPost?.authorKey ? [] : SAMPLE_COMMENTS);
+  }, [selectedPost?.id]);
 
 
   const handlePostClick = (post: Post) => {
@@ -84,7 +93,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
       post.author.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = activeCategory === '전체' || 
       (categoryFilterMap[activeCategory] ? categoryFilterMap[activeCategory](post) : true);
-    const matchesCity = !activeCity || activeCity.keywords.some(k => post.title.includes(k));
+    const matchesCity = !activeCity || post.city === activeCity.name || activeCity.keywords.some(k => post.title.includes(k));
     return matchesSearch && matchesCategory && matchesCity;
   });
 
@@ -912,7 +921,15 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
 
         {/* 우측 메인 콘텐츠 */}
         <main className="community-content">
-          {!selectedPost ? (
+          {isWriting && author ? (
+            <WritePostForm
+              author={author}
+              defaultCategory={activeCategory}
+              defaultCity={activeCityName}
+              onCancel={() => setIsWriting(false)}
+              onDone={post => { setIsWriting(false); setSelectedPost(post); }}
+            />
+          ) : !selectedPost ? (
             <>
               <div className="board-header">
                 <h2>
@@ -1087,8 +1104,8 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                   <input type="checkbox" /> 전체선택
                   <button style={{marginLeft:'10px'}}>선택삭제</button>
                 </div>
-                {currentUser ? (
-                  <button className="btn-write-blue"><i className="fa-solid fa-pen"></i> 글쓰기</button>
+                {author ? (
+                  <button className="btn-write-blue" onClick={() => { setIsWriting(true); window.scrollTo({ top: 0 }); }}><i className="fa-solid fa-pen"></i> 글쓰기</button>
                 ) : (
                   <button
                     className="btn-write-blue"
@@ -1147,6 +1164,23 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                   <i className="fa-regular fa-bookmark"></i>
                   북마크
                 </button>
+                {author && selectedPost.authorKey === author.authorKey && (
+                  <button
+                    className="action-btn"
+                    style={{ marginLeft: 'auto', color: '#e53e3e' }}
+                    onClick={async () => {
+                      if (!confirm('이 글을 삭제할까요?')) return;
+                      try {
+                        await deletePost(selectedPost.id, author.authorKey);
+                        setSelectedPost(null);
+                      } catch (e: any) {
+                        alert(e.message);
+                      }
+                    }}
+                  >
+                    삭제
+                  </button>
+                )}
               </div>
 
               <ShareButtons title={selectedPost.title} />

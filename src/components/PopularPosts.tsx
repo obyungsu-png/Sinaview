@@ -1,5 +1,5 @@
 import { Flame, ChevronRight } from 'lucide-react';
-import { CHINA_LIFE_POSTS } from '../data/chinaLifePosts';
+import { useCommunityPosts } from '../utils/community';
 
 interface PopularPostsProps {
   onPostClick: (postId: number) => void;
@@ -9,7 +9,7 @@ interface PopularPostsProps {
 
 /** 메인 인기글 박스 - 게시판에서 추천이 많은 글 (공지 제외) */
 export function PopularPosts({ onPostClick, onMoreClick, limit = 5 }: PopularPostsProps) {
-  const popular = CHINA_LIFE_POSTS
+  const popular = useCommunityPosts()
     .filter(p => !p.badgeType)
     .sort((a, b) => b.likes - a.likes || b.views - a.views)
     .slice(0, limit);

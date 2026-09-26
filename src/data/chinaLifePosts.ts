@@ -19,7 +19,9 @@ export interface Post {
   badgeType?: 'notice' | 'important';
   title: string;
   category: BoardCategory;
+  city?: string;        // 회원 글: 글쓰기에서 고른 지역
   author: string;
+  authorKey?: string;   // 회원 글: 작성자 구분 (본인 글 삭제용)
   authorBadge?: string;
   date: string;
   views: number;

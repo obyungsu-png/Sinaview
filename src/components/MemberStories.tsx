@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import { MessageCircle, ChevronRight } from 'lucide-react';
-import { CHINA_LIFE_POSTS, BoardCategory } from '../data/chinaLifePosts';
+import { BoardCategory } from '../data/chinaLifePosts';
+import { useCommunityPosts } from '../utils/community';
 
 /** 섹션 → 게시판 이동 (Portal 에서 제공) */
 export const CommunityNavContext = createContext<{
@@ -11,7 +12,7 @@ export const CommunityNavContext = createContext<{
 /** 각 메뉴 섹션 아래 "회원 이야기" - 같은 분류의 최신 게시판 글 3개 */
 export function MemberStories({ category, limit = 3 }: { category: BoardCategory; limit?: number }) {
   const nav = useContext(CommunityNavContext);
-  const stories = CHINA_LIFE_POSTS
+  const stories = useCommunityPosts()
     .filter(p => p.category === category && !p.badgeType)
     .sort((a, b) => b.id - a.id)
     .slice(0, limit);
