@@ -659,7 +659,7 @@ const NEWS_LOCK_KEY = "market:news:lock";
 const NEWS_TTL_MS = 60 * 60 * 1000;
 const NEWS_LOCK_MS = 10 * 60 * 1000;
 const NEWS_MAX_STORED = 40;     // 사이트에 쌓아 두는 AI 기사 수
-const NEWS_NEW_PER_RUN = 8;     // 한 번 갱신할 때 새로 검토하는 기사 수
+const NEWS_NEW_PER_RUN = 4;     // 한 번 갱신할 때 새로 쓰는 기사 수 (시간 제한 때문에 적게)
 const NEWS_CATEGORIES = ["상하이증시", "홍콩증시", "A주", "중국펀드"];
 // 원문 제목에 이런 단어가 있어야 증권 기사 후보로 본다 (해외 시장·무관한 기사 제외)
 const CHINA_MARKET_RE = /A股|沪指|上证|深成|深证|创业板|科创|北交所|港股|恒指|恒生|中概|证监会|央行|人民币/;
@@ -804,29 +804,47 @@ async function writeKoreanArticle(raw: any, topic: ArticleTopic = MARKET_TOPIC) 
 }
 
 // 새 원문 목록 → AI 기사 작성 → 기존 기사와 합쳐 저장 (중복 원문은 건너뜀)
+// 서버 함수는 한 번에 쓸 수 있는 시간이 정해져 있어서(약 2.5~6분), 이 안에서만 새 기사를 시작하고 한 건씩 바로 저장한다
+const ARTICLE_TIME_BUDGET_MS = 110_000;
+
 async function writeAndStoreArticles(key: string, raws: any[], topic: ArticleTopic, maxNew: number, maxStored = 40) {
+  const started = Date.now();
   const cached = (await kv.get(key).catch(() => null)) || {};
-  const existing = (cached.items || []).filter((i: any) => i.content);
-  const known = new Set([...existing.map((i: any) => i.url), ...(cached.skipped || [])]);
+  let items: any[] = (cached.items || []).filter((i: any) => i.content);
+  let skipped: string[] = cached.skipped || [];
+  const known = new Set([...items.map((i: any) => i.url), ...skipped]);
   const candidates = raws.filter((r) => !known.has(r.url)).slice(0, maxNew * 3);
-  const written: any[] = [];
-  const skipped: string[] = [];
-  for (let k = 0; k < candidates.length && written.length < maxNew; k += 3) {
-    const batch = candidates.slice(k, k + 3);
+  let added = 0;
+  const failures: string[] = [];
+
+  const save = () => kv.set(key, {
+    ...cached,
+    items: items
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      .slice(0, maxStored),
+    skipped: skipped.slice(0, 300),
+    updatedAt: new Date().toISOString(),
+  });
+
+  // 동시에 2건씩, 시간 안에서만
+  for (let k = 0; k < candidates.length && added < maxNew && Date.now() - started < ARTICLE_TIME_BUDGET_MS; k += 2) {
+    const batch = candidates.slice(k, k + 2);
     const results = await Promise.allSettled(batch.map((r) => writeKoreanArticle(r, topic)));
     results.forEach((r, n) => {
-      if (r.status === "fulfilled" && r.value) written.push(r.value);
-      else {
-        skipped.push(batch[n].url); // 관련 없거나 실패한 원문은 다시 검토하지 않음
-        if (r.status === "rejected") console.error(`Article failed: ${r.reason?.message}`);
+      if (r.status === "fulfilled" && r.value) {
+        items = [r.value, ...items];
+        added++;
+      } else if (r.status === "fulfilled") {
+        skipped = [batch[n].url, ...skipped]; // 주제와 관련 없는 원문은 다시 검토하지 않음
+      } else {
+        failures.push(r.reason?.message || "unknown"); // 일시적 오류는 다음 실행 때 다시 시도
+        console.error(`Article failed: ${r.reason?.message}`);
       }
     });
+    await save();
   }
-  const items = [...written.slice(0, maxNew), ...existing]
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    .slice(0, maxStored);
-  await kv.set(key, { items, skipped: [...skipped, ...(cached.skipped || [])].slice(0, 300), updatedAt: new Date().toISOString() });
-  return { items, added: written.length };
+  if (!candidates.length) await save();
+  return { items, added, candidates: candidates.length, failures: failures.slice(0, 3), seconds: Math.round((Date.now() - started) / 1000) };
 }
 
 // withBriefing: 매일 오전 9:30 예약 실행 때만 '개장 브리핑'을 새로 쓴다 (평소 1시간 갱신은 기사만)
@@ -835,26 +853,17 @@ async function refreshNews({ withBriefing: forceBriefing = false } = {}) {
   const cached = (await kv.get(NEWS_KEY).catch(() => null)) || {};
   // 예전 방식(링크만 있는) 뉴스와 증시와 무관한 원문으로 쓴 기사는 버린다
   const before = (cached.items || []).length;
-  const existing = (cached.items || []).filter((i: any) => i.content && MARKET_TITLE_RE.test(i.originalTitle || ""));
-  if (existing.length < before) withBriefing = true; // 걸러낸 기사가 있으면 브리핑도 새로 씀
-  const known = new Set(existing.map((i: any) => i.url));
-  const raw = (await fetchChineseNews())
-    .filter((r: any) => !known.has(r.url) && MARKET_TITLE_RE.test(r.title))
-    .slice(0, NEWS_NEW_PER_RUN);
-
-  // 동시에 3건씩 작성
-  const written: any[] = [];
-  for (let k = 0; k < raw.length; k += 3) {
-    const batch = await Promise.allSettled(raw.slice(k, k + 3).map((r: any) => writeKoreanArticle(r)));
-    for (const r of batch) {
-      if (r.status === "fulfilled" && r.value) written.push(r.value);
-      else if (r.status === "rejected") console.error(`Article failed: ${r.reason?.message}`);
-    }
+  const kept = (cached.items || []).filter((i: any) => i.content && MARKET_TITLE_RE.test(i.originalTitle || ""));
+  if (kept.length < before) {
+    withBriefing = true; // 걸러낸 기사가 있으면 브리핑도 새로 씀
+    await kv.set(NEWS_KEY, { ...cached, items: kept });
   }
-  const items = [...written, ...existing]
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    .slice(0, NEWS_MAX_STORED);
+  const raws = (await fetchChineseNews()).filter((r: any) => MARKET_TITLE_RE.test(r.title));
+  const result = await writeAndStoreArticles(NEWS_KEY, raws, MARKET_TOPIC, NEWS_NEW_PER_RUN, NEWS_MAX_STORED);
+  await kv.set("automation:last:market-news", { ok: true, ...result, items: undefined, at: new Date().toISOString() });
+  const items = result.items;
   if (items.length === 0) throw new Error("작성된 기사 없음");
+  const latest = (await kv.get(NEWS_KEY).catch(() => null)) || {};
 
   // AI 개장 브리핑: 지수 + 뉴스 제목으로 3~5줄 요약 (실패해도 뉴스는 저장)
   let briefing = "";
@@ -876,7 +885,7 @@ async function refreshNews({ withBriefing: forceBriefing = false } = {}) {
 
   const now = new Date().toISOString();
   const data = {
-    items,
+    ...latest,
     briefing: briefing || cached.briefing || "",
     briefingAt: briefing ? now : cached.briefingAt || null,
     updatedAt: now,
@@ -895,7 +904,11 @@ app.get("/make-server-c6687586/market/news", async (c) => {
     const lock = await kv.get(NEWS_LOCK_KEY).catch(() => null);
     if (!lock || Date.now() - lock.at > NEWS_LOCK_MS) {
       await kv.set(NEWS_LOCK_KEY, { at: Date.now() });
-      runInBackground(refreshNews().finally(() => kv.del(NEWS_LOCK_KEY)));
+      runInBackground(
+        refreshNews()
+          .catch((e) => kv.set("automation:last:market-news", { ok: false, error: e.message, at: new Date().toISOString() }))
+          .finally(() => kv.del(NEWS_LOCK_KEY)),
+      );
     }
   }
   // AI 요약은 시간이 걸리므로 저장된 뉴스를 바로 돌려준다
@@ -1286,7 +1299,7 @@ app.post("/make-server-c6687586/automation/run/:job", async (c) => {
 
 // 자동화 상태 확인 (마지막 실행 결과)
 app.get("/make-server-c6687586/automation/status", async (c) => {
-  const jobs = Object.keys(AUTOMATION_JOBS);
+  const jobs = [...Object.keys(AUTOMATION_JOBS), "market-news"];
   const results = await Promise.all(jobs.map((j) => kv.get(`automation:last:${j}`).catch(() => null)));
   return c.json({ success: true, status: Object.fromEntries(jobs.map((j, i) => [j, results[i]])) });
 });
