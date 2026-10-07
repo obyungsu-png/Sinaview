@@ -700,24 +700,54 @@ async function fetchChineseNews(sources: string[] = NEWS_SOURCES) {
   return all.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }
 
-// 기존 AI 채팅과 같은 GLM 모델 사용
-async function callGLM(system: string, user: string, maxTokens = 4000) {
+// GLM 호출 - 자동 기사·브리핑은 빠르고 형식을 잘 지키는 glm-4-flash 사용
+// (AI 채팅은 별도로 glm-z1-flash 사용). 모델이 없다는 오류면 glm-z1-flash 로 한 번 더 시도.
+const GLM_CONTENT_MODEL = Deno.env.get("GLM_CONTENT_MODEL") || "glm-4-flash";
+const GLM_FALLBACK_MODEL = "glm-z1-flash";
+
+// GLM 이 민감한 내용이라며 거부한 경우 (해당 원문은 건너뜀)
+export class GLMBlockedError extends Error {}
+const isBlockedMessage = (msg = "") => /不安全|敏感|1301/.test(msg);
+
+async function callGLM(system: string, user: string, maxTokens = 4000, opts: { json?: boolean } = {}) {
   const apiKey = Deno.env.get("GLM_API_KEY");
   if (!apiKey) throw new Error("GLM_API_KEY 미설정");
-  const res = await fetchWithTimeout("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: "glm-z1-flash",
-      messages: [{ role: "system", content: system }, { role: "user", content: user }],
-      max_tokens: maxTokens,
-      temperature: 0.3,
-    }),
-  }, 90000);
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!res.ok || !content) throw new Error(data.error?.message || `GLM API error: ${res.status}`);
-  return content as string;
+  const request = async (model: string) => {
+    const res = await fetchWithTimeout("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: system }, { role: "user", content: user }],
+        max_tokens: maxTokens,
+        temperature: 0.3,
+        ...(opts.json && model !== GLM_FALLBACK_MODEL ? { response_format: { type: "json_object" } } : {}),
+      }),
+    }, 90000);
+    const data = await res.json().catch(() => ({}));
+    const content = data.choices?.[0]?.message?.content;
+    const message = data.error?.message || `GLM API error: ${res.status}`;
+    if (!res.ok || !content) {
+      if (isBlockedMessage(message) || data.choices?.[0]?.finish_reason === "sensitive") throw new GLMBlockedError(message);
+      const err = new Error(message) as Error & { code?: string };
+      err.code = String(data.error?.code || "");
+      throw err;
+    }
+    return content as string;
+  };
+  try {
+    return await request(GLM_CONTENT_MODEL);
+  } catch (e: any) {
+    // 모델 이름 오류(1211 등)일 때만 예비 모델로
+    if (!(e instanceof GLMBlockedError) && (e.code === "1211" || /模型|model/i.test(e.message))) {
+      return await request(GLM_FALLBACK_MODEL);
+    }
+    throw e;
+  }
+}
+
+async function callGLMJson(system: string, user: string, maxTokens = 4000) {
+  return extractJsonObject(await callGLM(system, user, maxTokens, { json: true }));
 }
 
 // GLM 응답에서 JSON 배열만 꺼내기 (<think> 등 제거)
@@ -744,12 +774,23 @@ async function fetchArticleText(url: string) {
   }
 }
 
+// 응답에서 첫 번째 JSON 객체만 정확히 꺼내기 (<think>·코드블록·뒤에 붙은 말 무시)
 export function extractJsonObject(text: string) {
   const cleaned = text.replace(/<think>[\s\S]*?<\/think>/g, "");
   const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start < 0 || end <= start) throw new Error("GLM 응답에 JSON 없음");
-  return JSON.parse(cleaned.slice(start, end + 1));
+  if (start < 0) throw new Error("GLM 응답에 JSON 없음");
+  let depth = 0, inString = false, escaped = false;
+  for (let i = start; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}" && --depth === 0) return JSON.parse(cleaned.slice(start, i + 1));
+  }
+  throw new Error("GLM 응답의 JSON 이 끝나지 않음");
 }
 
 // 한국어 기사에 한자·일본어 글자가 남아 있으면 번역 실패로 본다
@@ -774,7 +815,7 @@ const MARKET_TOPIC: ArticleTopic = {
 // 기사 1건 → AI 한국어 기사 (주제와 관련 없으면 null)
 async function writeKoreanArticle(raw: any, topic: ArticleTopic = MARKET_TOPIC) {
   const body = raw.body || (await fetchArticleText(raw.url)) || raw.intro;
-  const result = extractJsonObject(await callGLM(
+  const result = await callGLMJson(
     `당신은 재중 한인을 위한 ${topic.writer}입니다. 기사를 읽고 한국 독자를 위한 한국어 기사로 다시 씁니다. ` +
     "규칙: 1) 모든 문장은 한국어로만 쓰고 한자·일본어 글자를 쓰지 마세요(인명·지명·기업명은 한글 표기). " +
     `2) 원문에 없는 사실·숫자를 지어내지 마세요. ${topic.extraRule ? `3) ${topic.extraRule} ` : ""}` +
@@ -785,7 +826,10 @@ async function writeKoreanArticle(raw: any, topic: ArticleTopic = MARKET_TOPIC) 
     `"source":"언론사·기관 이름 한글 표기"}\n\n` +
     `출처: ${raw.source}\n제목: ${raw.title}\n본문:\n${body}`,
     4000,
-  ));
+  ).catch((e) => {
+    if (e instanceof GLMBlockedError) return { relevant: false }; // 검열로 거부된 원문은 건너뜀
+    throw e;
+  });
   if (!result.relevant) return null;
   const title = String(result.title || "").trim();
   const content = String(result.content || "").trim();
@@ -1128,7 +1172,7 @@ const QUESTION_HISTORY_KEY = "community:ai-questions";
 async function runDailyQuestion() {
   const history: string[] = (await kv.get(QUESTION_HISTORY_KEY).catch(() => null)) || [];
   const today = new Date(Date.now() + 8 * 3600 * 1000);
-  const result = extractJsonObject(await callGLM(
+  const result = (await callGLMJson(
     "당신은 중국에 사는 한인 커뮤니티의 운영자입니다. 회원들이 부담 없이 댓글로 경험을 나눌 수 있는 질문을 만듭니다. " +
     "한국어로만 쓰고, 정치·종교·민감한 주제는 피하세요. 반드시 JSON 객체 하나만 출력하세요.",
     `오늘은 ${today.getUTCMonth() + 1}월 ${today.getUTCDate()}일(중국 시간)입니다. 계절·다가오는 휴일·중국 생활을 고려해 ` +
@@ -1223,7 +1267,7 @@ async function runAiAnswers() {
   for (const p of targets) {
     done.add(p.id); // 답변하지 않기로 한 글도 다시 보지 않음
     try {
-      const result = extractJsonObject(await callGLM(
+      const result = (await callGLMJson(
         "당신은 중국에 사는 한인 커뮤니티의 친절한 도우미입니다. 회원의 질문에 한국어로만 답합니다. " +
         "규칙: 1) 확실하지 않은 내용은 추측하지 말고 '확인이 필요하다'고 쓰세요. 2) 전화번호·주소·가격을 지어내지 마세요. " +
         "3) 비자·법률·의료 질문은 공식 기관 확인을 권하세요. 4) 반드시 JSON 객체 하나만 출력하세요.",
