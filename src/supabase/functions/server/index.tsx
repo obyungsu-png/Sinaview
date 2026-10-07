@@ -751,8 +751,47 @@ async function callGLM(system: string, user: string, maxTokens = 4000, opts: { j
   }
 }
 
-async function callGLMJson(system: string, user: string, maxTokens = 4000) {
-  return extractJsonObject(await callGLM(system, user, maxTokens, { json: true }));
+// Claude Sonnet 5 호출 (apiclaude.cc 중계, OpenAI 호환 형식)
+// 키는 Supabase 비밀값 CLAUDE_API_KEY 에만 저장 (코드·저장소에 넣지 않음). 키가 없으면 GLM 만 사용.
+const CLAUDE_API_URL = Deno.env.get("CLAUDE_API_URL") || "https://apiclaude.cc/v1/chat/completions";
+const CLAUDE_MODEL = Deno.env.get("CLAUDE_MODEL") || "claude-sonnet-5";
+
+async function callClaude(system: string, user: string, maxTokens = 4000) {
+  const apiKey = Deno.env.get("CLAUDE_API_KEY");
+  if (!apiKey) throw new Error("CLAUDE_API_KEY 미설정");
+  const res = await fetchWithTimeout(CLAUDE_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "User-Agent": "OBS", "Authorization": `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      messages: [{ role: "system", content: system }, { role: "user", content: user }],
+      max_tokens: maxTokens,
+      temperature: 0.3,
+      stream: false,
+    }),
+  }, 90000);
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Claude 오류 (${res.status}): ${text.slice(0, 200)}`);
+  const content = JSON.parse(text).choices?.[0]?.message?.content;
+  if (!content) throw new Error(`Claude 응답에 내용 없음: ${text.slice(0, 200)}`);
+  return content as string;
+}
+
+// 자동화용 AI 호출: Claude 먼저, 실패하거나 키가 없으면 GLM (AI 채팅은 별도로 GLM 사용)
+async function callAI(system: string, user: string, maxTokens = 4000, opts: { json?: boolean } = {}) {
+  if (Deno.env.get("CLAUDE_API_KEY")) {
+    try {
+      return await callClaude(system, user, maxTokens);
+    } catch (e) {
+      console.error(`Claude failed, falling back to GLM: ${e.message}`);
+      await kv.set("automation:last:claude", { ok: false, error: e.message, at: new Date().toISOString() }).catch(() => {});
+    }
+  }
+  return callGLM(system, user, maxTokens, opts);
+}
+
+async function callAIJson(system: string, user: string, maxTokens = 4000) {
+  return extractJsonObject(await callAI(system, user, maxTokens, { json: true }));
 }
 
 // GLM 응답에서 JSON 배열만 꺼내기 (<think> 등 제거)
@@ -828,7 +867,7 @@ const MARKET_TOPIC: ArticleTopic = {
 // 기사 1건 → AI 한국어 기사 (주제와 관련 없으면 null)
 async function writeKoreanArticle(raw: any, topic: ArticleTopic = MARKET_TOPIC) {
   const body = raw.body || (await fetchArticleText(raw.url)) || raw.intro;
-  const result = await callGLMJson(
+  const result = await callAIJson(
     `당신은 재중 한인을 위한 ${topic.writer}입니다. 기사를 읽고 한국 독자를 위한 한국어 기사로 다시 씁니다. ` +
     "규칙: 1) 모든 문장은 한국어로만 쓰고 한자·일본어 글자를 쓰지 마세요(인명·지명·기업명은 한글 표기). " +
     `2) 원문에 없는 사실·숫자를 지어내지 마세요. ${topic.extraRule ? `3) ${topic.extraRule} ` : ""}` +
@@ -938,7 +977,7 @@ async function refreshNews({ withBriefing: forceBriefing = false } = {}) {
     const quotes = (await kv.get(QUOTES_KEY))?.quotes || [];
     const indexes = quotes.filter((q: any) => q.type === "index")
       .map((q: any) => `${q.name} ${q.price.toFixed(2)} (${q.percent >= 0 ? "+" : ""}${q.percent.toFixed(2)}%)`);
-    briefing = (await callGLM(
+    briefing = (await callAI(
       "당신은 재중 한인을 위한 중국 증시 브리핑 작성자입니다. 사실만 간결하게 한국어로만 씁니다(한자·일본어 글자 금지). " +
       "특정 종목의 매수·매도를 권하거나 가격을 예측하지 마세요.",
       `중국 증시 개장(오전 9시 30분)을 앞둔 재중 한인을 위해, 직전 거래일 지수와 최근 뉴스를 바탕으로 ` +
@@ -1078,7 +1117,7 @@ async function runMorningBriefing() {
   let lines: string[] = [];
   if (recent.length) {
     try {
-      const text = (await callGLM(
+      const text = (await callAI(
         "당신은 재중 한인을 위한 아침 뉴스 브리핑 작성자입니다. 한국어로만 쓰고 한자·일본어 글자를 쓰지 마세요. 주어진 기사 외의 내용은 쓰지 마세요.",
         `아래 기사 제목·요약 중 재중 한인에게 가장 중요한 3개를 골라, 각각 한 줄(40자 이내)로 정리하세요. ` +
         `'- '로 시작하는 3줄만 출력하세요.\n\n` + recent.map((i: any) => `${i.title}: ${i.summary}`).join("\n"),
@@ -1193,7 +1232,7 @@ const QUESTION_HISTORY_KEY = "community:ai-questions";
 async function runDailyQuestion() {
   const history: string[] = (await kv.get(QUESTION_HISTORY_KEY).catch(() => null)) || [];
   const today = new Date(Date.now() + 8 * 3600 * 1000);
-  const result = (await callGLMJson(
+  const result = (await callAIJson(
     "당신은 중국에 사는 한인 커뮤니티의 운영자입니다. 회원들이 부담 없이 댓글로 경험을 나눌 수 있는 질문을 만듭니다. " +
     "한국어로만 쓰고, 정치·종교·민감한 주제는 피하세요. 반드시 JSON 객체 하나만 출력하세요.",
     `오늘은 ${today.getUTCMonth() + 1}월 ${today.getUTCDate()}일(중국 시간)입니다. 계절·다가오는 휴일·중국 생활을 고려해 ` +
@@ -1288,7 +1327,7 @@ async function runAiAnswers() {
   for (const p of targets) {
     done.add(p.id); // 답변하지 않기로 한 글도 다시 보지 않음
     try {
-      const result = (await callGLMJson(
+      const result = (await callAIJson(
         "당신은 중국에 사는 한인 커뮤니티의 친절한 도우미입니다. 회원의 질문에 한국어로만 답합니다. " +
         "규칙: 1) 확실하지 않은 내용은 추측하지 말고 '확인이 필요하다'고 쓰세요. 2) 전화번호·주소·가격을 지어내지 마세요. " +
         "3) 비자·법률·의료 질문은 공식 기관 확인을 권하세요. 4) 반드시 JSON 객체 하나만 출력하세요.",
@@ -1366,7 +1405,7 @@ app.post("/make-server-c6687586/automation/run/:job", async (c) => {
 
 // 자동화 상태 확인 (마지막 실행 결과)
 app.get("/make-server-c6687586/automation/status", async (c) => {
-  const jobs = [...Object.keys(AUTOMATION_JOBS), "market-news"];
+  const jobs = [...Object.keys(AUTOMATION_JOBS), "market-news", "claude"];
   const results = await Promise.all(jobs.map((j) => kv.get(`automation:last:${j}`).catch(() => null)));
   return c.json({ success: true, status: Object.fromEntries(jobs.map((j, i) => [j, results[i]])) });
 });

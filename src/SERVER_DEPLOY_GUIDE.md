@@ -16,7 +16,7 @@ mv supabase/functions/make-server-c6687586/index.tsx supabase/functions/make-ser
 supabase functions deploy make-server-c6687586 --project-ref rpxmiyieukfuyhldqdto
 ```
 
-필요한 비밀값: `GLM_API_KEY`(AI 채팅에서 이미 사용 중), `SUPABASE_URL`·`SUPABASE_ANON_KEY`·`SUPABASE_SERVICE_ROLE_KEY`(Supabase가 자동 제공)
+필요한 비밀값: `CLAUDE_API_KEY`(AI 자동화용 Claude Sonnet 5, apiclaude.cc 중계 - 없으면 GLM만 사용), `GLM_API_KEY`(AI 채팅 + Claude 실패 시 예비), `SUPABASE_URL`·`SUPABASE_ANON_KEY`·`SUPABASE_SERVICE_ROLE_KEY`(Supabase가 자동 제공)
 
 ## 1. 증권 시세·뉴스 자동 갱신
 - `GET /market/quotes`: 텐센트 증권 공개 시세 → 5분 캐시 (`market:quotes`)
@@ -63,7 +63,8 @@ supabase functions deploy make-server-c6687586 --project-ref rpxmiyieukfuyhldqdt
 | `ai-answer` | 매시간 15분 | `15 * * * *` | 1~7일 동안 댓글 없는 질문 글에 AI 참고 답변 (한 번에 최대 3건) | 해당 글 댓글 |
 
 - 실행 주소: `POST /automation/run/<작업>` + 헤더 `x-cron-secret: <CRON_SECRET>`
-- 상태 확인: `GET /automation/status` (작업별 마지막 실행 시각·성공 여부)
+- 상태 확인: `GET /automation/status` (작업별 마지막 실행 시각·성공 여부, `claude` 항목에 Claude 오류가 있으면 표시)
+- AI: 자동화 글은 Claude Sonnet 5(`CLAUDE_API_KEY`)로 먼저 쓰고, 실패하면 GLM으로 다시 씀
 - 자료 출처: 환율 open.er-api.com, 날씨 open-meteo.com, 뉴스 시나 뉴스, 공지 주중국 대한민국 대사관·중국 국가이민관리국
   (사이트 구조가 바뀌거나 해외 서버 접속을 막으면 해당 작업만 실패하고 나머지는 계속 동작)
 
