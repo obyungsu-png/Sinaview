@@ -752,13 +752,13 @@ async function callGLM(system: string, user: string, maxTokens = 4000, opts: { j
 }
 
 // Claude Sonnet 5 호출 (apiclaude.cc 중계, OpenAI 호환 형식)
-// 키는 Supabase 비밀값 APICLAUDE_API_KEY 에만 저장 (다른 곳에서 쓰는 CLAUDE_API_KEY 와 구분) (코드·저장소에 넣지 않음). 키가 없으면 GLM 만 사용.
+// 키는 Supabase 비밀값 SINAVIEW_CLAUDE_KEY 에만 저장 (다른 곳에서 쓰는 Claude 키들과 구분, 코드·저장소에 넣지 않음). 키가 없으면 GLM 만 사용.
 const CLAUDE_API_URL = Deno.env.get("CLAUDE_API_URL") || "https://apiclaude.cc/v1/chat/completions";
 const CLAUDE_MODEL = Deno.env.get("CLAUDE_MODEL") || "claude-sonnet-5";
 
 async function callClaude(system: string, user: string, maxTokens = 4000) {
-  const apiKey = Deno.env.get("APICLAUDE_API_KEY");
-  if (!apiKey) throw new Error("APICLAUDE_API_KEY 미설정");
+  const apiKey = Deno.env.get("SINAVIEW_CLAUDE_KEY");
+  if (!apiKey) throw new Error("SINAVIEW_CLAUDE_KEY 미설정");
   const res = await fetchWithTimeout(CLAUDE_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", "User-Agent": "OBS", "Authorization": `Bearer ${apiKey}` },
@@ -778,7 +778,7 @@ async function callClaude(system: string, user: string, maxTokens = 4000) {
 }
 
 // 자동화용 AI 호출: GLM 먼저, 오류·검열 거부면 Claude (AI 채팅은 별도로 GLM 사용)
-const hasClaude = () => !!Deno.env.get("APICLAUDE_API_KEY");
+const hasClaude = () => !!Deno.env.get("SINAVIEW_CLAUDE_KEY");
 
 async function viaClaude<T>(reason: string, run: () => Promise<T>): Promise<T> {
   console.warn(`GLM 실패 → Claude 로 재시도: ${reason}`);
