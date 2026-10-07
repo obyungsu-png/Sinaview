@@ -1080,6 +1080,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                         )}
                       </td>
                       <td className="title-col" onClick={() => handlePostClick(post)}>
+                        {post.isAi && <span style={{fontSize: '10px', color: '#0f766e', background: '#f0fbf9', border: '1px solid #cdeee8', borderRadius: '4px', padding: '0 4px', marginRight: '4px'}}>AI</span>}
                         {post.title} {post.comments > 0 && <span className="comment-count">[{post.comments}]</span>}
                       </td>
                       <td className="author-col">

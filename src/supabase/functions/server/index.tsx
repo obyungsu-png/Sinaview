@@ -649,7 +649,8 @@ app.get("/make-server-c6687586/market/quotes", async (c) => {
 // --- 2) 중국 증권 뉴스 → GLM 한국어 요약 ---
 // 시나 재경 실시간 뉴스 목록 (여러 개 중 되는 것 사용)
 const NEWS_SOURCES = [
-  "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2516&num=20&page=1",
+  "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2517&num=20&page=1", // 股市
+  "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2516&num=20&page=1", // 财经
   "https://feed.mix.sina.com.cn/api/roll/get?pageid=155&lid=1686&num=20&page=1",
 ];
 const NEWS_KEY = "market:news";
@@ -660,8 +661,8 @@ const NEWS_MAX_STORED = 40;     // 사이트에 쌓아 두는 AI 기사 수
 const NEWS_NEW_PER_RUN = 8;     // 한 번 갱신할 때 새로 검토하는 기사 수
 const NEWS_CATEGORIES = ["상하이증시", "홍콩증시", "A주", "중국펀드"];
 
-async function fetchChineseNews() {
-  for (const url of NEWS_SOURCES) {
+async function fetchChineseNews(sources: string[] = NEWS_SOURCES) {
+  for (const url of sources) {
     try {
       const res = await fetchWithTimeout(url, { headers: { Referer: "https://finance.sina.com.cn/" } });
       if (!res.ok) continue;
@@ -741,20 +742,33 @@ export const hasForeignScript = (text: string) => /[぀-ヿ一-鿿]/.test(text);
 
 const newsId = (url: string) => url.replace(/^https?:\/\//, "").replace(/[^a-zA-Z0-9]/g, "").slice(-40);
 
-// 기사 1건 → AI 한국어 기사 (중국·홍콩 증시와 관련 없으면 null)
-async function writeKoreanArticle(raw: any) {
-  const body = (await fetchArticleText(raw.url)) || raw.intro;
+// 기사 주제별 설정 (증권 / 중국소식 / 비자 공지)
+interface ArticleTopic {
+  writer: string;            // AI 역할
+  relevance: string;         // 관련 있는 기사 기준
+  categories: string[];
+  extraRule?: string;
+}
+const MARKET_TOPIC: ArticleTopic = {
+  writer: "한국어 경제 기자",
+  relevance: "중국 본토·홍콩 증시, 중국 기업, 중국 경제·금융 정책과 관련 있으면 true, 미국 등 다른 나라 증시가 주제이면 false",
+  categories: NEWS_CATEGORIES,
+  extraRule: "매수·매도 권유나 가격 예측을 하지 마세요.",
+};
+
+// 기사 1건 → AI 한국어 기사 (주제와 관련 없으면 null)
+async function writeKoreanArticle(raw: any, topic: ArticleTopic = MARKET_TOPIC) {
+  const body = raw.body || (await fetchArticleText(raw.url)) || raw.intro;
   const result = extractJsonObject(await callGLM(
-    "당신은 재중 한인을 위한 한국어 경제 기자입니다. 중국어 기사를 읽고 한국 독자를 위한 한국어 기사로 다시 씁니다. " +
+    `당신은 재중 한인을 위한 ${topic.writer}입니다. 기사를 읽고 한국 독자를 위한 한국어 기사로 다시 씁니다. ` +
     "규칙: 1) 모든 문장은 한국어로만 쓰고 한자·일본어 글자를 쓰지 마세요(인명·지명·기업명은 한글 표기). " +
-    "2) 원문에 없는 사실·숫자를 지어내지 마세요. 3) 매수·매도 권유나 가격 예측을 하지 마세요. " +
-    "4) 반드시 JSON 객체 하나만 출력하세요.",
-    `아래 기사가 중국 본토·홍콩 증시, 중국 기업, 중국 경제·금융 정책과 관련 있으면 relevant를 true로, ` +
-    `미국 등 다른 나라 증시가 주제이면 false로 하세요.\n` +
-    `형식: {"relevant":true,"category":"${NEWS_CATEGORIES.join("|")} 중 하나","title":"한국어 제목(40자 이내)",` +
+    `2) 원문에 없는 사실·숫자를 지어내지 마세요. ${topic.extraRule ? `3) ${topic.extraRule} ` : ""}` +
+    "반드시 JSON 객체 하나만 출력하세요.",
+    `relevant 기준: ${topic.relevance}\n` +
+    `형식: {"relevant":true,"category":"${topic.categories.join("|")} 중 하나","title":"한국어 제목(40자 이내)",` +
     `"summary":"한국어 2문장 요약","content":"한국어 본문 4~6문단(문단 사이는 빈 줄), 600~1000자",` +
-    `"source":"언론사 이름 한글 표기(예: 중국증권보)"}\n\n` +
-    `언론사: ${raw.source}\n제목: ${raw.title}\n본문:\n${body}`,
+    `"source":"언론사·기관 이름 한글 표기"}\n\n` +
+    `출처: ${raw.source}\n제목: ${raw.title}\n본문:\n${body}`,
     4000,
   ));
   if (!result.relevant) return null;
@@ -766,12 +780,38 @@ async function writeKoreanArticle(raw: any) {
     title,
     summary: String(result.summary || "").trim(),
     content,
-    category: NEWS_CATEGORIES.includes(result.category) ? result.category : "A주",
+    category: topic.categories.includes(result.category) ? result.category : topic.categories[0],
     originalTitle: raw.title,
     source: result.source && !hasForeignScript(String(result.source)) ? String(result.source) : "중국 현지 언론",
     url: raw.url,
     publishedAt: raw.publishedAt,
   };
+}
+
+// 새 원문 목록 → AI 기사 작성 → 기존 기사와 합쳐 저장 (중복 원문은 건너뜀)
+async function writeAndStoreArticles(key: string, raws: any[], topic: ArticleTopic, maxNew: number, maxStored = 40) {
+  const cached = (await kv.get(key).catch(() => null)) || {};
+  const existing = (cached.items || []).filter((i: any) => i.content);
+  const known = new Set([...existing.map((i: any) => i.url), ...(cached.skipped || [])]);
+  const candidates = raws.filter((r) => !known.has(r.url)).slice(0, maxNew * 3);
+  const written: any[] = [];
+  const skipped: string[] = [];
+  for (let k = 0; k < candidates.length && written.length < maxNew; k += 3) {
+    const batch = candidates.slice(k, k + 3);
+    const results = await Promise.allSettled(batch.map((r) => writeKoreanArticle(r, topic)));
+    results.forEach((r, n) => {
+      if (r.status === "fulfilled" && r.value) written.push(r.value);
+      else {
+        skipped.push(batch[n].url); // 관련 없거나 실패한 원문은 다시 검토하지 않음
+        if (r.status === "rejected") console.error(`Article failed: ${r.reason?.message}`);
+      }
+    });
+  }
+  const items = [...written.slice(0, maxNew), ...existing]
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, maxStored);
+  await kv.set(key, { items, skipped: [...skipped, ...(cached.skipped || [])].slice(0, 300), updatedAt: new Date().toISOString() });
+  return { items, added: written.length };
 }
 
 // withBriefing: 매일 오전 9:30 예약 실행 때만 '개장 브리핑'을 새로 쓴다 (평소 1시간 갱신은 기사만)
@@ -785,7 +825,7 @@ async function refreshNews({ withBriefing = false } = {}) {
   // 동시에 3건씩 작성
   const written: any[] = [];
   for (let k = 0; k < raw.length; k += 3) {
-    const batch = await Promise.allSettled(raw.slice(k, k + 3).map(writeKoreanArticle));
+    const batch = await Promise.allSettled(raw.slice(k, k + 3).map((r: any) => writeKoreanArticle(r)));
     for (const r of batch) {
       if (r.status === "fulfilled" && r.value) written.push(r.value);
       else if (r.status === "rejected") console.error(`Article failed: ${r.reason?.message}`);
@@ -865,6 +905,269 @@ app.post("/make-server-c6687586/market/refresh", async (c) => {
       .finally(() => kv.del(NEWS_LOCK_KEY)),
   );
   return c.json({ success: true, started: true });
+});
+
+// ===== AI 자동화: 아침 브리핑 · 중국소식 · 오늘의 질문 · 비자 공지 =====
+// Supabase Cron 이 /automation/run/:job 을 정해진 시간에 호출한다 (설정: SERVER_DEPLOY_GUIDE.md)
+
+// --- 아침 브리핑 (08:00): 원/위안 환율 + 도시별 날씨 + 오늘의 소식 3줄 ---
+const MORNING_KEY = "daily:morning";
+const WEATHER_CITIES = [
+  { name: "북경", lat: 39.90, lon: 116.40 },
+  { name: "상해", lat: 31.23, lon: 121.47 },
+  { name: "대련", lat: 38.91, lon: 121.61 },
+  { name: "청도", lat: 36.07, lon: 120.38 },
+  { name: "심양", lat: 41.80, lon: 123.43 },
+  { name: "광저우", lat: 23.13, lon: 113.26 },
+  { name: "심천", lat: 22.54, lon: 114.06 },
+];
+
+// WMO 날씨 코드 → 한국어
+export function weatherText(code: number) {
+  if (code === 0) return "맑음";
+  if (code <= 3) return "구름";
+  if (code === 45 || code === 48) return "안개";
+  if (code >= 51 && code <= 57) return "이슬비";
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return "비";
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return "눈";
+  if (code >= 95) return "뇌우";
+  return "흐림";
+}
+
+async function fetchCnyKrw() {
+  const res = await fetchWithTimeout("https://open.er-api.com/v6/latest/CNY", {}, 8000);
+  const json = await res.json();
+  const rate = Number(json?.rates?.KRW);
+  if (!isFinite(rate) || rate <= 0) throw new Error("환율 정보 없음");
+  return rate;
+}
+
+async function fetchWeather() {
+  const lat = WEATHER_CITIES.map((c) => c.lat).join(",");
+  const lon = WEATHER_CITIES.map((c) => c.lon).join(",");
+  const res = await fetchWithTimeout(
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max&timezone=Asia%2FShanghai&forecast_days=1`,
+    {}, 8000,
+  );
+  const json = await res.json();
+  const list = Array.isArray(json) ? json : [json];
+  return WEATHER_CITIES.map((city, i) => {
+    const d = list[i]?.daily;
+    return d ? {
+      city: city.name,
+      max: Math.round(d.temperature_2m_max[0]),
+      min: Math.round(d.temperature_2m_min[0]),
+      rain: d.precipitation_probability_max?.[0] ?? null,
+      desc: weatherText(Number(d.weather_code[0])),
+    } : null;
+  }).filter(Boolean);
+}
+
+async function runMorningBriefing() {
+  const prev = (await kv.get(MORNING_KEY).catch(() => null)) || {};
+  const [rate, weather] = await Promise.all([
+    fetchCnyKrw().catch((e) => { console.error(`Rate failed: ${e.message}`); return null; }),
+    fetchWeather().catch((e) => { console.error(`Weather failed: ${e.message}`); return []; }),
+  ]);
+  // 오늘의 소식 3줄: 최근 중국소식·증권 기사 제목으로만 작성 (없는 소식을 지어내지 않음)
+  const recent = [
+    ...((await kv.get(CHINA_NEWS_KEY).catch(() => null))?.items || []).slice(0, 5),
+    ...((await kv.get(NEWS_KEY).catch(() => null))?.items || []).filter((i: any) => i.content).slice(0, 3),
+  ];
+  let lines: string[] = [];
+  if (recent.length) {
+    try {
+      const text = (await callGLM(
+        "당신은 재중 한인을 위한 아침 뉴스 브리핑 작성자입니다. 한국어로만 쓰고 한자·일본어 글자를 쓰지 마세요. 주어진 기사 외의 내용은 쓰지 마세요.",
+        `아래 기사 제목·요약 중 재중 한인에게 가장 중요한 3개를 골라, 각각 한 줄(40자 이내)로 정리하세요. ` +
+        `'- '로 시작하는 3줄만 출력하세요.\n\n` + recent.map((i: any) => `${i.title}: ${i.summary}`).join("\n"),
+        1500,
+      )).replace(/<think>[\s\S]*?<\/think>/g, "");
+      lines = text.split("\n").map((l) => l.replace(/^[-•\s]+/, "").trim()).filter((l) => l && !hasForeignScript(l)).slice(0, 3);
+    } catch (e) {
+      console.error(`Morning lines failed: ${e.message}`);
+    }
+  }
+  const data = {
+    date: formatDate(new Date()),
+    rate: rate ? { krwPerCny: rate, prev: prev.rate?.krwPerCny ?? null } : prev.rate || null,
+    weather: weather.length ? weather : prev.weather || [],
+    lines: lines.length ? lines : [],
+    createdAt: new Date().toISOString(),
+  };
+  await kv.set(MORNING_KEY, data);
+  return data;
+}
+
+// --- 중국소식 (12:00): 생활·정책 뉴스 2건 ---
+const CHINA_NEWS_KEY = "news:china";
+const CHINA_NEWS_SOURCES = [
+  "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2510&num=30&page=1", // 国内
+  "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2669&num=30&page=1", // 社会
+];
+const CHINA_TOPIC: ArticleTopic = {
+  writer: "한국어 생활 정보 기자",
+  relevance: "중국에 사는 외국인의 생활에 실제 영향을 주는 정책·생활 소식(교통, 결제·금융, 물가, 휴일·연휴, 의료, 교육, 출입국, 통신, 날씨 재해)이면 true, " +
+    "정치 행사·외교·사건사고·연예·스포츠면 false",
+  categories: ["교통", "결제·금융", "물가", "휴일", "의료", "교육", "생활"],
+};
+
+async function runChinaNews() {
+  const raws = await fetchChineseNews(CHINA_NEWS_SOURCES);
+  return writeAndStoreArticles(CHINA_NEWS_KEY, raws, CHINA_TOPIC, 2);
+}
+
+// --- 비자/서류 공지 (17:00): 새 공지가 있을 때만 ---
+const VISA_NOTICES_KEY = "notices:visa";
+const VISA_SOURCES = [
+  {
+    name: "주중국 대한민국 대사관",
+    url: "https://overseas.mofa.go.kr/cn-ko/brd/m_1157/list.do",
+    link: /view\.do\?seq=\d+/,
+  },
+  {
+    name: "중국 국가이민관리국",
+    url: "https://www.nia.gov.cn/n741440/n741567/index.html",
+    link: /\/c\d+\/content\.html/,
+  },
+];
+const VISA_TOPIC: ArticleTopic = {
+  writer: "한국어 영사·출입국 안내 담당자",
+  relevance: "재중 한인에게 필요한 비자, 거류허가, 출입국, 여권, 영사 서비스, 재외국민 안전 공지이면 true, 기관 행사·인사 소식이면 false",
+  categories: ["비자", "출입국", "영사 공지", "안전"],
+  extraRule: "공지의 날짜·대상·신청 방법·준비 서류가 있으면 빠짐없이 쓰세요.",
+};
+
+// 목록 페이지에서 공지 링크·제목 뽑기
+export function extractNoticeLinks(html: string, pageUrl: string, pattern: RegExp) {
+  const out: { title: string; url: string }[] = [];
+  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    const href = m[1].replace(/&amp;/g, "&");
+    const title = m[2].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    if (!pattern.test(href) || title.length < 6) continue;
+    const url = new URL(href, pageUrl).toString();
+    if (!out.some((o) => o.url === url)) out.push({ title, url });
+  }
+  return out.slice(0, 10);
+}
+
+async function fetchPageText(url: string) {
+  const res = await fetchWithTimeout(url, {}, 10000);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const html = await res.text();
+  return html
+    .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<(br|\/p|\/div|\/tr|\/li)[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&[a-z]+;/g, "")
+    .split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter((l) => l.length > 10)
+    .join("\n").slice(0, 4000);
+}
+
+async function runVisaNotices() {
+  const raws: any[] = [];
+  for (const src of VISA_SOURCES) {
+    try {
+      const res = await fetchWithTimeout(src.url, {}, 10000);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      for (const link of extractNoticeLinks(await res.text(), src.url, src.link)) {
+        raws.push({ title: link.title, url: link.url, source: src.name, intro: "", publishedAt: new Date().toISOString() });
+      }
+    } catch (e) {
+      console.error(`Visa source failed (${src.name}): ${e.message}`);
+    }
+  }
+  if (!raws.length) throw new Error("공지 목록을 가져오지 못함");
+  // 처음 실행할 때는 기존 공지 중 최신 2건만, 이후에는 새 공지만 작성
+  const cached = await kv.get(VISA_NOTICES_KEY).catch(() => null);
+  const known = new Set([...(cached?.items || []).map((i: any) => i.url), ...(cached?.skipped || [])]);
+  const fresh = raws.filter((r) => !known.has(r.url));
+  for (const r of fresh) r.body = await fetchPageText(r.url).catch(() => "");
+  return writeAndStoreArticles(VISA_NOTICES_KEY, fresh.filter((r) => r.body), VISA_TOPIC, 2, 30);
+}
+
+// --- 오늘의 질문 (10:00): 게시판에 대화 시작 질문 1개 ---
+const QUESTION_HISTORY_KEY = "community:ai-questions";
+
+async function runDailyQuestion() {
+  const history: string[] = (await kv.get(QUESTION_HISTORY_KEY).catch(() => null)) || [];
+  const today = new Date(Date.now() + 8 * 3600 * 1000);
+  const result = extractJsonObject(await callGLM(
+    "당신은 중국에 사는 한인 커뮤니티의 운영자입니다. 회원들이 부담 없이 댓글로 경험을 나눌 수 있는 질문을 만듭니다. " +
+    "한국어로만 쓰고, 정치·종교·민감한 주제는 피하세요. 반드시 JSON 객체 하나만 출력하세요.",
+    `오늘은 ${today.getUTCMonth() + 1}월 ${today.getUTCDate()}일(중국 시간)입니다. 계절·다가오는 휴일·중국 생활을 고려해 ` +
+    `오늘의 질문 1개를 만드세요. 최근 질문과 겹치지 않게 하세요.\n최근 질문: ${history.slice(0, 14).join(" / ") || "없음"}\n` +
+    `형식: {"title":"질문 제목(30자 이내, 물음표로 끝)","content":"2~3문장 안내 + 댓글을 부탁하는 한 문장"}`,
+    1500,
+  ));
+  const title = String(result.title || "").trim();
+  const content = String(result.content || "").trim();
+  if (!title || !content || hasForeignScript(title + content)) throw new Error("질문 생성 실패");
+
+  const posts = (await kv.get(COMMUNITY_POSTS_KEY)) || [];
+  const now = new Date();
+  const post = {
+    id: now.getTime(),
+    title: `[오늘의 질문] ${title}`,
+    content: `${content}\n\n※ 차이나뷰 AI가 대화를 위해 올린 질문입니다.`,
+    category: "자유",
+    author: "차이나뷰 AI",
+    authorKey: "ai",
+    isAi: true,
+    date: formatDate(now),
+    views: 0, likes: 0, comments: 0,
+  };
+  await kv.set(COMMUNITY_POSTS_KEY, [post, ...posts]);
+  await kv.set(QUESTION_HISTORY_KEY, [title, ...history].slice(0, 30));
+  return { post };
+}
+
+// --- 조회용 주소 ---
+app.get("/make-server-c6687586/daily/morning", async (c) => {
+  const data = await kv.get(MORNING_KEY).catch(() => null);
+  return c.json({ success: true, briefing: data || null });
+});
+
+for (const [path, key] of [["/news/china", CHINA_NEWS_KEY], ["/notices/visa", VISA_NOTICES_KEY]] as const) {
+  app.get(`/make-server-c6687586${path}`, async (c) => {
+    const data = await kv.get(key).catch(() => null);
+    return c.json({ success: true, items: data?.items || [], updatedAt: data?.updatedAt || null });
+  });
+}
+
+// --- 예약 실행: POST /automation/run/:job (x-cron-secret 필요) ---
+const AUTOMATION_JOBS: Record<string, () => Promise<unknown>> = {
+  morning: runMorningBriefing,
+  "china-news": runChinaNews,
+  question: runDailyQuestion,
+  visa: runVisaNotices,
+  market: () => refreshQuotes().catch(() => null).then(() => refreshNews({ withBriefing: true })),
+};
+
+app.post("/make-server-c6687586/automation/run/:job", async (c) => {
+  const secret = Deno.env.get("CRON_SECRET");
+  if (!secret || c.req.header("x-cron-secret") !== secret) {
+    return c.json({ success: false, error: "권한이 없습니다." }, 403);
+  }
+  const job = c.req.param("job");
+  const run = AUTOMATION_JOBS[job];
+  if (!run) return c.json({ success: false, error: `알 수 없는 작업: ${job}` }, 404);
+  runInBackground(
+    run()
+      .then(() => kv.set(`automation:last:${job}`, { ok: true, at: new Date().toISOString() }))
+      .catch(async (e) => {
+        console.error(`Automation ${job} failed: ${e.message}`);
+        await kv.set(`automation:last:${job}`, { ok: false, error: e.message, at: new Date().toISOString() });
+      }),
+  );
+  return c.json({ success: true, started: job });
+});
+
+// 자동화 상태 확인 (마지막 실행 결과)
+app.get("/make-server-c6687586/automation/status", async (c) => {
+  const jobs = Object.keys(AUTOMATION_JOBS);
+  const results = await Promise.all(jobs.map((j) => kv.get(`automation:last:${j}`).catch(() => null)));
+  return c.json({ success: true, status: Object.fromEntries(jobs.map((j, i) => [j, results[i]])) });
 });
 
 // ===== 회원 로그인 (Supabase Auth) =====

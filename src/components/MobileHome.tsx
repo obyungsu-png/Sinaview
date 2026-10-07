@@ -19,6 +19,7 @@ const WeatherWidget         = lazy(() => import('./WeatherWidget').then(m=>({def
 const HospitalWidget        = lazy(() => import('./HospitalWidget').then(m=>({default:m.HospitalWidget})));
 const BlogSection           = lazy(() => import('./BlogSection').then(m=>({default:m.BlogSection})));
 import { PopularPosts } from './PopularPosts';
+import { MorningBriefingCard } from './MorningBriefingCard';
 import { signIn } from '../utils/auth';
 const RegionalNewsWidget    = lazy(() => import('./RegionalNewsWidget').then(m=>({default:m.RegionalNewsWidget})));
 
@@ -196,6 +197,9 @@ export function MobileHome({
       {/* ══ 홈 ══ */}
       {bottomTab==='home' && (
         <div>
+
+          {/* ─ 아침 브리핑 (AI, 없으면 숨김) ─ */}
+          <div className="mx-3 mb-3 empty:hidden"><MorningBriefingCard /></div>
 
           {/* ─ 인기글 ─ */}
           <div className="mx-3 mb-3">

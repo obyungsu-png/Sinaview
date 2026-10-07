@@ -4,6 +4,7 @@ import { LoginSection } from './LoginSection';
 import { CenterAdBanner } from './CenterAdBanner';
 import { AiAssistantWidget } from './AiAssistantWidget';
 import { PopularPosts } from './PopularPosts';
+import { MorningBriefingCard } from './MorningBriefingCard';
 import { CommunityNavContext } from './MemberStories';
 import { syncCurrentUser, signOut } from '../utils/auth';
 
@@ -252,6 +253,7 @@ export function Portal() {
         <div className="hidden lg:block space-y-6">
           <div className="grid grid-cols-10 gap-6">
             <div className="col-span-7 space-y-6">
+              <MorningBriefingCard />
               <PopularPosts onPostClick={handleOpenCommunityPost} onMoreClick={() => handleNavigate('chinalife')} />
               {visibleSections >= 1 && (
                 <Suspense fallback={<LoadingSpinner />}>

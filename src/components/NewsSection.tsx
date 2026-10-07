@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
+import { useAiArticles } from '../utils/aiContent';
+import { AiArticleList } from './AiArticleList';
 
 interface NewsSectionProps {
   category: string;
@@ -147,6 +149,8 @@ export function NewsSection({ category, onMoreClick }: NewsSectionProps) {
   };
 
   const currentItems = contentBySubcategory[activeSubcategory] || contentBySubcategory['전체'];
+  // 매일 정오 AI가 쓴 중국 생활·정책 기사 (있으면 예시 기사 대신 표시)
+  const aiArticles = useAiArticles('/news/china');
 
   return (
     <Card className="p-4">
@@ -177,6 +181,9 @@ export function NewsSection({ category, onMoreClick }: NewsSectionProps) {
         </div>
       </div>
 
+      {aiArticles.length > 0 ? (
+        <AiArticleList items={aiArticles.slice(0, 4)} />
+      ) : (
       <div className="space-y-3">
         {currentItems.slice(0, 4).map((item) => (
           <div 
@@ -203,6 +210,7 @@ export function NewsSection({ category, onMoreClick }: NewsSectionProps) {
           </div>
         ))}
       </div>
+      )}
 
       <div className="mt-4 text-center">
         <button 

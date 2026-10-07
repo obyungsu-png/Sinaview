@@ -22,6 +22,7 @@ export interface Post {
   city?: string;        // 회원 글: 글쓰기에서 고른 지역
   author: string;
   authorKey?: string;   // 회원 글: 작성자 구분 (본인 글 삭제용)
+  isAi?: boolean;       // AI 자동 작성 글 (오늘의 질문)
   authorBadge?: string;
   date: string;
   views: number;

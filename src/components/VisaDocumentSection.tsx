@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { MemberStories } from './MemberStories';
+import { useAiArticles } from '../utils/aiContent';
+import { AiArticleList } from './AiArticleList';
 import { ExternalLink, ChevronDown } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -174,6 +176,8 @@ export function VisaDocumentSection({ category, onMoreClick, onArticleClick }: V
   };
 
   const currentItems = contentBySubcategory[activeSubcategory] || contentBySubcategory['전체'];
+  // 대사관·이민관리국 새 공지 AI 요약 (있으면 맨 위에 표시)
+  const aiNotices = useAiArticles('/notices/visa');
 
   return (
     <Card className="p-4">
@@ -202,8 +206,13 @@ export function VisaDocumentSection({ category, onMoreClick, onArticleClick }: V
         </div>
       </div>
 
+      {aiNotices.length > 0 && (
+        <div className="mb-3 pb-3 border-b border-gray-100">
+          <AiArticleList items={aiNotices.slice(0, 2)} heading="최신 공지" />
+        </div>
+      )}
       <div className="space-y-3">
-        {currentItems.slice(0, 4).map((item) => (
+        {currentItems.slice(0, aiNotices.length > 0 ? 2 : 4).map((item) => (
           <div 
             key={item.id} 
             className="flex items-start space-x-3 hover:bg-gray-50 p-2 rounded cursor-pointer"

@@ -51,21 +51,29 @@ supabase functions deploy make-server-c6687586 --project-ref rpxmiyieukfuyhldqdt
 - `.../community/posts` → `{"success":true,"posts":[],"stats":{}}`
 - 사이트에서 회원가입 → 글쓰기 → 좋아요·댓글
 
-## 4. 매일 오전 9:30(중국 시간) 자동 업데이트 (Supabase Cron)
-- `POST /market/refresh`: 시세 갱신 → 새 AI 기사 작성 → **개장 브리핑** 작성 (평소 1시간 갱신은 기사만 쓰고 브리핑은 안 바꿈)
-- 비밀값 `CRON_SECRET`과 같은 값을 `x-cron-secret` 헤더로 보내야 실행됩니다.
+## 4. AI 자동화 (매일 예약 실행, Supabase Cron)
+| 작업 | 시간(중국) | UTC cron | 내용 | 결과 |
+|---|---|---|---|---|
+| `morning` | 매일 08:00 | `0 0 * * *` | 원/위안 환율 + 7개 도시 날씨 + 오늘의 소식 3줄 | 메인 맨 위 "아침 브리핑" |
+| `market` | 월~금 09:30 | `30 1 * * 1-5` | 시세 + 새 증권 기사 + 개장 브리핑 | 증권 섹션·페이지 |
+| `question` | 매일 10:00 | `0 2 * * *` | 게시판에 "오늘의 질문" 1개 (작성자: 차이나뷰 AI) | 게시판 |
+| `china-news` | 매일 12:00 | `0 4 * * *` | 중국 생활·정책 뉴스 2건 한국어 기사 | 중국소식 섹션 |
+| `visa` | 매일 17:00 | `0 9 * * *` | 대사관·이민관리국 새 공지 요약 (새 공지 있을 때만, 최대 2건) | 비자/서류 섹션 "최신 공지" |
+
+- 실행 주소: `POST /automation/run/<작업>` + 헤더 `x-cron-secret: <CRON_SECRET>`
+- 상태 확인: `GET /automation/status` (작업별 마지막 실행 시각·성공 여부)
+- 자료 출처: 환율 open.er-api.com, 날씨 open-meteo.com, 뉴스 시나 뉴스, 공지 주중국 대한민국 대사관·중국 국가이민관리국
+  (사이트 구조가 바뀌거나 해외 서버 접속을 막으면 해당 작업만 실패하고 나머지는 계속 동작)
 
 ### 설정 (한 번만)
 1. Edge Functions → Secrets 에 `CRON_SECRET` 추가 (아무도 모를 긴 문자열)
 2. Database → Extensions 에서 `pg_cron`, `pg_net` 켜기
-3. SQL Editor 에서 실행 (`<CRON_SECRET 값>`만 바꿔 넣기). 중국 9:30 = UTC 1:30, 월~금(증시 개장일)
+3. SQL Editor 에서 아래를 실행 (첫 줄의 `<CRON_SECRET 값>`만 바꿔 넣기)
 ```sql
-select cron.schedule(
-  'sinaview-market-0930',
-  '30 1 * * 1-5',
-  $$
+-- 예약 실행에 쓸 값 저장
+create or replace function public.sinaview_run(job text) returns void language sql as $$
   select net.http_post(
-    url := 'https://rpxmiyieukfuyhldqdto.supabase.co/functions/v1/make-server-c6687586/market/refresh',
+    url := 'https://rpxmiyieukfuyhldqdto.supabase.co/functions/v1/make-server-c6687586/automation/run/' || job,
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJweG1peWlldWtmdXlobGRxZHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMzkxMTksImV4cCI6MjA3MjYxNTExOX0.H3lyRcpK6d3z24Y_ZgOOCoZ5n6U3WiZF1qZY3LNlYjA',
@@ -73,8 +81,15 @@ select cron.schedule(
     ),
     body := '{}'::jsonb
   );
-  $$
-);
+$$;
+
+select cron.schedule('sinaview-morning',    '0 0 * * *',    $$ select public.sinaview_run('morning') $$);
+select cron.schedule('sinaview-market-0930','30 1 * * 1-5', $$ select public.sinaview_run('market') $$);
+select cron.schedule('sinaview-question',   '0 2 * * *',    $$ select public.sinaview_run('question') $$);
+select cron.schedule('sinaview-china-news', '0 4 * * *',    $$ select public.sinaview_run('china-news') $$);
+select cron.schedule('sinaview-visa',       '0 9 * * *',    $$ select public.sinaview_run('visa') $$);
 ```
-- 확인: `select * from cron.job;` / 실행 기록: `select * from cron.job_run_details order by start_time desc limit 5;`
-- 주말에도 하려면 `'30 1 * * *'`, 끄려면 `select cron.unschedule('sinaview-market-0930');`
+- 바로 한 번 실행해 보기: `select public.sinaview_run('morning');` (1~2분 뒤 메인에 아침 브리핑)
+- 등록 확인: `select jobname, schedule from cron.job;`
+- 하나 끄기: `select cron.unschedule('sinaview-question');`
+- 예전에 `sinaview-market-0930`을 이미 등록했다면 먼저 `select cron.unschedule('sinaview-market-0930');` 후 실행
