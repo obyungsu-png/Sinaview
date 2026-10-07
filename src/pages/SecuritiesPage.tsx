@@ -42,6 +42,7 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
   const [quotesUpdatedAt, setQuotesUpdatedAt] = useState<string | null>(null);
   const [news, setNews] = useState<MarketNewsItem[] | null>(null);
   const [briefing, setBriefing] = useState('');
+  const [briefingAt, setBriefingAt] = useState<string | null>(null);
   const [newsUpdatedAt, setNewsUpdatedAt] = useState<string | null>(null);
   const [openArticle, setOpenArticle] = useState<MarketNewsItem | null>(null);
 
@@ -55,6 +56,7 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
       if (!data) return;
       if (data.items.length) setNews(data.items);
       setBriefing(data.briefing || '');
+      setBriefingAt(data.briefingAt || null);
       setNewsUpdatedAt(data.updatedAt);
     });
     const timer = setInterval(loadQuotes, 5 * 60 * 1000);
@@ -180,7 +182,8 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
           <TabsContent value="briefing" className="mt-6">
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-teal-600" /> 오늘의 중국 증시 브리핑
+                <Sparkles className="w-5 h-5 text-teal-600" /> 오늘의 중국 증시 개장 브리핑
+                {briefingAt && <span className="text-xs font-normal text-gray-500">{formatUpdatedAt(briefingAt)} 작성</span>}
               </h3>
               {briefing ? (
                 <div className="bg-teal-50 border border-teal-100 rounded-lg p-5 text-[15px] leading-relaxed whitespace-pre-line text-gray-800">
@@ -190,7 +193,7 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
                 <p className="text-sm text-gray-500 py-8 text-center">브리핑을 준비하고 있습니다. 잠시 후 다시 확인해 주세요.</p>
               )}
               <p className="text-xs text-gray-400 mt-3">
-                AI(GLM)가 지수와 뉴스를 바탕으로 1시간마다 자동 작성합니다. 투자 권유가 아닙니다.
+                AI(GLM)가 매일 오전 9시 30분(중국 시간) 지수와 뉴스를 바탕으로 자동 작성합니다. 투자 권유가 아닙니다.
               </p>
             </Card>
           </TabsContent>

@@ -50,3 +50,31 @@ supabase functions deploy make-server-c6687586 --project-ref rpxmiyieukfuyhldqdt
 - `https://rpxmiyieukfuyhldqdto.supabase.co/functions/v1/make-server-c6687586/market/quotes`
 - `.../community/posts` → `{"success":true,"posts":[],"stats":{}}`
 - 사이트에서 회원가입 → 글쓰기 → 좋아요·댓글
+
+## 4. 매일 오전 9:30(중국 시간) 자동 업데이트 (Supabase Cron)
+- `POST /market/refresh`: 시세 갱신 → 새 AI 기사 작성 → **개장 브리핑** 작성 (평소 1시간 갱신은 기사만 쓰고 브리핑은 안 바꿈)
+- 비밀값 `CRON_SECRET`과 같은 값을 `x-cron-secret` 헤더로 보내야 실행됩니다.
+
+### 설정 (한 번만)
+1. Edge Functions → Secrets 에 `CRON_SECRET` 추가 (아무도 모를 긴 문자열)
+2. Database → Extensions 에서 `pg_cron`, `pg_net` 켜기
+3. SQL Editor 에서 실행 (`<CRON_SECRET 값>`만 바꿔 넣기). 중국 9:30 = UTC 1:30, 월~금(증시 개장일)
+```sql
+select cron.schedule(
+  'sinaview-market-0930',
+  '30 1 * * 1-5',
+  $$
+  select net.http_post(
+    url := 'https://rpxmiyieukfuyhldqdto.supabase.co/functions/v1/make-server-c6687586/market/refresh',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJweG1peWlldWtmdXlobGRxZHRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMzkxMTksImV4cCI6MjA3MjYxNTExOX0.H3lyRcpK6d3z24Y_ZgOOCoZ5n6U3WiZF1qZY3LNlYjA',
+      'x-cron-secret', '<CRON_SECRET 값>'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+- 확인: `select * from cron.job;` / 실행 기록: `select * from cron.job_run_details order by start_time desc limit 5;`
+- 주말에도 하려면 `'30 1 * * *'`, 끄려면 `select cron.unschedule('sinaview-market-0930');`

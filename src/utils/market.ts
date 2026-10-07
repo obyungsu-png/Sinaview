@@ -38,7 +38,7 @@ export async function fetchMarketQuotes(): Promise<{ quotes: MarketQuote[]; upda
 const hasForeignScript = (text = '') => /[\u3040-\u30ff\u4e00-\u9fff]/.test(text);
 
 /** 서버에 저장된 AI 한국어 증권 기사 - 본문이 있고 한국어로만 된 기사만 */
-export async function fetchMarketNews(): Promise<{ items: MarketNewsItem[]; briefing?: string; updatedAt: string | null } | null> {
+export async function fetchMarketNews(): Promise<{ items: MarketNewsItem[]; briefing?: string; briefingAt?: string | null; updatedAt: string | null } | null> {
   try {
     const res = await serverFetch('/market/news');
     if (!res.success) return null;

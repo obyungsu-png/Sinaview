@@ -774,7 +774,8 @@ async function writeKoreanArticle(raw: any) {
   };
 }
 
-async function refreshNews() {
+// withBriefing: 매일 오전 9:30 예약 실행 때만 '개장 브리핑'을 새로 쓴다 (평소 1시간 갱신은 기사만)
+async function refreshNews({ withBriefing = false } = {}) {
   const cached = (await kv.get(NEWS_KEY).catch(() => null)) || {};
   // 예전 방식(링크만 있는) 뉴스는 버리고, AI 기사만 유지
   const existing = (cached.items || []).filter((i: any) => i.content);
@@ -795,16 +796,17 @@ async function refreshNews() {
     .slice(0, NEWS_MAX_STORED);
   if (items.length === 0) throw new Error("작성된 기사 없음");
 
-  // AI 시장 브리핑: 오늘 지수 + 뉴스 제목으로 3~5줄 요약 (실패해도 뉴스는 저장)
+  // AI 개장 브리핑: 지수 + 뉴스 제목으로 3~5줄 요약 (실패해도 뉴스는 저장)
   let briefing = "";
-  try {
+  if (withBriefing || !cached.briefing) try {
     const quotes = (await kv.get(QUOTES_KEY))?.quotes || [];
     const indexes = quotes.filter((q: any) => q.type === "index")
       .map((q: any) => `${q.name} ${q.price.toFixed(2)} (${q.percent >= 0 ? "+" : ""}${q.percent.toFixed(2)}%)`);
     briefing = (await callGLM(
       "당신은 재중 한인을 위한 중국 증시 브리핑 작성자입니다. 사실만 간결하게 한국어로만 씁니다(한자·일본어 글자 금지). " +
       "특정 종목의 매수·매도를 권하거나 가격을 예측하지 마세요.",
-      `오늘 중국·홍콩 증시 흐름을 '- '로 시작하는 3~5줄로 요약해 주세요. 다른 말은 쓰지 마세요.\n\n` +
+      `중국 증시 개장(오전 9시 30분)을 앞둔 재중 한인을 위해, 직전 거래일 지수와 최근 뉴스를 바탕으로 ` +
+      `오늘 눈여겨볼 중국·홍콩 증시 흐름을 '- '로 시작하는 3~5줄로 정리해 주세요. 다른 말은 쓰지 마세요.\n\n` +
       `지수: ${indexes.join(", ") || "정보 없음"}\n뉴스: ${items.slice(0, 10).map((i: any) => i.title).join(" / ")}`,
       1500,
     )).replace(/<think>[\s\S]*?<\/think>/g, "").trim();
@@ -812,7 +814,13 @@ async function refreshNews() {
     console.error(`Briefing failed: ${e.message}`);
   }
 
-  const data = { items, briefing: briefing || cached.briefing || "", updatedAt: new Date().toISOString() };
+  const now = new Date().toISOString();
+  const data = {
+    items,
+    briefing: briefing || cached.briefing || "",
+    briefingAt: briefing ? now : cached.briefingAt || null,
+    updatedAt: now,
+  };
   await kv.set(NEWS_KEY, data);
   return data;
 }
@@ -835,9 +843,28 @@ app.get("/make-server-c6687586/market/news", async (c) => {
     success: true,
     items: articles,
     briefing: cached?.briefing || "",
+    briefingAt: cached?.briefingAt || null,
     updatedAt: cached?.updatedAt || null,
     refreshing: stale,
   });
+});
+
+// 매일 오전 9:30(중국 시간) 예약 실행 - Supabase Cron 이 호출
+// 비밀값 CRON_SECRET 과 같은 값을 x-cron-secret 헤더로 보내야 실행된다
+app.post("/make-server-c6687586/market/refresh", async (c) => {
+  const secret = Deno.env.get("CRON_SECRET");
+  if (!secret || c.req.header("x-cron-secret") !== secret) {
+    return c.json({ success: false, error: "권한이 없습니다." }, 403);
+  }
+  await kv.set(NEWS_LOCK_KEY, { at: Date.now() });
+  runInBackground(
+    refreshQuotes()
+      .catch((e) => console.error(`Scheduled quotes failed: ${e.message}`))
+      .then(() => refreshNews({ withBriefing: true }))
+      .then((d) => console.log(`Scheduled refresh done: ${d.items.length} articles`))
+      .finally(() => kv.del(NEWS_LOCK_KEY)),
+  );
+  return c.json({ success: true, started: true });
 });
 
 // ===== 회원 로그인 (Supabase Auth) =====
