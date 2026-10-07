@@ -648,10 +648,11 @@ app.get("/make-server-c6687586/market/quotes", async (c) => {
 
 // --- 2) 중국 증권 뉴스 → GLM 한국어 요약 ---
 // 시나 재경 실시간 뉴스 목록 (여러 개 중 되는 것 사용)
+// 시나 목록 중 중국 증시 뉴스가 나오는 곳 (2516·2517은 해외 시장 뉴스가 많아 아래 키워드로 거름)
 const NEWS_SOURCES = [
-  "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2517&num=20&page=1", // 股市
-  "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2516&num=20&page=1", // 财经
-  "https://feed.mix.sina.com.cn/api/roll/get?pageid=155&lid=1686&num=20&page=1",
+  "https://feed.mix.sina.com.cn/api/roll/get?pageid=186&lid=1746&num=30&page=1", // A주·증권사
+  "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2517&num=30&page=1", // 股市
+  "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2516&num=30&page=1", // 财经
 ];
 const NEWS_KEY = "market:news";
 const NEWS_LOCK_KEY = "market:news:lock";
@@ -660,29 +661,43 @@ const NEWS_LOCK_MS = 10 * 60 * 1000;
 const NEWS_MAX_STORED = 40;     // 사이트에 쌓아 두는 AI 기사 수
 const NEWS_NEW_PER_RUN = 8;     // 한 번 갱신할 때 새로 검토하는 기사 수
 const NEWS_CATEGORIES = ["상하이증시", "홍콩증시", "A주", "중국펀드"];
+// 원문 제목에 이런 단어가 있어야 증권 기사 후보로 본다 (해외 시장·무관한 기사 제외)
+const CHINA_MARKET_RE = /A股|沪指|上证|深成|深证|创业板|科创|北交所|港股|恒指|恒生|中概|证监会|央行|人民币/;
+const GENERIC_MARKET_RE = /券商|基金|板块|涨停|跌停|IPO|股市|股价|市值|证券|上市公司|牛市|熊市/;
+const FOREIGN_MARKET_RE = /欧洲|欧股|美股|美国|日本|日股|韩国|德国|英国|法国|印度|纳斯达克|道指|标普/;
+export const MARKET_TITLE_RE = {
+  test: (title: string) => CHINA_MARKET_RE.test(title) || (GENERIC_MARKET_RE.test(title) && !FOREIGN_MARKET_RE.test(title)),
+};
+const NEWS_MAX_AGE_MS = 3 * 24 * 3600 * 1000; // 3일 넘은 원문은 쓰지 않음
 
+// 여러 목록을 모두 모아 중복·오래된 원문을 뺀다
 async function fetchChineseNews(sources: string[] = NEWS_SOURCES) {
+  const all: any[] = [];
+  const seen = new Set<string>();
   for (const url of sources) {
     try {
       const res = await fetchWithTimeout(url, { headers: { Referer: "https://finance.sina.com.cn/" } });
       if (!res.ok) continue;
       const json = await res.json();
-      const items = (json?.result?.data || [])
-        .filter((d: any) => d.title && d.url)
-        .slice(0, 20)
-        .map((d: any) => ({
+      for (const d of json?.result?.data || []) {
+        if (!d.title || !d.url || seen.has(d.title)) continue;
+        const publishedAt = d.ctime ? new Date(Number(d.ctime) * 1000) : new Date();
+        if (Date.now() - publishedAt.getTime() > NEWS_MAX_AGE_MS) continue;
+        seen.add(d.title);
+        all.push({
           title: String(d.title),
           intro: String(d.intro || d.summary || "").slice(0, 300),
           url: String(d.url),
           source: String(d.media_name || "新浪财经"),
-          publishedAt: d.ctime ? new Date(Number(d.ctime) * 1000).toISOString() : new Date().toISOString(),
-        }));
-      if (items.length) return items;
+          publishedAt: publishedAt.toISOString(),
+        });
+      }
     } catch (e) {
       console.error(`News source failed (${url}): ${e.message}`);
     }
   }
-  throw new Error("모든 뉴스 소스 실패");
+  if (!all.length) throw new Error("모든 뉴스 소스 실패");
+  return all.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }
 
 // 기존 AI 채팅과 같은 GLM 모델 사용
@@ -815,12 +830,17 @@ async function writeAndStoreArticles(key: string, raws: any[], topic: ArticleTop
 }
 
 // withBriefing: 매일 오전 9:30 예약 실행 때만 '개장 브리핑'을 새로 쓴다 (평소 1시간 갱신은 기사만)
-async function refreshNews({ withBriefing = false } = {}) {
+async function refreshNews({ withBriefing: forceBriefing = false } = {}) {
+  let withBriefing = forceBriefing;
   const cached = (await kv.get(NEWS_KEY).catch(() => null)) || {};
-  // 예전 방식(링크만 있는) 뉴스는 버리고, AI 기사만 유지
-  const existing = (cached.items || []).filter((i: any) => i.content);
+  // 예전 방식(링크만 있는) 뉴스와 증시와 무관한 원문으로 쓴 기사는 버린다
+  const before = (cached.items || []).length;
+  const existing = (cached.items || []).filter((i: any) => i.content && MARKET_TITLE_RE.test(i.originalTitle || ""));
+  if (existing.length < before) withBriefing = true; // 걸러낸 기사가 있으면 브리핑도 새로 씀
   const known = new Set(existing.map((i: any) => i.url));
-  const raw = (await fetchChineseNews()).filter((r: any) => !known.has(r.url)).slice(0, NEWS_NEW_PER_RUN);
+  const raw = (await fetchChineseNews())
+    .filter((r: any) => !known.has(r.url) && MARKET_TITLE_RE.test(r.title))
+    .slice(0, NEWS_NEW_PER_RUN);
 
   // 동시에 3건씩 작성
   const written: any[] = [];
@@ -868,7 +888,7 @@ async function refreshNews({ withBriefing = false } = {}) {
 app.get("/make-server-c6687586/market/news", async (c) => {
   const cached = await kv.get(NEWS_KEY).catch(() => null);
   // AI 기사(본문 포함)만 보여 준다. 예전 형식만 있으면 바로 새로 만든다.
-  const articles = (cached?.items || []).filter((i: any) => i.content);
+  const articles = (cached?.items || []).filter((i: any) => i.content && MARKET_TITLE_RE.test(i.originalTitle || ""));
   const stale = !cached || articles.length === 0 || Date.now() - new Date(cached.updatedAt).getTime() > NEWS_TTL_MS;
   if (stale) {
     // 동시에 여러 번 갱신하지 않도록 잠금
@@ -1003,6 +1023,7 @@ async function runMorningBriefing() {
 // --- 중국소식 (12:00): 생활·정책 뉴스 2건 ---
 const CHINA_NEWS_KEY = "news:china";
 const CHINA_NEWS_SOURCES = [
+  "https://feed.mix.sina.com.cn/api/roll/get?pageid=155&lid=1686&num=30&page=1", // 국내 생활 (교통·연휴 등)
   "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2510&num=30&page=1", // 国内
   "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2669&num=30&page=1", // 社会
 ];
