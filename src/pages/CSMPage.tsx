@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Plus, Edit, Trash2, Upload, Save, Eye, FileText, Image as ImageIcon, File, X, Check, History, Download, Scale, ShieldCheck, Camera, Paperclip, RefreshCw, MessageSquare, Pin, Bell, Users, Crown, Star } from 'lucide-react@0.487.0';
+import { ArrowLeft, Plus, Edit, Trash2, Upload, Save, Eye, FileText, Image as ImageIcon, File, X, Check, History, Download, Scale, ShieldCheck, Camera, Paperclip, RefreshCw, MessageSquare, Pin, Bell, Users, Crown, Star, Sparkles } from 'lucide-react@0.487.0';
+import { AiContentManager } from '../components/AiContentManager';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -593,7 +594,7 @@ export function CSMPage({ onBack }: CSMPageProps) {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-white">
+          <TabsList className="grid w-full grid-cols-7 bg-white">
             <TabsTrigger value="legal" className="flex items-center space-x-2">
               <Scale className="w-4 h-4" />
               <span>법적 고지</span>
@@ -617,6 +618,10 @@ export function CSMPage({ onBack }: CSMPageProps) {
             <TabsTrigger value="mobileads" className="flex items-center space-x-2">
               <Bell className="w-4 h-4" />
               <span>모바일 광고</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="flex items-center space-x-2">
+              <Sparkles className="w-4 h-4" />
+              <span>AI 콘텐츠</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1118,6 +1123,10 @@ export function CSMPage({ onBack }: CSMPageProps) {
           {/* 모바일 광고 관리 탭 */}
           <TabsContent value="mobileads" className="space-y-6">
             <MobileAdsManager />
+          </TabsContent>
+
+          <TabsContent value="ai" className="space-y-6">
+            <AiContentManager />
           </TabsContent>
         </Tabs>
 

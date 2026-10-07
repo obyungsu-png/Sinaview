@@ -28,7 +28,7 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "x-admin-password"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
@@ -937,27 +937,41 @@ async function writeKoreanArticle(raw: any, topic: ArticleTopic = MARKET_TOPIC) 
 // 서버 함수는 한 번에 쓸 수 있는 시간이 정해져 있어서(약 2.5~6분), 이 안에서만 새 기사를 시작하고 한 건씩 바로 저장한다
 const ARTICLE_TIME_BUDGET_MS = 110_000;
 
+// 보관 개수 정리: 운영자가 '고정'한 기사는 개수와 상관없이 남기고, 나머지는 최신 maxStored 건만 남김
+function keepLatest(items: any[], maxStored: number) {
+  const sorted = [...items].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  let unpinned = 0;
+  return sorted.filter((i) => i.pinned || ++unpinned <= maxStored);
+}
+
 async function writeAndStoreArticles(key: string, raws: any[], topic: ArticleTopic, maxNew: number, maxStored = 40) {
   const started = Date.now();
   const cached = (await kv.get(key).catch(() => null)) || {};
-  let items: any[] = (cached.items || []).filter((i: any) => i.content);
-  // 관련 없음·검열로 버린 원문 (skippedUrls; 예전 skipped 는 시험 중 잘못 쌓인 것이라 쓰지 않음)
-  let skipped: string[] = cached.skippedUrls || [];
-  const reasons: Record<string, number> = {};
-  const known = new Set([...items.map((i: any) => i.url), ...skipped]);
+  // 관련 없음·검열로 버린 원문 + 운영자가 삭제한 기사 (skippedUrls; 예전 skipped 는 시험 중 잘못 쌓인 것이라 쓰지 않음)
+  const known = new Set([...(cached.items || []).map((i: any) => i.url), ...(cached.skippedUrls || [])]);
   const candidates = raws.filter((r) => !known.has(r.url)).slice(0, maxNew * 3);
+  const reasons: Record<string, number> = {};
+  const newItems: any[] = [];
+  const newSkipped: string[] = [];
+  let items: any[] = [];
   let added = 0;
   const failures: string[] = [];
 
-  const save = () => kv.set(key, {
-    ...cached,
-    items: items
-      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-      .slice(0, maxStored),
-    skipped: undefined,
-    skippedUrls: skipped.slice(0, 300),
-    updatedAt: new Date().toISOString(),
-  });
+  // 저장할 때마다 최신 저장값을 다시 읽어 합친다 (작성 중에 운영자가 고치거나 지운 내용을 덮어쓰지 않도록)
+  const save = async () => {
+    const latest = (await kv.get(key).catch(() => null)) || {};
+    const latestItems: any[] = (latest.items || []).filter((i: any) => i.content);
+    const removed = new Set<string>(latest.skippedUrls || []);
+    const have = new Set(latestItems.map((i: any) => i.url));
+    items = keepLatest([...newItems.filter((i) => !have.has(i.url) && !removed.has(i.url)), ...latestItems], maxStored);
+    await kv.set(key, {
+      ...latest,
+      items,
+      skipped: undefined,
+      skippedUrls: [...new Set([...newSkipped, ...(latest.skippedUrls || [])])].slice(0, 500),
+      updatedAt: new Date().toISOString(),
+    });
+  };
 
   // 동시에 2건씩, 시간 안에서만
   for (let k = 0; k < candidates.length && added < maxNew && Date.now() - started < ARTICLE_TIME_BUDGET_MS; k += 2) {
@@ -965,13 +979,13 @@ async function writeAndStoreArticles(key: string, raws: any[], topic: ArticleTop
     const results = await Promise.allSettled(batch.map((r) => writeKoreanArticle(r, topic)));
     results.forEach((r, n) => {
       if (r.status === "fulfilled" && r.value) {
-        items = [r.value, ...items];
+        newItems.unshift(r.value);
         added++;
       } else if (r.status === "fulfilled") {
         const reason = batch[n]._reason || "unknown";
         reasons[reason] = (reasons[reason] || 0) + 1;
         // 관련 없음·검열 거부는 다시 보지 않고, 번역 품질 문제는 다음에 다시 시도
-        if (reason === "irrelevant" || reason === "blocked") skipped = [batch[n].url, ...skipped];
+        if (reason === "irrelevant" || reason === "blocked") newSkipped.unshift(batch[n].url);
       } else {
         failures.push(r.reason?.message || "unknown"); // 일시적 오류는 다음 실행 때 다시 시도
         console.error(`Article failed: ${r.reason?.message}`);
@@ -1001,8 +1015,6 @@ async function refreshNews({ withBriefing: forceBriefing = false } = {}) {
   if (items.length === 0) {
     throw new Error(`작성된 기사 없음 (원문 ${raws.length}건, 후보 ${result.candidates}건, 버린 이유: ${JSON.stringify(result.reasons)}, 오류: ${result.failures.join(" / ") || "없음"})`);
   }
-  const latest = (await kv.get(NEWS_KEY).catch(() => null)) || {};
-
   // AI 개장 브리핑: 지수 + 뉴스 제목으로 3~5줄 요약 (실패해도 뉴스는 저장)
   let briefing = "";
   if (withBriefing || !cached.briefing) try {
@@ -1022,6 +1034,7 @@ async function refreshNews({ withBriefing: forceBriefing = false } = {}) {
   }
 
   const now = new Date().toISOString();
+  const latest = (await kv.get(NEWS_KEY).catch(() => null)) || {};
   const data = {
     ...latest,
     briefing: briefing || cached.briefing || "",
@@ -1173,6 +1186,7 @@ async function runMorningBriefing() {
 
 // --- 중국소식 (12:00): 생활·정책 뉴스 2건 ---
 const CHINA_NEWS_KEY = "news:china";
+const AI_ARTICLES_MAX_STORED = 100; // 중국소식·비자 공지 보관 개수 (고정 기사는 별도)
 const CHINA_NEWS_SOURCES = [
   "https://feed.mix.sina.com.cn/api/roll/get?pageid=155&lid=1686&num=30&page=1", // 국내 생활 (교통·연휴 등)
   "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2510&num=30&page=1", // 国内
@@ -1187,7 +1201,7 @@ const CHINA_TOPIC: ArticleTopic = {
 
 async function runChinaNews() {
   const raws = await fetchChineseNews(CHINA_NEWS_SOURCES);
-  return writeAndStoreArticles(CHINA_NEWS_KEY, raws, CHINA_TOPIC, 2);
+  return writeAndStoreArticles(CHINA_NEWS_KEY, raws, CHINA_TOPIC, 2, AI_ARTICLES_MAX_STORED);
 }
 
 // --- 비자/서류 공지 (17:00): 새 공지가 있을 때만 ---
@@ -1255,7 +1269,7 @@ async function runVisaNotices() {
   const known = new Set([...(cached?.items || []).map((i: any) => i.url), ...(cached?.skippedUrls || [])]);
   const fresh = raws.filter((r) => !known.has(r.url));
   for (const r of fresh) r.body = await fetchPageText(r.url).catch(() => "");
-  return writeAndStoreArticles(VISA_NOTICES_KEY, fresh.filter((r) => r.body), VISA_TOPIC, 2, 30);
+  return writeAndStoreArticles(VISA_NOTICES_KEY, fresh.filter((r) => r.body), VISA_TOPIC, 2, AI_ARTICLES_MAX_STORED);
 }
 
 // --- 오늘의 질문 (10:00): 게시판에 대화 시작 질문 1개 ---
@@ -1440,6 +1454,116 @@ app.get("/make-server-c6687586/automation/status", async (c) => {
   const jobs = [...Object.keys(AUTOMATION_JOBS), "market-news", "claude"];
   const results = await Promise.all(jobs.map((j) => kv.get(`automation:last:${j}`).catch(() => null)));
   return c.json({ success: true, status: Object.fromEntries(jobs.map((j, i) => [j, results[i]])) });
+});
+
+// ===== 운영자: AI 콘텐츠 관리 (CSM 화면) =====
+// 모든 요청에 x-admin-password 헤더가 비밀값 ADMIN_PASSWORD 와 같아야 한다
+const ADMIN_SECTIONS: Record<string, string> = { market: NEWS_KEY, china: CHINA_NEWS_KEY, visa: VISA_NOTICES_KEY };
+const AI_TEXT_LIMITS = { title: 200, summary: 1000, content: 10000, category: 30 };
+
+function sameText(a: string, b: string) {
+  const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b);
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return diff === 0;
+}
+
+// 통과하면 null, 아니면 돌려줄 오류 응답
+async function adminDenied(c: any) {
+  const password = Deno.env.get("ADMIN_PASSWORD");
+  if (!password) return c.json({ success: false, error: "서버에 ADMIN_PASSWORD 가 설정되지 않았습니다." }, 503);
+  if (sameText(c.req.header("x-admin-password") || "", password)) return null;
+  await new Promise((r) => setTimeout(r, 1000)); // 비밀번호 대입 시도를 느리게
+  return c.json({ success: false, error: "운영자 비밀번호가 틀렸습니다." }, 401);
+}
+
+app.post("/make-server-c6687586/admin/check", async (c) => (await adminDenied(c)) || c.json({ success: true }));
+
+// 전체 목록 (사이트 화면과 달리 걸러내지 않고 모두 보여 줌)
+app.get("/make-server-c6687586/admin/ai-content", async (c) => {
+  const denied = await adminDenied(c);
+  if (denied) return denied;
+  const [market, china, visa, morning] = await Promise.all(
+    [NEWS_KEY, CHINA_NEWS_KEY, VISA_NOTICES_KEY, MORNING_KEY].map((k) => kv.get(k).catch(() => null)),
+  );
+  const list = (d: any) => (d?.items || []).filter((i: any) => i.content);
+  return c.json({
+    success: true,
+    sections: { market: list(market), china: list(china), visa: list(visa) },
+    limits: { market: NEWS_MAX_STORED, china: AI_ARTICLES_MAX_STORED, visa: AI_ARTICLES_MAX_STORED },
+    marketBriefing: { text: market?.briefing || "", at: market?.briefingAt || null },
+    morning: morning || null,
+  });
+});
+
+// 기사 수정·고정 (보낸 항목만 바꿈)
+app.put("/make-server-c6687586/admin/ai-content/:section/:id", async (c) => {
+  const denied = await adminDenied(c);
+  if (denied) return denied;
+  const key = ADMIN_SECTIONS[c.req.param("section")];
+  if (!key) return c.json({ success: false, error: "알 수 없는 분류입니다." }, 404);
+  const body = await c.req.json().catch(() => ({}));
+  const data = (await kv.get(key).catch(() => null)) || {};
+  const items: any[] = data.items || [];
+  const idx = items.findIndex((i) => i.id === c.req.param("id"));
+  if (idx < 0) return c.json({ success: false, error: "기사를 찾을 수 없습니다. 새로고침 후 다시 시도해 주세요." }, 404);
+  const next = { ...items[idx] };
+  for (const [field, limit] of Object.entries(AI_TEXT_LIMITS)) {
+    if (body[field] === undefined) continue;
+    const value = String(body[field]).trim();
+    if ((field === "title" || field === "content") && !value) return c.json({ success: false, error: "제목과 본문은 비울 수 없습니다." }, 400);
+    if (value.length > limit) return c.json({ success: false, error: `${field}는 ${limit}자 이내로 써 주세요.` }, 400);
+    next[field] = value;
+  }
+  if (body.pinned !== undefined) next.pinned = !!body.pinned;
+  next.editedAt = new Date().toISOString();
+  items[idx] = next;
+  await kv.set(key, { ...data, items });
+  return c.json({ success: true, item: next });
+});
+
+// 기사 삭제 (같은 원문으로 다시 쓰지 않도록 원문 주소를 기억)
+app.delete("/make-server-c6687586/admin/ai-content/:section/:id", async (c) => {
+  const denied = await adminDenied(c);
+  if (denied) return denied;
+  const key = ADMIN_SECTIONS[c.req.param("section")];
+  if (!key) return c.json({ success: false, error: "알 수 없는 분류입니다." }, 404);
+  const data = (await kv.get(key).catch(() => null)) || {};
+  const items: any[] = data.items || [];
+  const target = items.find((i) => i.id === c.req.param("id"));
+  if (!target) return c.json({ success: false, error: "기사를 찾을 수 없습니다." }, 404);
+  await kv.set(key, {
+    ...data,
+    items: items.filter((i) => i !== target),
+    skippedUrls: [target.url, ...(data.skippedUrls || [])].slice(0, 500),
+  });
+  return c.json({ success: true });
+});
+
+// 증권 개장 브리핑 문구 수정 (다음 평일 09:30 자동 실행 때 새로 써짐)
+app.put("/make-server-c6687586/admin/briefing/market", async (c) => {
+  const denied = await adminDenied(c);
+  if (denied) return denied;
+  const text = String((await c.req.json().catch(() => ({}))).text ?? "").trim();
+  if (text.length > 3000) return c.json({ success: false, error: "브리핑은 3000자 이내로 써 주세요." }, 400);
+  const data = (await kv.get(NEWS_KEY).catch(() => null)) || {};
+  await kv.set(NEWS_KEY, { ...data, briefing: text, briefingAt: new Date().toISOString() });
+  return c.json({ success: true });
+});
+
+// 아침 브리핑 '오늘의 소식' 줄 수정 (다음 날 08:00 자동 실행 때 새로 써짐)
+app.put("/make-server-c6687586/admin/briefing/morning", async (c) => {
+  const denied = await adminDenied(c);
+  if (denied) return denied;
+  const body = await c.req.json().catch(() => ({}));
+  const lines = (Array.isArray(body.lines) ? body.lines : []).map((l: unknown) => String(l).trim()).filter(Boolean);
+  if (lines.length > 10 || lines.some((l: string) => l.length > 300)) {
+    return c.json({ success: false, error: "소식은 10줄, 한 줄 300자 이내로 써 주세요." }, 400);
+  }
+  const data = await kv.get(MORNING_KEY).catch(() => null);
+  if (!data) return c.json({ success: false, error: "아직 아침 브리핑이 없습니다." }, 404);
+  await kv.set(MORNING_KEY, { ...data, lines });
+  return c.json({ success: true });
 });
 
 // ===== 회원 로그인 (Supabase Auth) =====

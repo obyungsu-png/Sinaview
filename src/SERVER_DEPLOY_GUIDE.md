@@ -16,7 +16,7 @@ mv supabase/functions/make-server-c6687586/index.tsx supabase/functions/make-ser
 supabase functions deploy make-server-c6687586 --project-ref rpxmiyieukfuyhldqdto
 ```
 
-필요한 비밀값: `GLM_API_KEY`(AI 채팅 + AI 자동화 기본), `SINAVIEW_CLAUDE_KEY`(GLM이 안 될 때 예비로 쓰는 Claude Sonnet 5, apiclaude.cc 중계 - 없으면 GLM만 사용), `SUPABASE_URL`·`SUPABASE_ANON_KEY`·`SUPABASE_SERVICE_ROLE_KEY`(Supabase가 자동 제공)
+필요한 비밀값: `ADMIN_PASSWORD`(CSM > AI 콘텐츠 관리용 운영자 비밀번호, 길게), `GLM_API_KEY`(AI 채팅 + AI 자동화 기본), `SINAVIEW_CLAUDE_KEY`(GLM이 안 될 때 예비로 쓰는 Claude Sonnet 5, apiclaude.cc 중계 - 없으면 GLM만 사용), `SUPABASE_URL`·`SUPABASE_ANON_KEY`·`SUPABASE_SERVICE_ROLE_KEY`(Supabase가 자동 제공)
 
 ## 1. 증권 시세·뉴스 자동 갱신
 - `GET /market/quotes`: 텐센트 증권 공개 시세 → 5분 캐시 (`market:quotes`)
@@ -57,8 +57,8 @@ supabase functions deploy make-server-c6687586 --project-ref rpxmiyieukfuyhldqdt
 | `morning` | 매일 08:00 | `0 0 * * *` | 원/위안 환율 + 7개 도시 날씨 + 오늘의 소식 3줄 | 메인 맨 위 "아침 브리핑" |
 | `market` | 월~금 09:30 | `30 1 * * 1-5` | 시세 + 새 증권 기사 + 개장 브리핑 | 증권 섹션·페이지 |
 | `question` | 매일 10:00 | `0 2 * * *` | 게시판에 "오늘의 질문" 1개 (작성자: 차이나뷰 AI) | 게시판 |
-| `china-news` | 매일 12:00 | `0 4 * * *` | 중국 생활·정책 뉴스 2건 한국어 기사 | 중국소식 섹션 |
-| `visa` | 매일 17:00 | `0 9 * * *` | 대사관·이민관리국 새 공지 요약 (새 공지 있을 때만, 최대 2건) | 비자/서류 섹션 "최신 공지" |
+| `china-news` | 매일 12:00 | `0 4 * * *` | 중국 생활·정책 뉴스 2건 한국어 기사 (최근 100건 보관) | 중국소식 섹션 |
+| `visa` | 매일 17:00 | `0 9 * * *` | 대사관·이민관리국 새 공지 요약 (새 공지 있을 때만, 최대 2건, 최근 100건 보관) | 비자/서류 섹션 "최신 공지" |
 | `weekly-top` | 일요일 20:00 | `0 12 * * 0` | 지난 7일 회원 글 TOP 5 정리 (회원 글 3개 미만이면 건너뜀) | 게시판 맨 위 공지 |
 | `ai-answer` | 매시간 15분 | `15 * * * *` | 1~7일 동안 댓글 없는 질문 글에 AI 참고 답변 (한 번에 최대 3건) | 해당 글 댓글 |
 
@@ -99,3 +99,11 @@ select cron.schedule('sinaview-ai-answer',  '15 * * * *',   $$ select public.sin
 - 하나 끄기: `select cron.unschedule('sinaview-question');`
 - 4번 SQL을 이미 실행했다면 함수(create ...)와 앞의 5개는 건너뛰고 **마지막 2줄(weekly-top, ai-answer)만** 실행하세요.
 - 예전에 `sinaview-market-0930`을 이미 등록했다면 먼저 `select cron.unschedule('sinaview-market-0930');` 후 실행
+
+## 5. AI 콘텐츠 관리 (CSM > AI 콘텐츠 탭)
+- 상단 CSM → "AI 콘텐츠" 탭 → 운영자 비밀번호(`ADMIN_PASSWORD`) 입력
+- 증권 기사·중국소식·비자 공지: 제목·분류·요약·본문 수정, 삭제, 📌 고정
+  - 보관 개수: 증권 40건, 중국소식·비자 공지 100건. 넘으면 오래된 것부터 지워지지만 **고정한 기사는 지워지지 않음**
+  - 삭제한 기사는 같은 원문으로 다시 쓰지 않음
+- 증권 개장 브리핑·아침 브리핑(오늘의 소식 줄) 문구 수정 → 다음 자동 실행 때 새로 써짐
+- 서버 주소(모두 헤더 `x-admin-password` 필요): `GET /admin/ai-content`, `PUT|DELETE /admin/ai-content/:market|china|visa/:id`, `PUT /admin/briefing/market`, `PUT /admin/briefing/morning`
