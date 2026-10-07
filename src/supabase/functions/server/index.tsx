@@ -1122,6 +1122,104 @@ async function runDailyQuestion() {
   return { post };
 }
 
+// --- 주간 인기글 정리 (일요일 20:00): 지난 7일 회원 글 TOP 5 를 공지로 ---
+const DAY_MS = 24 * 3600 * 1000;
+
+async function runWeeklyTop() {
+  const [posts, stats] = await Promise.all([kv.get(COMMUNITY_POSTS_KEY), kv.get(COMMUNITY_STATS_KEY)]);
+  const all: any[] = posts || [];
+  const s = stats || {};
+  const since = Date.now() - 7 * DAY_MS;
+  // 점수 = 추천×3 + 댓글×2 + 조회÷10 (AI 글·공지는 제외)
+  const ranked = all
+    .filter((p) => p.id >= since && !p.isAi && !p.badgeType)
+    .map((p) => {
+      const st = s[p.id] || {};
+      return { ...p, likes: st.likes || 0, comments: st.comments || 0, views: st.views || 0 };
+    })
+    .map((p) => ({ ...p, score: p.likes * 3 + p.comments * 2 + p.views / 10 }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  if (ranked.length < 3) return { skipped: "이번 주 회원 글이 3개 미만" };
+
+  const now = new Date(Date.now() + 8 * 3600 * 1000);
+  const label = `${now.getUTCMonth() + 1}월 ${Math.ceil(now.getUTCDate() / 7)}째 주`;
+  const lines = ranked.map((p, i) => `${i + 1}. ${p.title}\n   ${p.author} · 추천 ${p.likes} · 댓글 ${p.comments} · 조회 ${p.views}`);
+  const post = {
+    id: Date.now(),
+    title: `[주간 인기글] ${label} TOP ${ranked.length}`,
+    content: `이번 주 회원님들이 가장 많이 보고 추천한 글입니다.\n\n${lines.join("\n\n")}\n\n` +
+      `게시판에서 제목으로 검색하면 바로 볼 수 있어요. 다음 주에도 좋은 글 기다릴게요!`,
+    category: "자유",
+    badge: "공지",
+    badgeType: "notice",
+    isWeekly: true,
+    isAi: true,
+    author: "차이나뷰",
+    authorKey: "ai",
+    date: formatDate(new Date()),
+    views: 0, likes: 0, comments: 0,
+  };
+  // 지난주 정리 글은 공지 고정을 푼다 (맨 위에는 최신 정리 글만)
+  const unpinned = all.map((p) => (p.isWeekly ? { ...p, badge: undefined, badgeType: undefined } : p));
+  await kv.set(COMMUNITY_POSTS_KEY, [post, ...unpinned]);
+  return { post };
+}
+
+// --- AI 첫 답변 (매시간): 24시간 동안 댓글이 없는 질문 글에 참고 답변 ---
+const AI_ANSWERED_KEY = "community:ai-answered";
+const AI_ANSWER_PER_RUN = 3;
+
+async function runAiAnswers() {
+  const [posts, stats, answered] = await Promise.all([
+    kv.get(COMMUNITY_POSTS_KEY), kv.get(COMMUNITY_STATS_KEY), kv.get(AI_ANSWERED_KEY),
+  ]);
+  const done = new Set<number>(answered || []);
+  const s = stats || {};
+  const now = Date.now();
+  const targets = (posts || [])
+    .filter((p: any) => !p.isAi && !done.has(p.id))
+    .filter((p: any) => now - p.id >= DAY_MS && now - p.id <= 7 * DAY_MS)   // 1~7일 된 글
+    .filter((p: any) => !(s[p.id]?.comments > 0))                           // 아직 댓글 없음
+    .slice(0, AI_ANSWER_PER_RUN);
+
+  let added = 0;
+  for (const p of targets) {
+    done.add(p.id); // 답변하지 않기로 한 글도 다시 보지 않음
+    try {
+      const result = extractJsonObject(await callGLM(
+        "당신은 중국에 사는 한인 커뮤니티의 친절한 도우미입니다. 회원의 질문에 한국어로만 답합니다. " +
+        "규칙: 1) 확실하지 않은 내용은 추측하지 말고 '확인이 필요하다'고 쓰세요. 2) 전화번호·주소·가격을 지어내지 마세요. " +
+        "3) 비자·법률·의료 질문은 공식 기관 확인을 권하세요. 4) 반드시 JSON 객체 하나만 출력하세요.",
+        `아래 게시글이 답을 구하는 질문이면 isQuestion을 true로 하고 도움이 되는 답변을 3~6문장으로 쓰세요. ` +
+        `질문이 아니면(후기·판매·잡담) isQuestion을 false로 하세요.\n` +
+        `형식: {"isQuestion":true,"answer":"답변"}\n\n분류: ${p.category}\n제목: ${p.title}\n내용: ${String(p.content).slice(0, 1500)}`,
+        2000,
+      ));
+      const answer = String(result.answer || "").trim();
+      if (!result.isQuestion || answer.length < 20 || hasForeignScript(answer)) continue;
+
+      const comments = (await kv.get(commentsKey(p.id))) || [];
+      if (comments.length) continue; // 그사이 회원 댓글이 달렸으면 건너뜀
+      const comment = {
+        id: Date.now(),
+        author: "차이나뷰 AI",
+        authorKey: "ai",
+        isAi: true,
+        content: `🤖 아직 답변이 없어 AI가 참고 답변을 드려요.\n\n${answer}\n\n※ AI 답변은 틀릴 수 있어요. 경험 있는 회원님들의 댓글도 기다립니다!`,
+        date: formatDate(new Date(), true),
+      };
+      await kv.set(commentsKey(p.id), [comment]);
+      await updateStats(p.id, (st) => { st.comments = 1; });
+      added++;
+    } catch (e) {
+      console.error(`AI answer failed (${p.id}): ${e.message}`);
+    }
+  }
+  await kv.set(AI_ANSWERED_KEY, [...done].slice(-500));
+  return { checked: targets.length, added };
+}
+
 // --- 조회용 주소 ---
 app.get("/make-server-c6687586/daily/morning", async (c) => {
   const data = await kv.get(MORNING_KEY).catch(() => null);
@@ -1142,6 +1240,8 @@ const AUTOMATION_JOBS: Record<string, () => Promise<unknown>> = {
   question: runDailyQuestion,
   visa: runVisaNotices,
   market: () => refreshQuotes().catch(() => null).then(() => refreshNews({ withBriefing: true })),
+  "weekly-top": runWeeklyTop,
+  "ai-answer": runAiAnswers,
 };
 
 app.post("/make-server-c6687586/automation/run/:job", async (c) => {

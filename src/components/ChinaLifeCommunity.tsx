@@ -769,6 +769,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
         .comment-content {
             font-size: 14px;
             line-height: 1.6;
+            white-space: pre-line;
             color: #555;
             margin-bottom: 10px;
             padding-left: 42px;
@@ -1075,6 +1076,9 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                           <span className={`badge-box ${post.badgeType === 'important' ? 'notice' : ''}`}>
                             {post.badge}
                           </span>
+                        ) : post.authorKey ? (
+                          // 회원 글은 번호가 길어서 분류 이름을 표시
+                          <span style={{fontSize: '11px', color: '#888', whiteSpace: 'nowrap'}}>{post.category}</span>
                         ) : (
                           post.id
                         )}
@@ -1202,7 +1206,10 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                           {comment.author?.[0] || '?'}
                         </div>
                         <div>
-                          <div className="comment-author-name">{comment.author || 'Unknown'}</div>
+                          <div className="comment-author-name">
+                            {comment.author || 'Unknown'}
+                            {comment.isAi && <span style={{fontSize: '10px', color: '#0f766e', background: '#f0fbf9', border: '1px solid #cdeee8', borderRadius: '4px', padding: '0 4px', marginLeft: '4px'}}>AI</span>}
+                          </div>
                           <div className="comment-date">{comment.date}</div>
                         </div>
                       </div>

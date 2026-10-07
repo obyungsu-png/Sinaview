@@ -59,6 +59,8 @@ supabase functions deploy make-server-c6687586 --project-ref rpxmiyieukfuyhldqdt
 | `question` | 매일 10:00 | `0 2 * * *` | 게시판에 "오늘의 질문" 1개 (작성자: 차이나뷰 AI) | 게시판 |
 | `china-news` | 매일 12:00 | `0 4 * * *` | 중국 생활·정책 뉴스 2건 한국어 기사 | 중국소식 섹션 |
 | `visa` | 매일 17:00 | `0 9 * * *` | 대사관·이민관리국 새 공지 요약 (새 공지 있을 때만, 최대 2건) | 비자/서류 섹션 "최신 공지" |
+| `weekly-top` | 일요일 20:00 | `0 12 * * 0` | 지난 7일 회원 글 TOP 5 정리 (회원 글 3개 미만이면 건너뜀) | 게시판 맨 위 공지 |
+| `ai-answer` | 매시간 15분 | `15 * * * *` | 1~7일 동안 댓글 없는 질문 글에 AI 참고 답변 (한 번에 최대 3건) | 해당 글 댓글 |
 
 - 실행 주소: `POST /automation/run/<작업>` + 헤더 `x-cron-secret: <CRON_SECRET>`
 - 상태 확인: `GET /automation/status` (작업별 마지막 실행 시각·성공 여부)
@@ -88,8 +90,11 @@ select cron.schedule('sinaview-market-0930','30 1 * * 1-5', $$ select public.sin
 select cron.schedule('sinaview-question',   '0 2 * * *',    $$ select public.sinaview_run('question') $$);
 select cron.schedule('sinaview-china-news', '0 4 * * *',    $$ select public.sinaview_run('china-news') $$);
 select cron.schedule('sinaview-visa',       '0 9 * * *',    $$ select public.sinaview_run('visa') $$);
+select cron.schedule('sinaview-weekly-top', '0 12 * * 0',   $$ select public.sinaview_run('weekly-top') $$);
+select cron.schedule('sinaview-ai-answer',  '15 * * * *',   $$ select public.sinaview_run('ai-answer') $$);
 ```
 - 바로 한 번 실행해 보기: `select public.sinaview_run('morning');` (1~2분 뒤 메인에 아침 브리핑)
 - 등록 확인: `select jobname, schedule from cron.job;`
 - 하나 끄기: `select cron.unschedule('sinaview-question');`
+- 4번 SQL을 이미 실행했다면 함수(create ...)와 앞의 5개는 건너뛰고 **마지막 2줄(weekly-top, ai-answer)만** 실행하세요.
 - 예전에 `sinaview-market-0930`을 이미 등록했다면 먼저 `select cron.unschedule('sinaview-market-0930');` 후 실행

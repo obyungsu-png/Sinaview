@@ -10,7 +10,7 @@ import { CHINA_LIFE_POSTS, Post, BoardCategory } from '../data/chinaLifePosts';
  * 게시판·인기글·회원 이야기가 모두 이 목록을 함께 사용한다.
  */
 type Stats = { views: number; likes: number; comments: number };
-export interface PostComment { id: number; author: string; authorKey: string; content: string; date: string }
+export interface PostComment { id: number; author: string; authorKey: string; content: string; date: string; isAi?: boolean }
 
 let userPosts: Post[] = [];
 let stats: Record<number, Stats> = {};
