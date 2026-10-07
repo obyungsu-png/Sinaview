@@ -793,6 +793,14 @@ export function extractJsonObject(text: string) {
   throw new Error("GLM 응답의 JSON 이 끝나지 않음");
 }
 
+// 괄호 안 한자 병기 "상하이종합지수(上证指数)" 는 지우고 정리
+export function stripHanzi(text: string) {
+  return text
+    .replace(/\s*[（(][^()（）]*[\u3040-\u30ff\u4e00-\u9fff][^()（）]*[)）]/g, "")
+    .replace(/[“”]/g, '"')
+    .trim();
+}
+
 // 한국어 기사에 한자·일본어 글자가 남아 있으면 번역 실패로 본다
 export const hasForeignScript = (text: string) => /[぀-ヿ一-鿿]/.test(text);
 
@@ -827,17 +835,19 @@ async function writeKoreanArticle(raw: any, topic: ArticleTopic = MARKET_TOPIC) 
     `출처: ${raw.source}\n제목: ${raw.title}\n본문:\n${body}`,
     4000,
   ).catch((e) => {
-    if (e instanceof GLMBlockedError) return { relevant: false }; // 검열로 거부된 원문은 건너뜀
+    if (e instanceof GLMBlockedError) return { relevant: false, blocked: true }; // 검열로 거부된 원문은 건너뜀
     throw e;
   });
-  if (!result.relevant) return null;
-  const title = String(result.title || "").trim();
-  const content = String(result.content || "").trim();
-  if (!title || content.length < 100 || hasForeignScript(title) || hasForeignScript(content)) return null;
+  // 버린 이유를 원문에 표시 (상태 기록·재시도 판단용)
+  if (!result.relevant) { raw._reason = result.blocked ? "blocked" : "irrelevant"; return null; }
+  const title = stripHanzi(String(result.title || ""));
+  const content = stripHanzi(String(result.content || ""));
+  if (!title || content.length < 100) { raw._reason = "short"; return null; }
+  if (hasForeignScript(title) || hasForeignScript(content)) { raw._reason = "foreign"; return null; }
   return {
     id: newsId(raw.url),
     title,
-    summary: String(result.summary || "").trim(),
+    summary: stripHanzi(String(result.summary || "")),
     content,
     category: topic.categories.includes(result.category) ? result.category : topic.categories[0],
     originalTitle: raw.title,
@@ -855,7 +865,9 @@ async function writeAndStoreArticles(key: string, raws: any[], topic: ArticleTop
   const started = Date.now();
   const cached = (await kv.get(key).catch(() => null)) || {};
   let items: any[] = (cached.items || []).filter((i: any) => i.content);
-  let skipped: string[] = cached.skipped || [];
+  // 관련 없음·검열로 버린 원문 (skippedUrls; 예전 skipped 는 시험 중 잘못 쌓인 것이라 쓰지 않음)
+  let skipped: string[] = cached.skippedUrls || [];
+  const reasons: Record<string, number> = {};
   const known = new Set([...items.map((i: any) => i.url), ...skipped]);
   const candidates = raws.filter((r) => !known.has(r.url)).slice(0, maxNew * 3);
   let added = 0;
@@ -866,7 +878,8 @@ async function writeAndStoreArticles(key: string, raws: any[], topic: ArticleTop
     items: items
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
       .slice(0, maxStored),
-    skipped: skipped.slice(0, 300),
+    skipped: undefined,
+    skippedUrls: skipped.slice(0, 300),
     updatedAt: new Date().toISOString(),
   });
 
@@ -879,7 +892,10 @@ async function writeAndStoreArticles(key: string, raws: any[], topic: ArticleTop
         items = [r.value, ...items];
         added++;
       } else if (r.status === "fulfilled") {
-        skipped = [batch[n].url, ...skipped]; // 주제와 관련 없는 원문은 다시 검토하지 않음
+        const reason = batch[n]._reason || "unknown";
+        reasons[reason] = (reasons[reason] || 0) + 1;
+        // 관련 없음·검열 거부는 다시 보지 않고, 번역 품질 문제는 다음에 다시 시도
+        if (reason === "irrelevant" || reason === "blocked") skipped = [batch[n].url, ...skipped];
       } else {
         failures.push(r.reason?.message || "unknown"); // 일시적 오류는 다음 실행 때 다시 시도
         console.error(`Article failed: ${r.reason?.message}`);
@@ -888,7 +904,7 @@ async function writeAndStoreArticles(key: string, raws: any[], topic: ArticleTop
     await save();
   }
   if (!candidates.length) await save();
-  return { items, added, candidates: candidates.length, failures: failures.slice(0, 3), seconds: Math.round((Date.now() - started) / 1000) };
+  return { items, added, candidates: candidates.length, reasons, failures: failures.slice(0, 3), seconds: Math.round((Date.now() - started) / 1000) };
 }
 
 // withBriefing: 매일 오전 9:30 예약 실행 때만 '개장 브리핑'을 새로 쓴다 (평소 1시간 갱신은 기사만)
@@ -907,7 +923,7 @@ async function refreshNews({ withBriefing: forceBriefing = false } = {}) {
   await kv.set("automation:last:market-news", { ok: true, ...result, items: undefined, at: new Date().toISOString() });
   const items = result.items;
   if (items.length === 0) {
-    throw new Error(`작성된 기사 없음 (원문 ${raws.length}건, 후보 ${result.candidates}건, 오류: ${result.failures.join(" / ") || "없음"})`);
+    throw new Error(`작성된 기사 없음 (원문 ${raws.length}건, 후보 ${result.candidates}건, 버린 이유: ${JSON.stringify(result.reasons)}, 오류: ${result.failures.join(" / ") || "없음"})`);
   }
   const latest = (await kv.get(NEWS_KEY).catch(() => null)) || {};
 
@@ -1160,7 +1176,7 @@ async function runVisaNotices() {
   if (!raws.length) throw new Error("공지 목록을 가져오지 못함");
   // 처음 실행할 때는 기존 공지 중 최신 2건만, 이후에는 새 공지만 작성
   const cached = await kv.get(VISA_NOTICES_KEY).catch(() => null);
-  const known = new Set([...(cached?.items || []).map((i: any) => i.url), ...(cached?.skipped || [])]);
+  const known = new Set([...(cached?.items || []).map((i: any) => i.url), ...(cached?.skippedUrls || [])]);
   const fresh = raws.filter((r) => !known.has(r.url));
   for (const r of fresh) r.body = await fetchPageText(r.url).catch(() => "");
   return writeAndStoreArticles(VISA_NOTICES_KEY, fresh.filter((r) => r.body), VISA_TOPIC, 2, 30);
