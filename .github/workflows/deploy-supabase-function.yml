@@ -1,0 +1,46 @@
+# 서버 코드(src/supabase/functions/server)가 main 에 올라오면 Supabase Edge Function 에 자동 배포
+# 준비: GitHub 저장소 Settings → Secrets and variables → Actions → New repository secret
+#       이름 SUPABASE_ACCESS_TOKEN, 값은 Supabase → Account → Access Tokens 에서 만든 토큰
+name: Deploy Supabase function
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/supabase/functions/server/**'
+  workflow_dispatch:   # Actions 탭에서 수동 실행도 가능
+
+concurrency:
+  group: deploy-supabase-function
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: rpxmiyieukfuyhldqdto
+      FUNCTION_NAME: make-server-c6687586
+    steps:
+      - name: Check token
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN 비밀값이 없습니다. 저장소 Settings → Secrets 에 추가해 주세요."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Supabase CLI 는 supabase/functions/<함수이름>/index.ts 구조를 쓴다
+      - name: Prepare function folder
+        run: |
+          mkdir -p "supabase/functions/$FUNCTION_NAME"
+          cp src/supabase/functions/server/* "supabase/functions/$FUNCTION_NAME/"
+          mv "supabase/functions/$FUNCTION_NAME/index.tsx" "supabase/functions/$FUNCTION_NAME/index.ts"
+
+      - name: Deploy
+        run: supabase functions deploy "$FUNCTION_NAME" --project-ref "$PROJECT_REF"
