@@ -862,7 +862,9 @@ async function refreshNews({ withBriefing: forceBriefing = false } = {}) {
   const result = await writeAndStoreArticles(NEWS_KEY, raws, MARKET_TOPIC, NEWS_NEW_PER_RUN, NEWS_MAX_STORED);
   await kv.set("automation:last:market-news", { ok: true, ...result, items: undefined, at: new Date().toISOString() });
   const items = result.items;
-  if (items.length === 0) throw new Error("작성된 기사 없음");
+  if (items.length === 0) {
+    throw new Error(`작성된 기사 없음 (원문 ${raws.length}건, 후보 ${result.candidates}건, 오류: ${result.failures.join(" / ") || "없음"})`);
+  }
   const latest = (await kv.get(NEWS_KEY).catch(() => null)) || {};
 
   // AI 개장 브리핑: 지수 + 뉴스 제목으로 3~5줄 요약 (실패해도 뉴스는 저장)
