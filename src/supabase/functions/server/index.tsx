@@ -777,21 +777,38 @@ async function callClaude(system: string, user: string, maxTokens = 4000) {
   return content as string;
 }
 
-// 자동화용 AI 호출: Claude 먼저, 실패하거나 키가 없으면 GLM (AI 채팅은 별도로 GLM 사용)
-async function callAI(system: string, user: string, maxTokens = 4000, opts: { json?: boolean } = {}) {
-  if (Deno.env.get("CLAUDE_API_KEY")) {
-    try {
-      return await callClaude(system, user, maxTokens);
-    } catch (e) {
-      console.error(`Claude failed, falling back to GLM: ${e.message}`);
-      await kv.set("automation:last:claude", { ok: false, error: e.message, at: new Date().toISOString() }).catch(() => {});
-    }
+// 자동화용 AI 호출: GLM 먼저, 오류·검열 거부면 Claude (AI 채팅은 별도로 GLM 사용)
+const hasClaude = () => !!Deno.env.get("CLAUDE_API_KEY");
+
+async function viaClaude<T>(reason: string, run: () => Promise<T>): Promise<T> {
+  console.warn(`GLM 실패 → Claude 로 재시도: ${reason}`);
+  try {
+    const result = await run();
+    await kv.set("automation:last:claude", { ok: true, reason, at: new Date().toISOString() }).catch(() => {});
+    return result;
+  } catch (e) {
+    await kv.set("automation:last:claude", { ok: false, reason, error: e.message, at: new Date().toISOString() }).catch(() => {});
+    throw e;
   }
-  return callGLM(system, user, maxTokens, opts);
 }
 
+async function callAI(system: string, user: string, maxTokens = 4000, opts: { json?: boolean } = {}) {
+  try {
+    return await callGLM(system, user, maxTokens, opts);
+  } catch (e) {
+    if (!hasClaude()) throw e;
+    return viaClaude(e.message, () => callClaude(system, user, maxTokens));
+  }
+}
+
+// JSON 응답: GLM 응답의 형식이 깨져도 Claude 로 다시 시도
 async function callAIJson(system: string, user: string, maxTokens = 4000) {
-  return extractJsonObject(await callAI(system, user, maxTokens, { json: true }));
+  try {
+    return extractJsonObject(await callGLM(system, user, maxTokens, { json: true }));
+  } catch (e) {
+    if (!hasClaude()) throw e;
+    return viaClaude(e.message, async () => extractJsonObject(await callClaude(system, user, maxTokens)));
+  }
 }
 
 // GLM 응답에서 JSON 배열만 꺼내기 (<think> 등 제거)
@@ -867,32 +884,47 @@ const MARKET_TOPIC: ArticleTopic = {
 // 기사 1건 → AI 한국어 기사 (주제와 관련 없으면 null)
 async function writeKoreanArticle(raw: any, topic: ArticleTopic = MARKET_TOPIC) {
   const body = raw.body || (await fetchArticleText(raw.url)) || raw.intro;
-  const result = await callAIJson(
+  const system =
     `당신은 재중 한인을 위한 ${topic.writer}입니다. 기사를 읽고 한국 독자를 위한 한국어 기사로 다시 씁니다. ` +
     "규칙: 1) 모든 문장은 한국어로만 쓰고 한자·일본어 글자를 쓰지 마세요(인명·지명·기업명은 한글 표기). " +
     `2) 원문에 없는 사실·숫자를 지어내지 마세요. ${topic.extraRule ? `3) ${topic.extraRule} ` : ""}` +
-    "반드시 JSON 객체 하나만 출력하세요.",
+    "반드시 JSON 객체 하나만 출력하세요.";
+  const user =
     `relevant 기준: ${topic.relevance}\n` +
     `형식: {"relevant":true,"category":"${topic.categories.join("|")} 중 하나","title":"한국어 제목(40자 이내)",` +
     `"summary":"한국어 2문장 요약","content":"한국어 본문 4~6문단(문단 사이는 빈 줄), 600~1000자",` +
     `"source":"언론사·기관 이름 한글 표기"}\n\n` +
-    `출처: ${raw.source}\n제목: ${raw.title}\n본문:\n${body}`,
-    4000,
-  ).catch((e) => {
-    if (e instanceof GLMBlockedError) return { relevant: false, blocked: true }; // 검열로 거부된 원문은 건너뜀
+    `출처: ${raw.source}\n제목: ${raw.title}\n본문:\n${body}`;
+
+  // 결과 검사: 문제가 있으면 이유를 돌려줌
+  const problem = (r: any) => {
+    if (!r.relevant) return r.blocked ? "blocked" : "irrelevant";
+    const t = stripHanzi(String(r.title || "")), c = stripHanzi(String(r.content || ""));
+    if (!t || c.length < 100) return "short";
+    if (hasForeignScript(t) || hasForeignScript(c)) return "foreign";
+    return null;
+  };
+
+  // GLM 먼저 (오류·검열이면 callAIJson 안에서 Claude 로 넘어감)
+  let result: any = await callAIJson(system, user, 4000).catch((e) => {
+    if (e instanceof GLMBlockedError) return { relevant: false, blocked: true }; // Claude 키가 없을 때 검열 거부
     throw e;
   });
+  // GLM 글이 너무 짧거나 한자가 남았으면 Claude 로 한 번 더
+  const first = problem(result);
+  if ((first === "short" || first === "foreign") && hasClaude()) {
+    result = await viaClaude(`기사 품질 문제(${first})`, async () => extractJsonObject(await callClaude(system, user, 4000)))
+      .catch(() => result);
+  }
+
   // 버린 이유를 원문에 표시 (상태 기록·재시도 판단용)
-  if (!result.relevant) { raw._reason = result.blocked ? "blocked" : "irrelevant"; return null; }
-  const title = stripHanzi(String(result.title || ""));
-  const content = stripHanzi(String(result.content || ""));
-  if (!title || content.length < 100) { raw._reason = "short"; return null; }
-  if (hasForeignScript(title) || hasForeignScript(content)) { raw._reason = "foreign"; return null; }
+  const reason = problem(result);
+  if (reason) { raw._reason = reason; return null; }
   return {
     id: newsId(raw.url),
-    title,
+    title: stripHanzi(String(result.title)),
     summary: stripHanzi(String(result.summary || "")),
-    content,
+    content: stripHanzi(String(result.content)),
     category: topic.categories.includes(result.category) ? result.category : topic.categories[0],
     originalTitle: raw.title,
     source: result.source && !hasForeignScript(String(result.source)) ? String(result.source) : "중국 현지 언론",
