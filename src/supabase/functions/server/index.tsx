@@ -704,7 +704,7 @@ async function fetchChineseNews(sources: string[] = NEWS_SOURCES) {
 }
 
 // GLM 호출 - 자동 기사·브리핑은 빠르고 형식을 잘 지키는 glm-4-flash 사용
-// (AI 채팅은 별도로 glm-z1-flash 사용). 모델이 없다는 오류면 glm-z1-flash 로 한 번 더 시도.
+// (AI 채팅도 동일하게 glm-4-flash 사용). 모델이 없다는 오류면 glm-z1-flash 로 한 번 더 시도.
 const GLM_CONTENT_MODEL = Deno.env.get("GLM_CONTENT_MODEL") || "glm-4-flash";
 const GLM_FALLBACK_MODEL = "glm-z1-flash";
 
