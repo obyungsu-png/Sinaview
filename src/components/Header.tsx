@@ -353,9 +353,9 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
           </div>
         </div>
 
-        {/* Service Navigation - Desktop only */}
-        <nav className="mt-2 sm:mt-4 -mx-1 sm:mx-0">
-          <div className="flex items-center space-x-5 sm:space-x-8 text-[14px] sm:text-base overflow-x-auto px-1 sm:px-0 pb-1.5 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        {/* Service Navigation - 모바일: 5칸 2줄로 한눈에, 데스크탑: 한 줄 */}
+        <nav className="mt-2.5 sm:mt-4">
+          <div className="grid grid-cols-[repeat(5,auto)] justify-between items-center gap-y-2 text-[13.5px] sm:flex sm:justify-start sm:gap-y-0 sm:space-x-8 sm:text-base sm:overflow-x-auto pb-1 sm:pb-1.5 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button 
               onClick={() => navTab('visa', 'visa-documents', 'visa-documents-mobile')}
               className="hover:text-green-600 whitespace-nowrap"
@@ -420,9 +420,9 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
             {/* 학습 센터 드롭다운 */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="hover:text-green-600 whitespace-nowrap flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 hover:shadow-md transition-all">
+                <button className="hover:text-green-600 whitespace-nowrap flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 py-0.5 sm:py-1.5 -my-0.5 sm:my-0 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 hover:shadow-md transition-all">
                   <span className="text-purple-600 font-semibold">학습센터</span>
-                  <span className="text-purple-400 text-xs">▼</span>
+                  <span className="text-purple-400 text-[10px] sm:text-xs">▼</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 bg-white shadow-xl">

@@ -185,7 +185,7 @@ export function VisaDocumentSection({ category, onMoreClick, onArticleClick }: V
         <h2 className="text-lg font-semibold mb-3 whitespace-nowrap">{category}</h2>
         
         {/* 서브카테고리 탭 - 이미지와 같은 스타일 */}
-        <div className="flex items-center space-x-1 text-sm text-gray-600">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-gray-600">
           {subcategories.map((subcat, index) => (
             <div key={subcat.id} className="contents">
               <button

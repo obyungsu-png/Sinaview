@@ -298,6 +298,12 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
             .board-table .badge-box { white-space: nowrap; padding: 2px 5px; font-size: 10px; }
             .board-table col.col-author { width: 76px !important; }
             .board-table .title-col { max-width: none; }
+            /* 모바일: 선택 체크박스는 숨기고 제목을 크게·줄 간격을 넉넉하게 (손가락으로 누르기 쉽게) */
+            .board-table .col-check { display: none; }
+            .board-table td { padding: 11px 4px !important; }
+            .board-table td.title-col { font-size: 13.5px !important; }
+            .board-footer .footer-left { display: none; }
+            .board-footer { justify-content: flex-end; }
             .toolbar {
                 flex-wrap: wrap;
                 gap: 6px;
@@ -1051,7 +1057,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                 </colgroup>
                 <thead>
                   <tr>
-                    <th><input type="checkbox" /></th>
+                    <th className="col-check"><input type="checkbox" /></th>
                     <th>구분</th>
                     <th>제목</th>
                     <th>작성자</th>
@@ -1070,7 +1076,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                     </tr>
                   ) : filteredPosts.map((post) => (
                     <tr key={post.id} style={post.badgeType === 'important' ? {backgroundColor: '#fafafa'} : {}}>
-                      <td><input type="checkbox" /></td>
+                      <td className="col-check"><input type="checkbox" /></td>
                       <td>
                         {post.badge ? (
                           <span className={`badge-box ${post.badgeType === 'important' ? 'notice' : ''}`}>

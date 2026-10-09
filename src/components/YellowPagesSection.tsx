@@ -432,7 +432,7 @@ export function YellowPagesSection({ category, onMoreClick }: YellowPagesSection
         </div>
         
         {/* 서브카테고리 탭 */}
-        <div className="flex items-center space-x-1 text-sm text-gray-600 mb-4 pt-3 border-t border-gray-100">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-gray-600 mb-4 pt-3 border-t border-gray-100">
           {subcategories.map((subcat, index) => (
             <div key={subcat.id} className="contents">
               <button

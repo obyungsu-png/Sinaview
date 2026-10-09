@@ -154,7 +154,7 @@ export function SecuritiesSection({ category, onMoreClick }: SecuritiesSectionPr
         </div>
         
         {/* 서브카테고리 탭 */}
-        <div className="flex items-center space-x-1 text-sm text-gray-600">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-gray-600">
           {subcategories.map((subcat, index) => (
             <div key={subcat.id} className="contents">
               <button
