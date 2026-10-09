@@ -302,7 +302,7 @@ export function AiAssistantWidget() {
       {/* AI 도움 버튼 (이모티콘) */}
       <button
         onClick={() => setIsOpen(true)}
-        className="ai-fab fixed bottom-6 right-6 z-50"
+        className="ai-fab fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50"
         aria-label="AI에게 물어보세요"
         title="AI에게 물어보세요"
       >

@@ -106,7 +106,7 @@ const CONTENT_LABELS = {
 export function MobileHome({
   currentUser, isAdmin, navRequest, onOpenCommunityPost,
   onLoginClick, onSignupClick, onLogout, onNavigate,
-  onVisaArticleClick, onEducationArticleClick, onDriverLicenseClick,
+  onVisaArticleClick, onEducationArticleClick, onDriverLicenseClick, onTabChange,
 }) {
   const [bottomTab, setBottomTab] = useState('home');
   const [contentTab, setContentTab] = useState('');
@@ -119,9 +119,16 @@ export function MobileHome({
   const goHome = () => { setContentTab(''); setBottomTab('home'); window.scrollTo({top:0}); };
 
   /* 상단 메뉴(헤더)에서 누른 탭으로 이동 */
+  /* 하단 바(홈·서비스·내정보)도 같은 요청으로 들어온다 */
   useEffect(() => {
-    if (navRequest) goContent(navRequest.tab, null);
+    if (!navRequest) return;
+    if (navRequest.tab === 'home') goHome();
+    else if (navRequest.tab === 'my' || navRequest.tab === 'service') { setContentTab(''); setBottomTab(navRequest.tab); window.scrollTo({top:0}); }
+    else goContent(navRequest.tab, null);
   }, [navRequest]);
+
+  /* 하단 바의 선택 표시를 맞추기 위해 지금 화면을 알려 줌 */
+  useEffect(() => { onTabChange?.(bottomTab); }, [bottomTab]);
 
   /* 광고 슬라이드 - CMS에서 로드 */
   const [adBanners, setAdBanners] = useState(() => getMobileAds());
@@ -164,7 +171,7 @@ export function MobileHome({
 
   /* ── 콘텐츠 화면 ── */
   if (contentTab) return (
-    <div className="pb-20">
+    <div className="pb-4">
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 flex items-center px-3 py-3 gap-3 shadow-sm">
         <button onClick={goHome} className="p-1.5 rounded-lg hover:bg-gray-100">
           <ArrowLeft className="w-5 h-5 text-gray-600"/>
@@ -187,12 +194,11 @@ export function MobileHome({
         {contentTab==='hospital'   && <HospitalWidget userCity={currentUser?.city||'베이징'}/>}
       </Suspense>
       </div>
-      <BottomTabBar active={bottomTab} onSelect={t=>{ if(t==='home') goHome(); else { setBottomTab(t); setContentTab(''); } }}/>
     </div>
   );
 
   return (
-    <div className="pb-20 bg-gray-50/50">
+    <div className="pb-4 bg-gray-50/50">
 
       {/* ══ 홈 ══ */}
       {bottomTab==='home' && (
@@ -368,20 +374,6 @@ export function MobileHome({
         );
       })()}
 
-      {/* ══ 소식 ══ */}
-      {bottomTab==='news' && (
-        <div>
-          <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 py-3 shadow-sm">
-            <p className="font-semibold text-gray-900 text-[15px]">📰 중국 소식</p>
-          </div>
-          <div className="mobile-compact">
-            <Suspense fallback={<Spinner/>}>
-              <NewsSection category="중국소식" onMoreClick={()=>onNavigate?.('news')}/>
-            </Suspense>
-          </div>
-        </div>
-      )}
-
       {/* ══ 서비스 ══ */}
       {bottomTab==='service' && !contentTab && (
         <div>
@@ -474,7 +466,7 @@ export function MobileHome({
                 <p className="font-semibold text-gray-800 mb-1">로그인이 필요해요</p>
                 <p className="text-[12px] text-gray-400 mb-4">로그인하면 맞춤 정보를 받을 수 있어요</p>
                 <div className="flex gap-2">
-                  <button onClick={()=>{setShowLoginForm(true);setBottomTab('home');}}
+                  <button onClick={onLoginClick}
                     className="flex-1 py-2.5 bg-teal-600 text-white rounded-xl text-[13px] font-semibold">로그인</button>
                   <button onClick={onSignupClick}
                     className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-[13px]">회원가입</button>
@@ -503,8 +495,6 @@ export function MobileHome({
           )}
         </div>
       )}
-
-      <BottomTabBar active={bottomTab} onSelect={t=>{ setBottomTab(t); setContentTab(''); window.scrollTo({top:0}); }}/>
 
       {showSettings && (
         <div className="fixed inset-0 bg-black/40 flex items-end z-50" onClick={()=>setShowSettings(false)}>
@@ -719,29 +709,3 @@ function AdModalContent({ad, hasVideo, allImgs}) {
   );
 }
 
-function BottomTabBar({active, onSelect}) {
-  const tabs = [
-    {id:'home',    label:'홈',     Icon:Home},
-    {id:'news',    label:'소식',   Icon:Newspaper},
-    {id:'service', label:'서비스', Icon:Grid3X3},
-    {id:'my',      label:'내정보', Icon:User},
-  ];
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200"
-      style={{boxShadow:'0 -1px 12px rgba(0,0,0,0.08)'}}>
-      <div className="flex max-w-lg mx-auto">
-        {tabs.map(tab=>{
-          const on=active===tab.id;
-          return (
-            <button key={tab.id} onClick={()=>onSelect(tab.id)}
-              className="flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 relative">
-              <tab.Icon className={`w-5 h-5 ${on?'text-teal-600':'text-gray-400'}`} strokeWidth={on?2:1.5}/>
-              <span className={`text-[10px] font-medium ${on?'text-teal-600':'text-gray-400'}`}>{tab.label}</span>
-              {on && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-teal-500 rounded-full"/>}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}

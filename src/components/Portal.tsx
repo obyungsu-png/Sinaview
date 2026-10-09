@@ -5,6 +5,7 @@ import { CenterAdBanner } from './CenterAdBanner';
 import { AiAssistantWidget } from './AiAssistantWidget';
 import { PopularPosts } from './PopularPosts';
 import { MorningBriefingCard } from './MorningBriefingCard';
+import { MobileBottomNav, MobileNavTab } from './MobileBottomNav';
 import { CommunityNavContext } from './MemberStories';
 import { syncCurrentUser, signOut } from '../utils/auth';
 
@@ -90,6 +91,8 @@ export function Portal() {
   const [mobileNav, setMobileNav] = useState<{ tab: string; nonce: number } | null>(null);
   const [communityPostId, setCommunityPostId] = useState<number | null>(null);
   const [communityCategory, setCommunityCategory] = useState<string | null>(null);
+  // 모바일 하단 바: 홈 화면 안에서 지금 보이는 탭(home/service/my)
+  const [mobileHomeTab, setMobileHomeTab] = useState('home');
 
   useEffect(() => {
     // Set page title
@@ -158,8 +161,24 @@ export function Portal() {
   const handleGoToCSMPage = () => setCurrentPage('csm');
   const handleGoToDriverLicensePage = () => setCurrentPage('driverlicense');
   const handleGoToRealEstatePage = () => setCurrentPage('realestate');
-  const handleBackToHome = () => setCurrentPage('main');
-  const handleNavigate = (page: string) => { setCommunityPostId(null); setCommunityCategory(null); setCurrentPage(page); };
+  // 다른 화면으로 갈 때는 지난 모바일 메뉴 요청을 지워서, 홈에 돌아왔을 때 다시 실행되지 않게 함
+  const handleBackToHome = () => { setMobileNav(null); setCurrentPage('main'); };
+  const handleNavigate = (page: string) => { setMobileNav(null); setCommunityPostId(null); setCommunityCategory(null); setCurrentPage(page); };
+
+  // 모바일 하단 바: 홈 · 게시판 · 서비스 · 내정보
+  const handleBottomNav = (tab: MobileNavTab) => {
+    window.scrollTo({ top: 0 });
+    if (tab === 'board') { handleNavigate('chinalife'); return; }
+    setCommunityPostId(null);
+    setCommunityCategory(null);
+    setCurrentPage('main');
+    setMobileNav({ tab, nonce: Date.now() });
+  };
+  const bottomNavActive: MobileNavTab | null =
+    currentPage === 'chinalife' ? 'board'
+    : currentPage === 'main' ? (mobileHomeTab === 'my' || mobileHomeTab === 'service' ? mobileHomeTab : 'home')
+    : null;
+  const bottomNav = <MobileBottomNav active={bottomNavActive} onSelect={handleBottomNav} />;
   const handleOpenCommunityPost = (postId: number) => { setCommunityPostId(postId); setCommunityCategory(null); setCurrentPage('chinalife'); };
   const communityNav = {
     openPost: handleOpenCommunityPost,
@@ -185,6 +204,40 @@ export function Portal() {
     setSelectedArticle(article);
     setCurrentPage('education');
   };
+
+  // 로그인·회원가입 창 (홈과 다른 화면 모두에서 사용)
+  const authModals = (
+    <>
+      {isLoginModalOpen && (
+        <Suspense fallback={null}>
+          <LoginModal 
+            isOpen={isLoginModalOpen} 
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={() => {
+              setIsLoginModalOpen(false);
+              const user = localStorage.getItem('currentUser');
+              if (user) setCurrentUser(JSON.parse(user));
+            }}
+          />
+        </Suspense>
+      )}
+
+      {isSignupModalOpen && (
+        <Suspense fallback={null}>
+          <LoginModal 
+            isOpen={isSignupModalOpen} 
+            onClose={() => setIsSignupModalOpen(false)}
+            initialTab="signup"
+            onLoginSuccess={() => {
+              setIsSignupModalOpen(false);
+              const user = localStorage.getItem('currentUser');
+              if (user) setCurrentUser(JSON.parse(user));
+            }}
+          />
+        </Suspense>
+      )}
+    </>
+  );
 
   // Render sub-pages
   if (isNStudyHubOpen) {
@@ -223,6 +276,8 @@ export function Portal() {
       <Suspense fallback={<LoadingSpinner />}>
         {pageMap[currentPage]}
         <AiAssistantWidget />
+        {bottomNav}
+        {authModals}
       </Suspense>
     );
   }
@@ -408,6 +463,7 @@ export function Portal() {
               onVisaArticleClick={handleVisaArticleClick}
               onEducationArticleClick={handleEducationArticleClick}
               onDriverLicenseClick={handleGoToDriverLicensePage}
+              onTabChange={setMobileHomeTab}
             />
           </Suspense>
         </div>
@@ -421,34 +477,7 @@ export function Portal() {
         )}
       </main>
 
-      {isLoginModalOpen && (
-        <Suspense fallback={null}>
-          <LoginModal 
-            isOpen={isLoginModalOpen} 
-            onClose={() => setIsLoginModalOpen(false)}
-            onLoginSuccess={() => {
-              setIsLoginModalOpen(false);
-              const user = localStorage.getItem('currentUser');
-              if (user) setCurrentUser(JSON.parse(user));
-            }}
-          />
-        </Suspense>
-      )}
-
-      {isSignupModalOpen && (
-        <Suspense fallback={null}>
-          <LoginModal 
-            isOpen={isSignupModalOpen} 
-            onClose={() => setIsSignupModalOpen(false)}
-            initialTab="signup"
-            onLoginSuccess={() => {
-              setIsSignupModalOpen(false);
-              const user = localStorage.getItem('currentUser');
-              if (user) setCurrentUser(JSON.parse(user));
-            }}
-          />
-        </Suspense>
-      )}
+      {authModals}
 
       <footer className="bg-white border-t border-gray-200 mt-12">
         <div className="max-w-7xl mx-auto px-4 py-8">
@@ -497,6 +526,7 @@ export function Portal() {
           </div>
         </div>
       </footer>
+      {bottomNav}
     </div>
     </CommunityNavContext.Provider>
   );
