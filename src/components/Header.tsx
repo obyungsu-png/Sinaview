@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, Menu, User, Keyboard, TrendingUp, Clock, MapPin, ExternalLink, Zap } from 'lucide-react@0.487.0';
+import { Search, Menu, User, Keyboard, TrendingUp, Clock, MapPin, ExternalLink, Zap, MessageCircle } from 'lucide-react@0.487.0';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
@@ -159,6 +159,11 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
       setSelectedSuggestionIndex(-1);
     }
   };
+
+  // 상단 메뉴 버튼 모양 - 모바일은 회색 판 위 5칸 2줄, 데스크탑은 글자만
+  const navItem = 'whitespace-nowrap hover:text-green-600 max-sm:text-center max-sm:py-1.5 max-sm:px-1 max-[359px]:px-0.5 max-sm:rounded-lg max-sm:text-gray-700 max-sm:font-medium max-sm:active:bg-white transition-colors';
+  // 게시판 강조 (보라색 테두리 알약)
+  const navHighlight = 'whitespace-nowrap flex items-center justify-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 text-purple-600 font-semibold hover:shadow-md transition-all';
 
   return (
     <header className="bg-white border-b border-gray-200">
@@ -354,17 +359,17 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
         </div>
 
         {/* Service Navigation - 모바일: 5칸 2줄로 한눈에, 데스크탑: 한 줄 */}
-        <nav className="mt-2.5 sm:mt-4">
-          <div className="grid grid-cols-[repeat(5,auto)] justify-between items-center gap-y-2 text-[13.5px] sm:flex sm:justify-start sm:gap-y-0 sm:space-x-8 sm:text-base sm:overflow-x-auto pb-1 sm:pb-1.5 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <nav className="mt-2 sm:mt-4">
+          <div className="grid grid-cols-[repeat(5,auto)] justify-between items-center gap-y-0.5 p-1 rounded-xl bg-gray-50 border border-gray-100 text-[13px] max-[359px]:text-[11.5px] sm:flex sm:justify-start sm:gap-y-0 sm:space-x-8 sm:p-0 sm:pb-1.5 sm:rounded-none sm:bg-transparent sm:border-0 sm:text-base sm:overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button 
               onClick={() => navTab('visa', 'visa-documents', 'visa-documents-mobile')}
-              className="hover:text-green-600 whitespace-nowrap"
+              className={navItem}
             >
               비자/서류
             </button>
             <button 
               onClick={() => navTab('education', 'education', 'education-mobile')}
-              className="hover:text-green-600 whitespace-nowrap"
+              className={navItem}
             >
               교육
             </button>
@@ -373,13 +378,13 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                 onYellowPagesSelect('엘로우페이지');
                 navTab('yellow', 'yellowpages', 'yellowpages-mobile');
               }}
-              className="hover:text-green-600 whitespace-nowrap"
+              className={navItem}
             >
               엘로우 페이지
             </button>
             <button 
               onClick={() => navTab('auto', 'auto', 'auto-mobile')}
-              className="hover:text-green-600 whitespace-nowrap"
+              className={navItem}
             >
               자동차
             </button>
@@ -388,41 +393,42 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                 onCategorySelect('중국소식');
                 navTab('news', 'news', 'news-mobile');
               }}
-              className="hover:text-green-600 whitespace-nowrap"
+              className={navItem}
             >
               중국소식
             </button>
             <button 
               onClick={() => navTab('market', 'used-market', 'used-market-mobile')}
-              className="hover:text-green-600 whitespace-nowrap"
+              className={navItem}
             >
               중고장터
             </button>
             <button 
               onClick={() => navTab('securities', 'securities', 'securities-mobile')}
-              className="hover:text-green-600 whitespace-nowrap"
+              className={navItem}
             >
               증권
             </button>
             <button 
               onClick={() => navTab('realestate', 'realestate-section', 'realestate-section')}
-              className="hover:text-green-600 whitespace-nowrap"
+              className={navItem}
             >
               부동산
             </button>
             <button 
               onClick={() => onNavigate?.('chinalife')}
-              className="hover:text-green-600 whitespace-nowrap"
+              className={navHighlight}
             >
+              <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               게시판
             </button>
             
             {/* 학습 센터 드롭다운 */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="hover:text-green-600 whitespace-nowrap flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 py-0.5 sm:py-1.5 -my-0.5 sm:my-0 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 hover:shadow-md transition-all">
-                  <span className="text-purple-600 font-semibold">학습센터</span>
-                  <span className="text-purple-400 text-[10px] sm:text-xs">▼</span>
+                <button className={`${navItem} flex items-center justify-center gap-0.5 sm:gap-1`}>
+                  <span>학습센터</span>
+                  <span className="text-gray-400 text-[9px] sm:text-[10px]">▼</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 bg-white shadow-xl">
