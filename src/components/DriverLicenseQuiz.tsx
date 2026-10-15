@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { STAGE_INFO, type StageInfo } from '../data/driverLicenseStages';
 import {
   getFavorites,
@@ -27,7 +27,7 @@ export type DLQuestion = {
 };
 export type DLKind = 'txt' | 'pic' | 'sign' | 'sig';
 export type DLChapter = { id: number; title: string };
-type DLData = { chapters: DLChapter[]; questions: DLQuestion[] };
+type DLData = { chapters: DLChapter[]; questions: DLQuestion[]; imgSize?: Record<string, [number, number]> };
 
 let dataCache: DLData | null = null;
 let dataPromise: Promise<DLData> | null = null;
@@ -102,6 +102,16 @@ const optionsOf = (q: DLQuestion) => (q.t === 'j' ? JUDGE_OPTIONS : q.o ?? []);
 const isCorrect = (q: DLQuestion, selected: number[] | undefined) => selected?.length === 1 && selected[0] === q.a;
 const answerText = (q: DLQuestion) => `${LETTERS[q.a]}. ${optionsOf(q)[q.a]}`;
 const imageUrl = (name: string) => `${import.meta.env.BASE_URL}driver-license/img/${name}`;
+
+// 원본 그림이 작아서(가로 200~400px) 시험지처럼 크게 보여 줌: 상황 그림은 가로 최대 640px, 표지·계기판은 세로 최대 300px
+function imageStyle(name: string, count: number): CSSProperties | undefined {
+  const size = dataCache?.imgSize?.[name];
+  if (!size) return undefined;
+  const [w, h] = size;
+  const maxWidth = count > 1 ? 300 : 640;
+  const maxHeight = count > 1 ? 200 : 300;
+  return { width: Math.round(Math.min(w * 2.2, maxWidth, (maxHeight * w) / h)), aspectRatio: `${w} / ${h}` };
+}
 
 let audioContext: AudioContext | null = null;
 
@@ -222,7 +232,8 @@ function QuestionCard({
               src={imageUrl(name)}
               alt="문제 그림"
               loading="lazy"
-              className="max-h-56 max-w-full rounded border border-gray-200 bg-white object-contain"
+              style={imageStyle(name, q.img!.length)}
+              className="max-w-full h-auto rounded border border-gray-200 bg-white object-contain"
             />
           ))}
         </div>
@@ -1225,8 +1236,22 @@ function ExamRunner({
     if (window.confirm(message)) onSubmit(session);
   };
 
+  const judgeCount = session.questions.filter((item) => item.t === 'j').length;
+  const sheetCell = (i: number) =>
+    `aspect-square rounded border text-[11px] sm:text-xs flex items-center justify-center hover:border-[#37a7f0] ${
+      i === index
+        ? 'bg-[#37a7f0] border-[#37a7f0] text-white font-bold'
+        : session.answers[i] !== undefined
+          ? 'bg-blue-50 border-[#37a7f0] text-[#2a8bc9]'
+          : 'bg-white border-gray-300 text-gray-600'
+    }`;
+  const sheetGroups = [
+    { title: `판단형 1~${judgeCount}번`, from: 0, to: judgeCount },
+    { title: `단일 선택형 ${judgeCount + 1}~${total}번`, from: judgeCount, to: total },
+  ].filter((group) => group.to > group.from);
+
   return (
-    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
       <div className="sticky top-0 z-10 -mx-4 sm:mx-0 px-4 py-3 mb-6 bg-white/95 backdrop-blur border-b border-gray-200 flex flex-wrap items-center gap-3">
         <span className="font-medium text-gray-800">{session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`}</span>
         <span className="text-sm text-gray-500">
@@ -1246,51 +1271,66 @@ function ExamRunner({
         </button>
       </div>
 
-      <QuestionCard
-        q={q}
-        label={`${index + 1}.`}
-        selected={session.answers[index] === undefined ? [] : [session.answers[index]]}
-        reveal={false}
-        onSelect={select}
-      />
-      <div className="text-sm text-gray-400 mt-5">{TYPE_HINT[q.t]}</div>
+      {/* 넓은 화면: 왼쪽 문제, 오른쪽 답안지 (실제 시험 화면처럼) / 휴대폰: 답안지는 아래 */}
+      <div className="lg:flex lg:items-start lg:gap-8">
+        <div className="flex-1 min-w-0">
+          <QuestionCard
+            q={q}
+            label={`${index + 1}.`}
+            selected={session.answers[index] === undefined ? [] : [session.answers[index]]}
+            reveal={false}
+            onSelect={select}
+          />
+          <div className="text-sm text-gray-400 mt-5">{TYPE_HINT[q.t]}</div>
 
-      <div className="flex gap-3 my-8">
-        <button
-          onClick={() => setIndex(index - 1)}
-          disabled={index === 0}
-          className="px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          이전 문제
-        </button>
-        <button
-          onClick={() => setIndex(index + 1)}
-          disabled={index === total - 1}
-          className="px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          다음 문제
-        </button>
-      </div>
-
-      <div className="p-5 bg-gray-50 rounded-lg">
-        <div className="text-sm text-gray-600 mb-3">답안지 (1~40번 판단형, 41~100번 선택형)</div>
-        <div className="grid grid-cols-10 gap-1.5 sm:gap-2 max-w-[560px]">
-          {session.questions.map((item, i) => (
+          <div className="flex gap-3 my-8">
             <button
-              key={item.id}
-              onClick={() => setIndex(i)}
-              className={`aspect-square rounded border text-xs sm:text-[13px] flex items-center justify-center hover:border-[#37a7f0] ${
-                i === index
-                  ? 'bg-[#37a7f0] border-[#37a7f0] text-white font-bold'
-                  : session.answers[i] !== undefined
-                    ? 'bg-blue-50 border-[#37a7f0] text-[#2a8bc9]'
-                    : 'bg-white border-gray-300 text-gray-600'
-              }`}
+              onClick={() => setIndex(index - 1)}
+              disabled={index === 0}
+              className="px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              {i + 1}
+              이전 문제
             </button>
-          ))}
+            <button
+              onClick={() => setIndex(index + 1)}
+              disabled={index === total - 1}
+              className="px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              다음 문제
+            </button>
+          </div>
         </div>
+
+        <aside className="lg:w-[340px] lg:shrink-0 lg:sticky lg:top-20 p-4 sm:p-5 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-medium text-gray-800">답안지</span>
+            <span className="text-xs text-gray-500">
+              <span className="inline-block w-2.5 h-2.5 mr-1 rounded-sm bg-blue-50 border border-[#37a7f0] align-middle"></span>답함
+              <span className="inline-block w-2.5 h-2.5 ml-2.5 mr-1 rounded-sm bg-white border border-gray-300 align-middle"></span>안 풂
+            </span>
+          </div>
+          {sheetGroups.map((group) => (
+            <div key={group.title} className="mb-3 last:mb-0">
+              <div className="text-xs text-gray-500 mb-1.5">{group.title}</div>
+              <div className="grid grid-cols-10 gap-1 sm:gap-1.5 max-w-[560px]">
+                {session.questions.slice(group.from, group.to).map((item, offset) => {
+                  const i = group.from + offset;
+                  return (
+                    <button key={item.id} onClick={() => setIndex(i)} className={sheetCell(i)}>
+                      {i + 1}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={submit}
+            className="hidden lg:block w-full mt-4 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9]"
+          >
+            답안 제출 ({answeredCount}/{total})
+          </button>
+        </aside>
       </div>
     </div>
   );
