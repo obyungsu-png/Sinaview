@@ -2,743 +2,16 @@ import { ArrowLeft } from 'lucide-react@0.487.0';
 import { Button } from '../components/ui/button';
 import { useState } from 'react';
 import { DriverLicenseCommunity } from '../components/DriverLicenseCommunity';
+import {
+  ChapterPracticePage,
+  FavoritesPractice,
+  MockExamPage,
+  SequentialPracticePage,
+  readSequentialStats,
+} from '../components/DriverLicenseQuiz';
 
 interface DriverLicensePageProps {
   onBack: () => void;
-}
-
-// 순서 연습 문제 풀이 컴포넌트
-function SequentialPracticePage({ onBack }: { onBack: () => void }) {
-  const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [autoNext, setAutoNext] = useState(true);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [wrongCount, setWrongCount] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [showAnswerSheet, setShowAnswerSheet] = useState(false);
-  const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set());
-
-  const totalQuestions = 100;
-  const accuracyRate = totalQuestions > 0 
-    ? Math.round((correctCount / (correctCount + wrongCount)) * 100) || 0 
-    : 0;
-
-  const handleAnswerSelect = (answerIndex: number) => {
-    if (selectedAnswer !== null) return; // 이미 답을 선택했으면 무시
-    
-    setSelectedAnswer(answerIndex);
-    setAnsweredQuestions(prev => new Set([...prev, currentQuestion]));
-    
-    // 정답은 A (0번 인덱스)라고 가정
-    const isCorrect = answerIndex === 0;
-    
-    // 정답/오답 사운드 재생
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
-    if (isCorrect) {
-      // 정답 사운드: 딩동댕 (즐거운 소리 - 3개의 상승하는 음)
-      const playDingDongDang = () => {
-        const notes = [523.25, 659.25, 783.99]; // C5, E5, G5 (즐거운 화음)
-        notes.forEach((freq, i) => {
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          
-          oscillator.frequency.value = freq;
-          oscillator.type = 'sine';
-          
-          const startTime = audioContext.currentTime + (i * 0.15);
-          gainNode.gain.setValueAtTime(0.3, startTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
-          
-          oscillator.start(startTime);
-          oscillator.stop(startTime + 0.3);
-        });
-      };
-      playDingDongDang();
-    } else {
-      // 오답 사운드: 삐 (높은 단일 경고음)
-      const playBeep = () => {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = 800; // 높은 주파수 (경고음)
-        oscillator.type = 'sine'; // 깔끔한 톤
-        
-        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.4);
-      };
-      playBeep();
-    }
-    
-    if (isCorrect) {
-      setCorrectCount(prev => prev + 1);
-      if (autoNext) {
-        setTimeout(() => handleNextQuestion(), 1500);
-      }
-    } else {
-      setWrongCount(prev => prev + 1);
-    }
-  };
-
-  const handleNextQuestion = () => {
-    if (currentQuestion < totalQuestions) {
-      setCurrentQuestion(prev => prev + 1);
-      setSelectedAnswer(null);
-      setShowExplanation(false);
-      setIsFavorite(false);
-    }
-  };
-
-  const handlePreviousQuestion = () => {
-    if (currentQuestion > 1) {
-      setCurrentQuestion(prev => prev - 1);
-      setSelectedAnswer(null);
-      setShowExplanation(false);
-      setIsFavorite(false);
-    }
-  };
-
-  const handleQuestionJump = (questionNum: number) => {
-    setCurrentQuestion(questionNum);
-    setSelectedAnswer(null);
-    setShowExplanation(false);
-    setIsFavorite(false);
-  };
-
-  return (
-    <div className="max-w-[1000px] mx-auto px-5 py-12">
-      <style>{`
-        :root {
-          --primary-blue: #37a7f0;
-          --text-dark: #333;
-          --text-gray: #666;
-          --text-light-gray: #999;
-          --border-color: #e0e0e0;
-          --correct-green: #2ecc71;
-          --wrong-red: #e74c3c;
-        }
-
-        .breadcrumb {
-          font-size: 14px;
-          color: var(--text-light-gray);
-          margin-bottom: 40px;
-        }
-        .breadcrumb span {
-          margin: 0 5px;
-        }
-        .breadcrumb strong {
-          color: var(--text-dark);
-          font-weight: bold;
-        }
-
-        .question-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 30px;
-        }
-
-        .question-text {
-          font-size: 22px;
-          line-height: 1.5;
-          width: 90%;
-        }
-
-        .fav-btn {
-          background-color: #f5f5f5;
-          border: 1px solid #ddd;
-          padding: 3px 10px;
-          border-radius: 4px;
-          cursor: pointer;
-          color: var(--text-gray);
-          font-size: 12px;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          transition: all 0.2s;
-        }
-        .fav-btn:hover {
-          background-color: #eee;
-        }
-        .fav-btn.active {
-          background-color: #fff3cd;
-          border-color: #ffc107;
-          color: #856404;
-        }
-
-        .options-list {
-          margin-bottom: 40px;
-        }
-
-        .option-item {
-          display: flex;
-          align-items: center;
-          margin-bottom: 20px;
-          font-size: 18px;
-          cursor: pointer;
-          padding: 15px;
-          border: 2px solid #f0f0f0;
-          border-radius: 8px;
-          background-color: white;
-          transition: all 0.2s;
-        }
-        .option-item:hover {
-          background-color: #f9f9f9;
-        }
-        .option-item.selected-correct {
-          background-color: white;
-          border-color: var(--correct-green);
-          border-width: 2px;
-        }
-        .option-item.selected-wrong {
-          background-color: white;
-          border-color: var(--wrong-red);
-          border-width: 2px;
-        }
-
-        .option-radio {
-          display: none;
-        }
-
-        .option-checkmark {
-          width: 24px;
-          height: 24px;
-          margin-right: 15px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .option-checkmark svg {
-          width: 24px;
-          height: 24px;
-        }
-
-        .question-type-hint {
-          font-size: 14px;
-          color: var(--text-light-gray);
-          margin-bottom: 20px;
-          border-bottom: 1px solid #f0f0f0;
-          padding-bottom: 20px;
-        }
-
-        .control-bar {
-          display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 20px;
-          padding-bottom: 40px;
-          border-bottom: 1px solid var(--border-color);
-          margin-bottom: 40px;
-        }
-
-        .nav-btn {
-          background-color: var(--primary-blue);
-          color: white;
-          border: none;
-          padding: 10px 25px;
-          border-radius: 4px;
-          font-size: 16px;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .nav-btn:hover {
-          background-color: #2a8bc9;
-        }
-        .nav-btn:disabled {
-          background-color: #ccc;
-          cursor: not-allowed;
-        }
-
-        .stats-area {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          font-size: 14px;
-          color: var(--text-gray);
-          margin-left: 10px;
-        }
-
-        .auto-next-label {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          cursor: pointer;
-          color: var(--text-dark);
-          font-weight: 500;
-        }
-
-        .stat-item span.green { color: var(--correct-green); font-weight: bold; }
-        .stat-item span.red { color: var(--wrong-red); font-weight: bold; }
-
-        .right-tools {
-          margin-left: auto;
-          display: flex;
-          align-items: center;
-          gap: 15px;
-        }
-
-        .tool-btn {
-          background-color: white;
-          border: 1px solid #ddd;
-          padding: 8px 15px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          color: var(--text-dark);
-          transition: all 0.2s;
-        }
-        .tool-btn:hover {
-          border-color: var(--primary-blue);
-          color: var(--primary-blue);
-        }
-        .tool-btn.active {
-          background-color: var(--primary-blue);
-          color: white;
-          border-color: var(--primary-blue);
-        }
-
-        .sync-link {
-          font-size: 14px;
-          color: var(--primary-blue);
-          text-decoration: none;
-          margin-left: 10px;
-        }
-        .sync-link:hover { text-decoration: underline; }
-
-        .ad-section h3 {
-          font-size: 20px;
-          font-weight: normal;
-          margin-bottom: 20px;
-          color: var(--text-dark);
-        }
-        
-        .school-item {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          color: var(--text-gray);
-          font-size: 14px;
-        }
-        .stars {
-          color: #ffc107;
-        }
-        .price {
-          color: #ffa502;
-          font-weight: 500;
-        }
-
-        .explanation-box {
-          margin-top: 20px;
-          padding: 20px;
-          background-color: #e3f2fd;
-          border-left: 4px solid var(--primary-blue);
-          border-radius: 4px;
-        }
-        .explanation-box h4 {
-          font-size: 16px;
-          margin-bottom: 10px;
-          color: var(--text-dark);
-        }
-        .explanation-box p {
-          font-size: 15px;
-          color: var(--text-gray);
-          line-height: 1.6;
-        }
-
-        .back-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
-          background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          color: var(--text-gray);
-          margin-bottom: 20px;
-          transition: all 0.2s;
-        }
-        .back-btn:hover {
-          border-color: var(--primary-blue);
-          color: var(--primary-blue);
-        }
-
-        .answer-sheet-section {
-          margin-top: 40px;
-          padding: 30px;
-          background-color: #f8f9fa;
-          border-radius: 8px;
-        }
-
-        .answer-sheet-header {
-          font-size: 18px;
-          margin-bottom: 20px;
-          color: var(--text-dark);
-          font-weight: 500;
-        }
-
-        .answer-grid {
-          display: grid;
-          grid-template-columns: repeat(20, 1fr);
-          gap: 8px;
-          max-width: 100%;
-        }
-
-        .answer-cell {
-          aspect-ratio: 1;
-          border: 1px solid #ddd;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          border-radius: 4px;
-          font-size: 13px;
-          background-color: white;
-          transition: all 0.2s;
-          color: var(--text-gray);
-        }
-        .answer-cell:hover {
-          border-color: var(--primary-blue);
-          background-color: #f0f7ff;
-        }
-        .answer-cell.current {
-          background-color: var(--primary-blue);
-          color: white;
-          border-color: var(--primary-blue);
-          font-weight: bold;
-        }
-        .answer-cell.answered {
-          background-color: #e8f5e9;
-          border-color: var(--correct-green);
-        }
-      `}</style>
-
-      {/* 뒤로가기 버튼 */}
-      <button onClick={onBack} className="back-btn">
-        <i className="fa-solid fa-arrow-left"></i>
-        필기시험으로 돌아가기
-      </button>
-
-      {/* 1. Breadcrumb */}
-      <div className="breadcrumb">
-        현재위치: 홈 <span>&gt;</span> 모의고사 <span>&gt;</span> 소형차 필기(과목1) <span>&gt;</span> <strong>순서 연습</strong>
-      </div>
-
-      {/* 2. 문제 */}
-      <div className="question-header">
-        <h1 className="question-text">
-          {currentQuestion}/{totalQuestions}. 차량이 내리막길을 주행할 때, 적절하게 속도를 제어하고 엔진 브레이크를 충분히 활용하여 제동해야 한다.
-        </h1>
-        <button 
-          className={`fav-btn ${isFavorite ? 'active' : ''}`}
-          onClick={() => setIsFavorite(!isFavorite)}
-        >
-          <i className={`fa-${isFavorite ? 'solid' : 'regular'} fa-star`}></i> 즐겨찾기
-        </button>
-      </div>
-
-      {/* 3. 보기 */}
-      <div className="options-list">
-        <div 
-          className={`option-item ${
-            selectedAnswer === 0 
-              ? 'selected-correct' 
-              : ''
-          }`}
-          onClick={() => handleAnswerSelect(0)}
-        >
-          <div className="option-checkmark">
-            {selectedAnswer === 0 && (
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="11" fill="#37a7f0" stroke="#37a7f0" strokeWidth="2"/>
-                <path d="M7 12L10.5 15.5L17 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            )}
-          </div>
-          <span>A. 맞음</span>
-        </div>
-        <div 
-          className={`option-item ${
-            selectedAnswer === 1 
-              ? 'selected-wrong' 
-              : ''
-          }`}
-          onClick={() => handleAnswerSelect(1)}
-        >
-          <div className="option-checkmark">
-            {selectedAnswer === 1 && (
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="11" fill="#37a7f0" stroke="#37a7f0" strokeWidth="2"/>
-                <path d="M7 12L10.5 15.5L17 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            )}
-          </div>
-          <span>B. 틀림</span>
-        </div>
-      </div>
-
-      {/* 해설 표시 */}
-      {showExplanation && (
-        <div className="explanation-box">
-          <h4>
-            <i className="fa-solid fa-lightbulb"></i> 정답 해설
-          </h4>
-          <p>
-            내리막길에서는 속도가 빨라지기 쉬우므로 적절하게 속도를 제어해야 합니다. 
-            엔진 브레이크를 충분히 활용하면 브레이크 과열을 방지하고 안전하게 주행할 수 있습니다. 
-            따라서 이 문장은 <strong>맞음</strong>입니다.
-          </p>
-        </div>
-      )}
-
-      {/* 4. 유형 힌트 */}
-      <div className="question-type-hint">
-        판단형 문제, 맞고 틀림을 판단하세요.
-      </div>
-
-      {/* 5. 컨트롤 바 */}
-      <div className="control-bar">
-        {/* 이전/다음 버튼 */}
-        <button 
-          className="nav-btn"
-          onClick={handlePreviousQuestion}
-          disabled={currentQuestion === 1}
-        >
-          이전 문제
-        </button>
-        <button 
-          className="nav-btn"
-          onClick={handleNextQuestion}
-          disabled={currentQuestion === totalQuestions}
-        >
-          다음 문제
-        </button>
-
-        {/* 통계 및 옵션 */}
-        <div className="stats-area">
-          <label className="auto-next-label">
-            <input 
-              type="checkbox" 
-              checked={autoNext}
-              onChange={(e) => setAutoNext(e.target.checked)}
-            /> 정답 시 자동 넘김
-          </label>
-          <div className="stat-item">정답: <span className="green">{correctCount}</span>문제</div>
-          <div className="stat-item">오답: <span className="red">{wrongCount}</span>문제</div>
-          <div className="stat-item">정답률: {accuracyRate}%</div>
-        </div>
-
-        {/* 우측 도구 */}
-        <div className="right-tools">
-          <button 
-            className={`tool-btn ${showExplanation ? 'active' : ''}`}
-            onClick={() => setShowExplanation(!showExplanation)}
-          >
-            해설 보기
-          </button>
-          <button 
-            className={`tool-btn ${showAnswerSheet ? 'active' : ''}`}
-            onClick={() => setShowAnswerSheet(!showAnswerSheet)}
-          >
-            답안지 보기
-          </button>
-          <a href="#" className="sync-link">학습 진도 동기화</a>
-        </div>
-      </div>
-
-      {/* 답안지 섹션 */}
-      {showAnswerSheet && (
-        <div className="answer-sheet-section">
-          <div className="answer-sheet-header">답안지 보기</div>
-          <div className="answer-grid">
-            {Array.from({ length: 100 }, (_, i) => i + 1).map((num) => (
-              <div
-                key={num}
-                className={`answer-cell ${
-                  num === currentQuestion ? 'current' : ''
-                } ${answeredQuestions.has(num) ? 'answered' : ''}`}
-                onClick={() => handleQuestionJump(num)}
-              >
-                {num}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 6. 하단 광고 영역 */}
-      <div className="ad-section">
-        <h3>아직 운전학원에 등록 안 하셨나요? 인기 학원 확인하기</h3>
-        <div className="school-item">
-          <span>•</span>
-          <span>C1/C2 1종/2종 보통</span>
-          <span className="stars">★★★★★</span>
-          <span className="price">상담 문의</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// 주제별 연습 페이지 컴포넌트
-function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => void; selectedCity: string }) {
-  const chapters = [
-    { number: 1, title: '운전면허 및 자동차 관리 규정', questionCount: 294 },
-    { number: 2, title: '도로 통행 조건 및 통행 규정', questionCount: 1005 },
-    { number: 3, title: '도로교통 안전 위법 행위 및 처벌', questionCount: 94 },
-    { number: 4, title: '도로 교통사고 처리 관련 규정', questionCount: 54 },
-    { number: 5, title: '자동차 기초 지식', questionCount: 151 },
-    { number: 6, title: '과목1 베이징 지역 문제', questionCount: 81 }
-  ];
-
-  return (
-    <div className="max-w-[1200px] mx-auto px-4">
-      <style>{`
-        .chapter-container {
-          font-family: 'Noto Sans KR', sans-serif;
-          background-color: #fff;
-          color: #333;
-          line-height: 1.6;
-        }
-
-        .chapter-header {
-          text-align: center;
-          margin-bottom: 50px;
-        }
-
-        .chapter-header h1 {
-          font-size: 24px;
-          font-weight: 700;
-          margin-bottom: 10px;
-          color: #2c3e50;
-        }
-
-        .chapter-header p {
-          font-size: 14px;
-          color: #888;
-        }
-
-        .chapter-list {
-          border-top: 1px solid #eee;
-        }
-
-        .chapter-item {
-          padding: 25px 0;
-          border-bottom: 1px solid #eee;
-        }
-
-        .chapter-title {
-          font-size: 18px;
-          font-weight: 500;
-          color: #333;
-          margin-bottom: 15px;
-        }
-
-        .question-count {
-          color: #888;
-          font-size: 16px;
-          margin-left: 5px;
-          font-weight: normal;
-        }
-
-        .action-links {
-          display: flex;
-          gap: 40px;
-          padding-left: 10px;
-        }
-
-        .action-link {
-          font-size: 14px;
-          color: #666;
-          display: flex;
-          align-items: center;
-          cursor: pointer;
-          transition: color 0.2s;
-        }
-
-        .action-link::before {
-          content: '•';
-          color: #bbb;
-          margin-right: 8px;
-          font-size: 18px;
-          line-height: 1;
-        }
-
-        .action-link:hover {
-          color: #37a7f0;
-        }
-        .action-link:hover::before {
-          color: #37a7f0;
-        }
-
-        .back-btn-chapter {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
-          background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          color: #666;
-          margin-bottom: 30px;
-          transition: all 0.2s;
-        }
-        .back-btn-chapter:hover {
-          border-color: #37a7f0;
-          color: #37a7f0;
-        }
-
-        @media (max-width: 600px) {
-          .chapter-title { font-size: 16px; }
-          .action-links { gap: 20px; }
-        }
-      `}</style>
-
-      <div className="chapter-container">
-        {/* 뒤로가기 버튼 */}
-        <button onClick={onBack} className="back-btn-chapter">
-          <i className="fa-solid fa-arrow-left"></i>
-          필기시험으로 돌아가기
-        </button>
-
-        {/* 헤더 */}
-        <header className="chapter-header">
-          <h1>{selectedCity} 소형차 필기시험(과목1) 주제별 연습</h1>
-          <p>법규 챕터에 따라 단계별로 분류</p>
-        </header>
-
-        {/* 챕터 리스트 */}
-        <div className="chapter-list">
-          {chapters.map((chapter) => (
-            <div key={chapter.number} className="chapter-item">
-              <div className="chapter-title">
-                제{chapter.number}장 {chapter.title} <span className="question-count">({chapter.questionCount}문제)</span>
-              </div>
-              <div className="action-links">
-                <a href="#" className="action-link">순서대로 풀기</a>
-                <a href="#" className="action-link">랜덤으로 풀기</a>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // 난점 공략 페이지 컴포넌트
@@ -803,6 +76,25 @@ function DifficultPointsPage({ onBack }: { onBack: () => void }) {
   return (
     <div className="max-w-[1200px] mx-auto px-4">
       <style>{`
+        .back-btn-chapter {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          background-color: white;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          color: #666;
+          margin-bottom: 30px;
+          transition: all 0.2s;
+        }
+        .back-btn-chapter:hover {
+          border-color: #37a7f0;
+          color: #37a7f0;
+        }
+
         .difficult-container {
           font-family: 'Noto Sans KR', sans-serif;
           background-color: #fff;
@@ -1032,215 +324,13 @@ function DifficultPointsPage({ onBack }: { onBack: () => void }) {
   );
 }
 
-// 즐겨찾기 문항 풀이 컴포넌트
-function FavoritesQuizPage() {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
-
-  // 샘플 즐겨찾기 문제들
-  const favoriteQuestions = [
-    {
-      id: 1,
-      question: '고속도로에서 안전거리를 유지하지 않은 경우 몇 점이 감점되나요?',
-      options: ['2점', '3점', '6점', '12점'],
-      correctAnswer: 1,
-      explanation: '고속도로에서 안전거리를 유지하지 않으면 3점이 감점됩니다. 안전운전을 위해 충분한 차간 거리를 유지해야 합니다.'
-    },
-    {
-      id: 2,
-      question: '차량을 주차할 때 핸들을 어느 방향으로 돌려야 하나요?',
-      options: ['왼쪽으로', '오른쪽으로', '중앙으로', '상관없다'],
-      correctAnswer: 2,
-      explanation: '주차 시 핸들을 중앙(정면)으로 두는 것이 안전합니다. 이렇게 하면 다음 출발 시 예상치 못한 방향으로 이동하는 것을 방지할 수 있습니다.'
-    },
-    {
-      id: 3,
-      question: '황색 실선은 무엇을 의미하나요?',
-      options: ['차선 변경 가능', '차선 변경 금지', '일시정지', '서행'],
-      correctAnswer: 1,
-      explanation: '황색 실선은 차선 변경이 금지됨을 의미합니다. 황색 점선과 구별하여 기억해야 합니다.'
-    }
-  ];
-
-  const currentQuestion = favoriteQuestions[currentQuestionIndex];
-
-  const handleAnswerSelect = (index: number) => {
-    setSelectedAnswer(index);
-    setShowExplanation(true);
-  };
-
-  const handleNext = () => {
-    if (currentQuestionIndex < favoriteQuestions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(null);
-      setShowExplanation(false);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-      setSelectedAnswer(null);
-      setShowExplanation(false);
-    }
-  };
-
-  const removeFavorite = () => {
-    alert('즐겨찾기에서 제거되었습니다.');
-  };
-
-  return (
-    <div className="max-w-[900px] mx-auto px-4 py-8">
-      <div className="py-4 text-sm text-gray-500 border-b mb-6">
-        현재 위치: 홈 &gt; 즐겨찾기
-      </div>
-
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl">즐겨찾기 문제 풀이</h2>
-        <div className="text-sm text-gray-600">
-          총 {favoriteQuestions.length}문제 중 {currentQuestionIndex + 1}번째
-        </div>
-      </div>
-
-      {/* 문제 카드 */}
-      <div className="bg-white border-2 border-gray-200 rounded-lg p-8 mb-6">
-        {/* 문제 번호 및 즐겨찾기 제거 버튼 */}
-        <div className="flex items-center justify-between mb-6">
-          <span className="px-4 py-2 rounded-full text-white" style={{ backgroundColor: '#ff7675' }}>
-            <i className="fa-solid fa-star mr-2"></i>
-            문제 {currentQuestionIndex + 1}
-          </span>
-          <button 
-            onClick={removeFavorite}
-            className="text-sm text-gray-500 hover:text-red-500 transition-colors"
-          >
-            <i className="fa-solid fa-trash mr-1"></i>
-            즐겨��기 제거
-          </button>
-        </div>
-
-        {/* 문제 */}
-        <div className="mb-8">
-          <h3 className="text-xl mb-4">{currentQuestion.question}</h3>
-        </div>
-
-        {/* 선택지 */}
-        <div className="space-y-3 mb-6">
-          {currentQuestion.options.map((option, index) => {
-            let borderColor = 'border-gray-300';
-            
-            if (showExplanation) {
-              if (index === currentQuestion.correctAnswer) {
-                borderColor = 'border-green-500 border-[3px]';
-              } else if (selectedAnswer === index && index !== currentQuestion.correctAnswer) {
-                borderColor = 'border-red-500 border-[3px]';
-              }
-            }
-
-            return (
-              <button
-                key={index}
-                onClick={() => handleAnswerSelect(index)}
-                disabled={showExplanation}
-                className={`w-full text-left p-4 rounded-lg border-2 bg-white hover:bg-gray-50 ${borderColor} transition-all ${!showExplanation ? 'cursor-pointer' : 'cursor-default'}`}
-              >
-                <span className="font-medium mr-3">{String.fromCharCode(65 + index)}.</span>
-                {option}
-                {showExplanation && index === currentQuestion.correctAnswer && (
-                  <i className="fa-solid fa-circle-check text-green-600 ml-2"></i>
-                )}
-                {showExplanation && selectedAnswer === index && index !== currentQuestion.correctAnswer && (
-                  <i className="fa-solid fa-circle-xmark text-red-600 ml-2"></i>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 해설 */}
-        {showExplanation && (
-          <div className="p-6 bg-blue-50 border-l-4 border-blue-500 rounded">
-            <h4 className="font-medium mb-2 flex items-center">
-              <i className="fa-solid fa-lightbulb text-blue-600 mr-2"></i>
-              정답 해설
-            </h4>
-            <p className="text-gray-700">{currentQuestion.explanation}</p>
-          </div>
-        )}
-      </div>
-
-      {/* 네비게이션 버튼 */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={handlePrevious}
-          disabled={currentQuestionIndex === 0}
-          className={`px-6 py-3 rounded-lg border-2 transition-all ${
-            currentQuestionIndex === 0
-              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-              : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:text-blue-600'
-          }`}
-        >
-          <i className="fa-solid fa-chevron-left mr-2"></i>
-          이전 문제
-        </button>
-
-        <div className="flex gap-2">
-          {favoriteQuestions.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                setCurrentQuestionIndex(index);
-                setSelectedAnswer(null);
-                setShowExplanation(false);
-              }}
-              className={`w-10 h-10 rounded-full transition-all ${
-                index === currentQuestionIndex
-                  ? 'text-white'
-                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-              }`}
-              style={index === currentQuestionIndex ? { backgroundColor: '#37a7f0' } : {}}
-            >
-              {index + 1}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={handleNext}
-          disabled={currentQuestionIndex === favoriteQuestions.length - 1}
-          className={`px-6 py-3 rounded-lg border-2 transition-all ${
-            currentQuestionIndex === favoriteQuestions.length - 1
-              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-              : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:text-blue-600'
-          }`}
-        >
-          다음 문제
-          <i className="fa-solid fa-chevron-right ml-2"></i>
-        </button>
-      </div>
-
-      {/* 하단 안내 */}
-      <div className="mt-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg">
-        <div className="flex items-start gap-3">
-          <i className="fa-solid fa-circle-info text-2xl text-yellow-600 mt-1"></i>
-          <div>
-            <h4 className="font-medium mb-2">즐겨찾기 문제 학습 팁</h4>
-            <p className="text-sm text-gray-700">
-              자주 틀리거나 중요한 문제들을 즐겨찾기에 저장하여 반복 학습하면 합격 확률이 높아집니다. 
-              모든 즐겨찾기 문제를 완벽히 이해할 때까지 반복해서 풀어보세요!
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
   const [selectedCity, setSelectedCity] = useState('대련');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'community'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'difficult' | 'mock' | 'community' | 'app123'>('home');
+  const sequentialStats = currentView === 'practice' ? readSequentialStats() : null;
+  const correctPercent = sequentialStats ? Math.round((sequentialStats.correct / sequentialStats.total) * 100) : 0;
+  const wrongPercent = sequentialStats ? Math.round((sequentialStats.wrong / sequentialStats.total) * 100) : 0;
   
   const cities = [
     '베이징', '상하이', '칭다오', '대련', '텐진', 
@@ -1793,7 +883,10 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
                     약점 분석 및 보완 학습
                   </p>
                 </div>
-                <div className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-6">
+                <div 
+                  onClick={() => setCurrentView('mock')}
+                  className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-6"
+                >
                   <i className="fa-solid fa-pen-to-square text-5xl mb-3" style={{ color: '#37a7f0' }}></i>
                   <span className="text-lg font-medium text-gray-700 mb-3">모의고사</span>
                   <p className="text-xs text-gray-500 text-center leading-relaxed">
@@ -1810,24 +903,35 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
                 <div className="flex items-center justify-between flex-wrap gap-8">
                   {/* 차트 영역 */}
                   <div className="flex items-center gap-8 flex-wrap">
-                    <div className="w-24 h-24 rounded-full border-8 border-gray-200"></div>
+                    <div
+                      className="w-24 h-24 rounded-full flex items-center justify-center"
+                      style={{
+                        background: `conic-gradient(#37a7f0 0 ${correctPercent}%, #ff6b6b ${correctPercent}% ${correctPercent + wrongPercent}%, #eee ${correctPercent + wrongPercent}% 100%)`,
+                      }}
+                    >
+                      <div className="w-16 h-16 rounded-full bg-white"></div>
+                    </div>
                     <div className="text-sm text-gray-600 leading-loose">
                       <div className="flex items-center">
                         <i className="fa-solid fa-circle text-xs mr-2" style={{ color: '#37a7f0' }}></i>
-                        <span>정답 *%</span>
+                        <span>정답 {sequentialStats ? `${correctPercent}%` : '*%'}</span>
                       </div>
                       <div className="flex items-center">
                         <i className="fa-solid fa-circle text-xs mr-2" style={{ color: '#ff6b6b' }}></i>
-                        <span>오답 *%</span>
+                        <span>오답 {sequentialStats ? `${wrongPercent}%` : '*%'}</span>
                       </div>
                       <div className="flex items-center">
                         <i className="fa-solid fa-circle text-xs mr-2" style={{ color: '#eee' }}></i>
-                        <span>미풀이 *%</span>
+                        <span>미풀이 {sequentialStats ? `${100 - correctPercent - wrongPercent}%` : '*%'}</span>
                       </div>
                     </div>
-                    <a href="#" className="text-sm underline ml-5 hover:text-blue-600" style={{ color: '#37a7f0' }}>
+                    <button
+                      onClick={() => setCurrentView('sequential')}
+                      className="text-sm underline ml-5 hover:text-blue-600"
+                      style={{ color: '#37a7f0' }}
+                    >
                       계속 풀기
-                    </a>
+                    </button>
                   </div>
 
                   {/* 하단 아이콘 버튼 */}
@@ -2017,7 +1121,7 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
         </div>
       ) : currentView === 'favorites' ? (
         // 즐겨찾기 페이지 - 문항 풀이 기능
-        <FavoritesQuizPage />
+        <FavoritesPractice />
       ) : currentView === 'app123' ? (
         // 123123 앱 페이지
         <div className="max-w-[1200px] mx-auto px-4 py-8">
@@ -2272,6 +1376,9 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
       ) : currentView === 'difficult' ? (
         // 난점 공략 페이지
         <DifficultPointsPage onBack={() => setCurrentView('practice')} />
+      ) : currentView === 'mock' ? (
+        // 모의고사 페이지
+        <MockExamPage onBack={() => setCurrentView('practice')} />
       ) : (
         // 동영상 강의 페이지
         <div className="max-w-[1200px] mx-auto px-4 py-8">
