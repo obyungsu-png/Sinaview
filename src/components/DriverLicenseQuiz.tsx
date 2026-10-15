@@ -667,21 +667,55 @@ function uniquePool(questions: DLQuestion[], type: DLQuestion['t']) {
   });
 }
 
-// 회차별 고정 문제: 판단형 40 + 선택형 60, 회차끼리 겹치지 않음
+// 장별 출제 수: 장의 문제 수에 비례하되, 문제가 있는 장은 최소 1문제씩 (합계 = total)
+function allocate(sizes: number[], total: number) {
+  const sum = sizes.reduce((a, b) => a + b, 0);
+  const raw = sizes.map((n) => (n * total) / sum);
+  const quota = raw.map((r, i) => (sizes[i] > 0 ? Math.min(sizes[i], Math.max(1, Math.floor(r))) : 0));
+  const byRemainder = raw.map((_, i) => i).sort((a, b) => (raw[b] % 1) - (raw[a] % 1));
+  let diff = total - quota.reduce((a, b) => a + b, 0);
+  for (let k = 0; diff > 0 && k < byRemainder.length * total; k++) {
+    const i = byRemainder[k % byRemainder.length];
+    if (quota[i] < sizes[i]) {
+      quota[i]++;
+      diff--;
+    }
+  }
+  while (diff < 0) {
+    const i = quota.indexOf(Math.max(...quota));
+    quota[i]--;
+    diff++;
+  }
+  return quota;
+}
+
+// 한 유형(판단형/선택형)의 문제를 장별로 나누고, 회차마다 장별로 정해진 수만큼 돌아가며 뽑음
+function examPlan(pool: DLQuestion[], total: number, seed: number) {
+  const chapters = [...new Set(pool.map((q) => q.c))].sort((a, b) => a - b);
+  const groups = chapters.map((c) => shuffle(pool.filter((q) => q.c === c), seed + c));
+  const quotas = allocate(groups.map((g) => g.length), total);
+  return (round: number) =>
+    groups.flatMap((group, i) => Array.from({ length: quotas[i] }, (_, j) => group[(round * quotas[i] + j) % group.length]));
+}
+
+// 회차별 고정 문제: 판단형 40 + 선택형 60, 모든 단계에서 골고루 출제 (큰 단계는 회차끼리 겹치지 않음)
 function buildExamSets(questions: DLQuestion[]) {
-  const judges = shuffle(uniquePool(questions, 'j'), 2026);
-  const singles = shuffle(uniquePool(questions, 's'), 1309);
+  const judges = uniquePool(questions, 'j');
+  const singles = uniquePool(questions, 's');
+  const drawJudges = examPlan(judges, EXAM_JUDGE, 2026);
+  const drawSingles = examPlan(singles, EXAM_SINGLE, 1309);
   const count = Math.min(Math.floor(judges.length / EXAM_JUDGE), Math.floor(singles.length / EXAM_SINGLE));
   return Array.from({ length: count }, (_, k) => [
-    ...judges.slice(k * EXAM_JUDGE, (k + 1) * EXAM_JUDGE),
-    ...singles.slice(k * EXAM_SINGLE, (k + 1) * EXAM_SINGLE),
+    ...shuffle(drawJudges(k), 100 + k),
+    ...shuffle(drawSingles(k), 200 + k),
   ]);
 }
 
 function buildRandomExam(questions: DLQuestion[]) {
+  const seed = Math.floor(Math.random() * 2 ** 31);
   return [
-    ...shuffle(uniquePool(questions, 'j')).slice(0, EXAM_JUDGE),
-    ...shuffle(uniquePool(questions, 's')).slice(0, EXAM_SINGLE),
+    ...shuffle(examPlan(uniquePool(questions, 'j'), EXAM_JUDGE, seed)(0)),
+    ...shuffle(examPlan(uniquePool(questions, 's'), EXAM_SINGLE, seed + 99)(0)),
   ];
 }
 
@@ -744,6 +778,7 @@ export function MockExamPage({ onBack }: { onBack: () => void }) {
     return (
       <ExamResult
         outcome={outcome}
+        chapters={data.chapters}
         onRetry={() => start(outcome.no)}
         onList={() => setOutcome(null)}
       />
@@ -756,7 +791,9 @@ export function MockExamPage({ onBack }: { onBack: () => void }) {
 
       <header className="text-center mb-8">
         <h1 className="text-2xl font-bold text-[#2c3e50] mb-2">소형차 필기시험(과목1) 모의고사</h1>
-        <p className="text-sm text-gray-500">실제 시험과 같은 방식으로 100문제를 풀어 보세요</p>
+        <p className="text-sm text-gray-500">
+          실제 시험과 같은 방식으로 100문제를 풀어 보세요. 회차마다 주제별 연습의 모든 단계에서 골고루 출제됩니다.
+        </p>
       </header>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
@@ -924,8 +961,24 @@ function ExamRunner({
   );
 }
 
-function ExamResult({ outcome, onRetry, onList }: { outcome: ExamOutcome; onRetry: () => void; onList: () => void }) {
+function ExamResult({
+  outcome,
+  chapters,
+  onRetry,
+  onList,
+}: {
+  outcome: ExamOutcome;
+  chapters: DLChapter[];
+  onRetry: () => void;
+  onList: () => void;
+}) {
   const passed = outcome.score >= PASS_SCORE;
+  const byChapter = chapters
+    .map((chapter) => {
+      const items = outcome.questions.map((q, i) => ({ q, i })).filter(({ q }) => q.c === chapter.id);
+      return { chapter, total: items.length, correct: items.filter(({ q, i }) => outcome.answers[i] === q.a).length };
+    })
+    .filter((row) => row.total > 0);
   const wrong = outcome.questions
     .map((q, i) => ({ q, i, selected: outcome.answers[i] }))
     .filter(({ q, selected }) => selected !== q.a);
@@ -949,6 +1002,26 @@ function ExamResult({ outcome, onRetry, onList }: { outcome: ExamOutcome; onRetr
             모의고사 목록
           </button>
         </div>
+      </div>
+
+      <h3 className="text-lg font-medium text-gray-800 mb-3">단계별 결과</h3>
+      <div className="mb-10 border border-gray-200 rounded-lg divide-y divide-gray-100">
+        {byChapter.map(({ chapter, total, correct }) => (
+          <div key={chapter.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+            <span className="flex-1 text-gray-700">
+              제{chapter.id}장 {chapter.title}
+            </span>
+            <div className="hidden sm:block w-40 h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full ${correct === total ? 'bg-[#2ecc71]' : 'bg-[#37a7f0]'}`}
+                style={{ width: `${(correct / total) * 100}%` }}
+              ></div>
+            </div>
+            <span className="w-16 text-right text-gray-600">
+              {correct}/{total}
+            </span>
+          </div>
+        ))}
       </div>
 
       {wrong.length > 0 && (
