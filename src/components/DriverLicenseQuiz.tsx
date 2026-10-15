@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { STAGE_INFO, type StageInfo } from '../data/driverLicenseStages';
 
 // 과목1 문제 데이터 (원본: 2026年科目一新规2309题, 한국어 번역본)
 // 과목1 공식 문제 유형은 판단형(判断题)과 단일 선택형(单选题) 두 가지뿐
@@ -69,6 +70,18 @@ const PRIMARY = '#37a7f0';
 const FAVORITES_KEY = 'dl-favorites';
 const SEQUENTIAL_KEY = 'dl-progress-all';
 const MOCK_RESULTS_KEY = 'dl-mock-results';
+const WRONG_KEY = 'dl-wrong';
+
+// 오답 노트: 문제 id → 마지막으로 틀리게 고른 답. 나중에 다시 맞히면 지움
+const readWrong = () => readStore<Record<number, number>>(WRONG_KEY, {});
+function recordAnswers(results: { id: number; selected: number; correct: boolean }[]) {
+  const wrong = readWrong();
+  for (const { id, selected, correct } of results) {
+    if (correct) delete wrong[id];
+    else wrong[id] = selected;
+  }
+  writeStore(WRONG_KEY, wrong);
+}
 
 const TYPE_HINT: Record<DLQuestion['t'], string> = {
   j: '판단형 문제 – 맞음/틀림을 고르세요.',
@@ -271,6 +284,7 @@ export function PracticeQuiz({
   storageKey,
   onBack,
   backLabel,
+  onReviewWrong,
 }: {
   questions: DLQuestion[];
   title: string;
@@ -278,6 +292,7 @@ export function PracticeQuiz({
   storageKey?: string;
   onBack: () => void;
   backLabel: string;
+  onReviewWrong?: () => void;
 }) {
   const [progress, setProgress] = useState<Progress>(() =>
     storageKey ? readStore<Progress>(storageKey, { index: 0, answers: {} }) : { index: 0, answers: {} },
@@ -322,6 +337,7 @@ export function PracticeQuiz({
     const ok = i === q.a;
     playTone(ok);
     setProgress((p) => ({ ...p, answers: { ...p.answers, [q.id]: [i] } }));
+    recordAnswers([{ id: q.id, selected: i, correct: ok }]);
     if (!ok) setShowExplanation(true);
     else if (autoNext && index < questions.length - 1) timer.current = window.setTimeout(() => goTo(index + 1), 900);
   };
@@ -340,6 +356,11 @@ export function PracticeQuiz({
   };
 
   const isFavorite = favorites.includes(q.id);
+  const finished = stats.correct + stats.wrong === questions.length;
+  const wrongCount = useMemo(() => {
+    const wrong = readWrong();
+    return questions.filter((item) => item.id in wrong).length;
+  }, [questions, progress.answers]);
 
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
@@ -379,6 +400,20 @@ export function PracticeQuiz({
       {(showExplanation || answered) && (showExplanation || !isCorrect(q, answered)) && <ExplanationBox q={q} />}
 
       <div className="text-sm text-gray-400 mt-6 pb-5 border-b border-gray-100">{TYPE_HINT[q.t]}</div>
+
+      {finished && (
+        <div className="mt-6 p-5 rounded-lg bg-green-50 border border-green-200 flex flex-wrap items-center gap-3">
+          <span className="text-gray-800">
+            <i className="fa-solid fa-flag-checkered mr-2 text-[#2ecc71]"></i>
+            {questions.length}문제를 모두 풀었어요. 정답 {stats.correct} · 오답 {stats.wrong}
+          </span>
+          {onReviewWrong && wrongCount > 0 && (
+            <button onClick={onReviewWrong} className="sm:ml-auto px-4 py-2 rounded text-white text-sm bg-[#e74c3c] hover:opacity-90">
+              틀린 문제만 보기 ({wrongCount})
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-4 sm:gap-5 py-6 border-b border-gray-200 mb-8">
         <div className="flex gap-3">
@@ -420,6 +455,14 @@ export function PracticeQuiz({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
+          {onReviewWrong && (
+            <button
+              onClick={onReviewWrong}
+              className="px-4 py-2 rounded border text-sm bg-white border-[#e74c3c] text-[#e74c3c] hover:bg-red-50"
+            >
+              틀린 문제 ({wrongCount})
+            </button>
+          )}
           <button
             onClick={() => setShowExplanation((v) => !v)}
             className={`px-4 py-2 rounded border text-sm transition-colors ${
@@ -483,7 +526,19 @@ export function PracticeQuiz({
 // 순서 연습: 전체 문제를 처음부터 차례대로
 export function SequentialPracticePage({ onBack }: { onBack: () => void }) {
   const { data, failed } = useDriverLicenseData();
+  const [showWrong, setShowWrong] = useState(false);
   if (!data) return <LoadingState failed={failed} onBack={onBack} />;
+  if (showWrong) {
+    return (
+      <WrongNotes
+        pool={data.questions}
+        title="순서 연습"
+        breadcrumb="홈 > 모의고사 > 소형차 필기(과목1)"
+        onBack={() => setShowWrong(false)}
+        backLabel="순서 연습으로 돌아가기"
+      />
+    );
+  }
   return (
     <PracticeQuiz
       questions={data.questions}
@@ -492,8 +547,99 @@ export function SequentialPracticePage({ onBack }: { onBack: () => void }) {
       storageKey={SEQUENTIAL_KEY}
       onBack={onBack}
       backLabel="필기시험으로 돌아가기"
+      onReviewWrong={() => setShowWrong(true)}
     />
   );
+}
+
+// 틀린 문제만 모아 보기 → 다시 풀기 (다시 맞히면 목록에서 빠짐)
+function WrongNotes({
+  pool,
+  title,
+  breadcrumb,
+  onBack,
+  backLabel,
+}: {
+  pool: DLQuestion[];
+  title: string;
+  breadcrumb: string;
+  onBack: () => void;
+  backLabel: string;
+}) {
+  const [retry, setRetry] = useState<{ questions: DLQuestion[]; key: number } | null>(null);
+  const [version, setVersion] = useState(0);
+  const wrong = useMemo(() => readWrong(), [retry, version]);
+  const items = useMemo(() => pool.map((q, i) => ({ q, no: i + 1 })).filter(({ q }) => q.id in wrong), [pool, wrong]);
+
+  if (retry) {
+    return (
+      <PracticeQuiz
+        key={retry.key}
+        questions={retry.questions}
+        title={`${title} · 틀린 문제 다시 풀기`}
+        breadcrumb={breadcrumb}
+        onBack={() => setRetry(null)}
+        backLabel="틀린 문제 목록으로 돌아가기"
+      />
+    );
+  }
+
+  const clear = () => {
+    if (!window.confirm('이 목록의 틀린 문제 기록을 모두 지울까요?')) return;
+    recordAnswers(items.map(({ q }) => ({ id: q.id, selected: q.a, correct: true })));
+    setVersion((v) => v + 1);
+  };
+
+  return (
+    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
+      <BackButton onClick={onBack} label={backLabel} />
+      <div className="text-sm text-gray-400 mb-6">
+        현재위치: {breadcrumb}
+        <span className="mx-1">&gt;</span>
+        <strong className="text-gray-700">{title} 틀린 문제</strong>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 mb-2">
+        <h1 className="text-2xl font-bold text-[#2c3e50] mr-auto">
+          <i className="fa-solid fa-circle-xmark mr-2 text-[#e74c3c]"></i>틀린 문제 {items.length}개
+        </h1>
+        {items.length > 0 && (
+          <>
+            <button
+              onClick={() => setRetry({ questions: items.map(({ q }) => q), key: Date.now() })}
+              className="px-5 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9]"
+            >
+              틀린 문제 다시 풀기
+            </button>
+            <button onClick={clear} className="text-sm text-gray-500 hover:text-[#e74c3c]">
+              기록 지우기
+            </button>
+          </>
+        )}
+      </div>
+      <p className="text-sm text-gray-500 mb-8">내가 고른 답은 빨간색, 정답은 초록색입니다. 다시 풀어서 맞히면 이 목록에서 빠집니다.</p>
+
+      {items.length === 0 ? (
+        <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg">틀린 문제가 없어요. 잘하고 있어요!</div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {items.map(({ q, no }) => (
+            <div key={q.id} className="p-5 border border-gray-200 rounded-lg">
+              <QuestionCard q={q} label={`${no}.`} selected={[wrong[q.id]]} reveal />
+              <ExplanationBox q={q} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 상단 메뉴 '틀린문제': 모든 연습·모의고사에서 틀린 문제
+export function WrongNotesPage({ onBack }: { onBack: () => void }) {
+  const { data, failed } = useDriverLicenseData();
+  if (!data) return <LoadingState failed={failed} onBack={onBack} />;
+  return <WrongNotes pool={data.questions} title="전체" breadcrumb="홈 > 틀린문제" onBack={onBack} backLabel="필기시험으로 돌아가기" />;
 }
 
 // 필기시험 홈의 통계용: 순서 연습 진행 상황
@@ -504,11 +650,103 @@ export function readSequentialStats() {
 }
 
 type PracticeGroup = { key: string; title: string; questions: DLQuestion[] };
+type StageView =
+  | { mode: 'list' }
+  | { mode: 'intro'; group: PracticeGroup }
+  | { mode: 'quiz'; group: PracticeGroup; random: boolean; questions: DLQuestion[]; key: number }
+  | { mode: 'wrong'; group: PracticeGroup };
 
-// 주제별 연습: 법규 단계별 / 그림 문제 형태별, 순서대로 또는 랜덤으로 풀기
+const STAGE_BREADCRUMB = '홈 > 모의고사 > 소형차 필기(과목1) > 주제별 연습';
+
+// 영역 설명: 영역 소개 · 핵심 내용 · 암기 요령을 보고 풀기 시작
+function StageIntro({
+  group,
+  info,
+  onStart,
+  onWrong,
+  onBack,
+}: {
+  group: PracticeGroup;
+  info?: StageInfo;
+  onStart: (random: boolean) => void;
+  onWrong: () => void;
+  onBack: () => void;
+}) {
+  const saved = readStore<Progress | null>(`dl-progress-${group.key}`, null);
+  const solved = saved ? Object.keys(saved.answers).length : 0;
+  const wrong = readWrong();
+  const wrongCount = group.questions.filter((q) => q.id in wrong).length;
+  const images = group.questions.filter((q) => q.img).length;
+
+  return (
+    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
+      <BackButton onClick={onBack} label="주제별 연습으로 돌아가기" />
+      <div className="text-sm text-gray-400 mb-6">
+        현재위치: {STAGE_BREADCRUMB}
+        <span className="mx-1">&gt;</span>
+        <strong className="text-gray-700">{group.title}</strong>
+      </div>
+
+      <header className="mb-6">
+        {info?.isNew && <span className="inline-block mb-2 px-2 py-0.5 rounded text-xs text-white bg-[#ff6b6b]">2026 신규 영역</span>}
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#2c3e50] mb-2">{group.title}</h1>
+        <div className="text-sm text-gray-500">
+          {group.questions.length}문제 · 그림 문제 {images}개{solved > 0 && ` · ${solved}문제 풀이`}
+          {wrongCount > 0 && <span className="text-[#e74c3c]"> · 틀린 문제 {wrongCount}개</span>}
+        </div>
+      </header>
+
+      {info && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 sm:p-7">
+          <h2 className="text-lg font-medium text-gray-800 mb-2">
+            <i className="fa-solid fa-book-open mr-2 text-[#37a7f0]"></i>영역 설명
+          </h2>
+          <p className="text-[15px] text-gray-700 leading-relaxed mb-5">{info.summary}</p>
+          <h3 className="text-base font-medium text-gray-800 mb-2">핵심 내용</h3>
+          <ul className="flex flex-col gap-2 text-[15px] text-gray-700 leading-relaxed">
+            {info.points.map((point) => (
+              <li key={point} className="flex gap-2">
+                <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
+                <span>{point}</span>
+              </li>
+            ))}
+          </ul>
+          {info.tip && (
+            <div className="mt-5 p-4 bg-[#fff8e1] border-l-4 border-[#ffc107] rounded text-[15px] text-gray-800">
+              <b className="mr-2">암기 요령</b>
+              {info.tip}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-3 mt-8">
+        <button onClick={() => onStart(false)} className="px-6 py-3 rounded-lg text-white bg-[#37a7f0] hover:bg-[#2a8bc9]">
+          <i className="fa-solid fa-play mr-2"></i>
+          {solved > 0 && solved < group.questions.length ? `이어서 풀기 (${solved}/${group.questions.length})` : '순서대로 풀기'}
+        </button>
+        <button
+          onClick={() => onStart(true)}
+          className="px-6 py-3 rounded-lg border border-gray-300 bg-white text-gray-700 hover:border-[#37a7f0] hover:text-[#37a7f0]"
+        >
+          <i className="fa-solid fa-shuffle mr-2"></i>랜덤으로 풀기
+        </button>
+        <button
+          onClick={onWrong}
+          disabled={wrongCount === 0}
+          className="px-6 py-3 rounded-lg border border-[#e74c3c] bg-white text-[#e74c3c] hover:bg-red-50 disabled:border-gray-200 disabled:text-gray-300 disabled:hover:bg-white disabled:cursor-not-allowed"
+        >
+          <i className="fa-solid fa-circle-xmark mr-2"></i>틀린 문제만 보기 ({wrongCount})
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// 주제별 연습: 영역 목록 → 영역 설명 → 문제 풀기 → 틀린 문제만 보기
 export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => void; selectedCity: string }) {
   const { data, failed } = useDriverLicenseData();
-  const [session, setSession] = useState<{ group: PracticeGroup; random: boolean; questions: DLQuestion[]; key: number } | null>(null);
+  const [view, setView] = useState<StageView>({ mode: 'list' });
 
   const sections = useMemo(() => {
     if (!data) return [];
@@ -517,7 +755,7 @@ export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => vo
         title: '',
         note: '',
         groups: data.chapters.map((chapter) => ({
-          key: `ch${chapter.id}`,
+          key: `a${chapter.id}`,
           title: `제${chapter.id}장 ${chapter.title}`,
           questions: data.questions.filter((q) => q.c === chapter.id),
         })),
@@ -536,19 +774,51 @@ export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => vo
 
   if (!data) return <LoadingState failed={failed} onBack={onBack} />;
 
-  if (session) {
+  if (view.mode === 'intro') {
+    const { group } = view;
     return (
-      <PracticeQuiz
-        key={session.key}
-        questions={session.questions}
-        title={`${session.group.title} (${session.random ? '랜덤' : '순서대로'})`}
-        breadcrumb="홈 > 모의고사 > 소형차 필기(과목1) > 주제별 연습"
-        storageKey={session.random ? undefined : `dl-progress-${session.group.key}`}
-        onBack={() => setSession(null)}
-        backLabel="주제별 연습으로 돌아가기"
+      <StageIntro
+        group={group}
+        info={STAGE_INFO[group.key]}
+        onBack={() => setView({ mode: 'list' })}
+        onWrong={() => setView({ mode: 'wrong', group })}
+        onStart={(random) =>
+          setView({ mode: 'quiz', group, random, questions: random ? shuffle(group.questions) : group.questions, key: Date.now() })
+        }
       />
     );
   }
+
+  if (view.mode === 'quiz') {
+    const { group } = view;
+    return (
+      <PracticeQuiz
+        key={view.key}
+        questions={view.questions}
+        title={`${group.title} (${view.random ? '랜덤' : '순서대로'})`}
+        breadcrumb={STAGE_BREADCRUMB}
+        storageKey={view.random ? undefined : `dl-progress-${group.key}`}
+        onBack={() => setView({ mode: 'intro', group })}
+        backLabel="영역 설명으로 돌아가기"
+        onReviewWrong={() => setView({ mode: 'wrong', group })}
+      />
+    );
+  }
+
+  if (view.mode === 'wrong') {
+    const { group } = view;
+    return (
+      <WrongNotes
+        pool={group.questions}
+        title={group.title}
+        breadcrumb={STAGE_BREADCRUMB}
+        onBack={() => setView({ mode: 'intro', group })}
+        backLabel="영역 설명으로 돌아가기"
+      />
+    );
+  }
+
+  const wrong = readWrong();
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 py-8">
@@ -556,7 +826,7 @@ export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => vo
 
       <header className="text-center mb-12">
         <h1 className="text-2xl font-bold text-[#2c3e50] mb-2">{selectedCity} 소형차 필기시험(과목1) 주제별 연습</h1>
-        <p className="text-sm text-gray-500">법규 챕터에 따라 단계별로 분류</p>
+        <p className="text-sm text-gray-500">영역 설명을 읽고 문제를 푼 뒤, 틀린 문제만 모아 다시 확인하세요</p>
       </header>
 
       {sections.map((section) => (
@@ -574,26 +844,35 @@ export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => vo
             {section.groups.map((group) => {
               const saved = readStore<Progress | null>(`dl-progress-${group.key}`, null);
               const solved = saved ? Object.keys(saved.answers).length : 0;
+              const wrongCount = group.questions.filter((q) => q.id in wrong).length;
+              const info = STAGE_INFO[group.key];
               return (
                 <div key={group.key} className="py-6 border-b border-gray-100">
-                  <div className="text-base sm:text-lg font-medium text-gray-800 mb-4">
+                  <button
+                    onClick={() => setView({ mode: 'intro', group })}
+                    className="text-left text-base sm:text-lg font-medium text-gray-800 mb-1 hover:text-[#37a7f0]"
+                  >
                     {group.title}{' '}
                     <span className="text-gray-500 font-normal text-sm sm:text-base">({group.questions.length}문제)</span>
+                    {info?.isNew && <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] text-white bg-[#ff6b6b] align-middle">2026 신규</span>}
                     {solved > 0 && <span className="ml-2 text-xs text-[#37a7f0] font-normal">{solved}문제 풀이</span>}
-                  </div>
-                  <div className="flex gap-6 sm:gap-10 pl-2.5 text-sm text-gray-600">
+                  </button>
+                  {info && <p className="text-sm text-gray-500 mb-3 line-clamp-2">{info.summary}</p>}
+                  <div className="flex flex-wrap gap-x-10 gap-y-2 pl-2.5 text-sm text-gray-600">
                     <button
-                      onClick={() => setSession({ group, random: false, questions: group.questions, key: Date.now() })}
+                      onClick={() => setView({ mode: 'intro', group })}
                       className="flex items-center gap-2 hover:text-[#37a7f0] before:content-['•'] before:text-gray-300 hover:before:text-[#37a7f0]"
                     >
-                      순서대로 풀기
+                      영역 설명 보고 풀기
                     </button>
-                    <button
-                      onClick={() => setSession({ group, random: true, questions: shuffle(group.questions), key: Date.now() })}
-                      className="flex items-center gap-2 hover:text-[#37a7f0] before:content-['•'] before:text-gray-300 hover:before:text-[#37a7f0]"
-                    >
-                      랜덤으로 풀기
-                    </button>
+                    {wrongCount > 0 && (
+                      <button
+                        onClick={() => setView({ mode: 'wrong', group })}
+                        className="flex items-center gap-2 text-[#e74c3c] hover:opacity-80 before:content-['•'] before:text-[#e74c3c]"
+                      >
+                        틀린 문제만 보기 ({wrongCount})
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -773,6 +1052,11 @@ export function MockExamPage({ onBack }: { onBack: () => void }) {
 
   const finish = (finished: ExamSession) => {
     const score = finished.questions.filter((q, i) => finished.answers[i] === q.a).length;
+    recordAnswers(
+      finished.questions
+        .map((q, i) => ({ id: q.id, selected: finished.answers[i], correct: finished.answers[i] === q.a }))
+        .filter((r) => r.selected !== undefined),
+    );
     const seconds = Math.min(EXAM_SECONDS, Math.round((Date.now() - finished.startedAt) / 1000));
     if (finished.no !== null) {
       const key = String(finished.no);

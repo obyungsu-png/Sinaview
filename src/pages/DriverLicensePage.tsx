@@ -7,6 +7,7 @@ import {
   FavoritesPractice,
   MockExamPage,
   SequentialPracticePage,
+  WrongNotesPage,
   readSequentialStats,
 } from '../components/DriverLicenseQuiz';
 
@@ -327,7 +328,7 @@ function DifficultPointsPage({ onBack }: { onBack: () => void }) {
 export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
   const [selectedCity, setSelectedCity] = useState('대련');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'difficult' | 'mock' | 'community' | 'app123'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'difficult' | 'mock' | 'wrong' | 'community' | 'app123'>('home');
   const sequentialStats = currentView === 'practice' ? readSequentialStats() : null;
   const correctPercent = sequentialStats ? Math.round((sequentialStats.correct / sequentialStats.total) * 100) : 0;
   const wrongPercent = sequentialStats ? Math.round((sequentialStats.wrong / sequentialStats.total) * 100) : 0;
@@ -444,7 +445,10 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
             >
               커뮤니티
             </li>
-            <li className="px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600">
+            <li 
+              onClick={() => setCurrentView('wrong')}
+              className={`px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'wrong' ? 'bg-blue-600' : ''}`}
+            >
               틀린문제
             </li>
             <li 
@@ -1379,6 +1383,9 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
       ) : currentView === 'mock' ? (
         // 모의고사 페이지
         <MockExamPage onBack={() => setCurrentView('practice')} />
+      ) : currentView === 'wrong' ? (
+        // 틀린 문제 모아 보기
+        <WrongNotesPage onBack={() => setCurrentView('practice')} />
       ) : (
         // 동영상 강의 페이지
         <div className="max-w-[1200px] mx-auto px-4 py-8">
