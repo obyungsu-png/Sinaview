@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 // 과목1 문제 데이터 (원본: 2026年科目一新规2309题, 한국어 번역본)
+// 과목1 공식 문제 유형은 판단형(判断题)과 단일 선택형(单选题) 두 가지뿐
 export type DLQuestion = {
   id: number;
-  c: number; // 장 번호 (1~6)
-  t: 'j' | 's' | 'm'; // 판단형 / 선택형 / 복수 선택형
+  c: number; // 단계(장) 번호
+  t: 'j' | 's'; // 판단형 / 단일 선택형
+  k?: 'pic' | 'sign' | 'sig'; // 그림 상황 / 교통 표지·노면 표시 / 신호등·교통경찰 수신호 (없으면 글 문제)
   q: string;
   o?: string[];
-  a: number | number[];
+  a: number;
   e?: string;
   img?: string[];
 };
+export type DLKind = 'txt' | 'pic' | 'sign' | 'sig';
 export type DLChapter = { id: number; title: string };
 type DLData = { chapters: DLChapter[]; questions: DLQuestion[] };
 
@@ -69,23 +72,21 @@ const MOCK_RESULTS_KEY = 'dl-mock-results';
 
 const TYPE_HINT: Record<DLQuestion['t'], string> = {
   j: '판단형 문제 – 맞음/틀림을 고르세요.',
-  s: '선택형 문제 – 보기 중 정답 하나를 고르세요.',
-  m: '복수 선택형 문제 – 정답을 모두 고른 뒤 「답 확인」을 누르세요.',
+  s: '단일 선택형 문제 – 보기 중 정답 하나를 고르세요.',
 };
 
+export const KIND_LABEL: Record<DLKind, string> = {
+  txt: '글 문제',
+  pic: '그림 상황 판단',
+  sign: '교통 표지·노면 표시',
+  sig: '신호등·교통경찰 수신호',
+};
+const KIND_SHORT: Record<DLKind, string> = { txt: '글', pic: '그림', sign: '표지', sig: '신호·수신호' };
+export const kindOf = (q: DLQuestion): DLKind => q.k ?? 'txt';
+
 const optionsOf = (q: DLQuestion) => (q.t === 'j' ? JUDGE_OPTIONS : q.o ?? []);
-const correctOf = (q: DLQuestion) => (Array.isArray(q.a) ? q.a : [q.a]);
-const isCorrect = (q: DLQuestion, selected: number[] | undefined) => {
-  if (!selected) return false;
-  const correct = correctOf(q);
-  return selected.length === correct.length && correct.every((i) => selected.includes(i));
-};
-const answerText = (q: DLQuestion) => {
-  const options = optionsOf(q);
-  return correctOf(q)
-    .map((i) => `${LETTERS[i]}. ${options[i]}`)
-    .join(', ');
-};
+const isCorrect = (q: DLQuestion, selected: number[] | undefined) => selected?.length === 1 && selected[0] === q.a;
+const answerText = (q: DLQuestion) => `${LETTERS[q.a]}. ${optionsOf(q)[q.a]}`;
 const imageUrl = (name: string) => `${import.meta.env.BASE_URL}driver-license/img/${name}`;
 
 let audioContext: AudioContext | null = null;
@@ -190,7 +191,6 @@ function QuestionCard({
   onSelect?: (index: number) => void;
   headerRight?: ReactNode;
 }) {
-  const correct = correctOf(q);
   return (
     <div>
       <div className="flex justify-between items-start gap-4 mb-5">
@@ -217,7 +217,7 @@ function QuestionCard({
       <div className="flex flex-col gap-3">
         {optionsOf(q).map((text, i) => {
           const isSelected = selected.includes(i);
-          const isAnswer = correct.includes(i);
+          const isAnswer = i === q.a;
           let tone = 'border-gray-200 hover:bg-gray-50';
           let mark: ReactNode = <span className="w-6 h-6 rounded-full border-2 border-gray-300"></span>;
           if (reveal && isAnswer) {
@@ -282,7 +282,6 @@ export function PracticeQuiz({
   const [progress, setProgress] = useState<Progress>(() =>
     storageKey ? readStore<Progress>(storageKey, { index: 0, answers: {} }) : { index: 0, answers: {} },
   );
-  const [pending, setPending] = useState<number[]>([]);
   const [autoNext, setAutoNext] = useState(() => readStore('dl-auto-next', true));
   const [showExplanation, setShowExplanation] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
@@ -315,23 +314,16 @@ export function PracticeQuiz({
   const goTo = (target: number) => {
     window.clearTimeout(timer.current);
     setProgress((p) => ({ ...p, index: Math.max(0, Math.min(questions.length - 1, target)) }));
-    setPending([]);
     setShowExplanation(false);
-  };
-
-  const submit = (selected: number[]) => {
-    if (answered || selected.length === 0) return;
-    const ok = isCorrect(q, selected);
-    playTone(ok);
-    setProgress((p) => ({ ...p, answers: { ...p.answers, [q.id]: selected } }));
-    if (!ok) setShowExplanation(true);
-    else if (autoNext && index < questions.length - 1) timer.current = window.setTimeout(() => goTo(index + 1), 900);
   };
 
   const handleSelect = (i: number) => {
     if (answered) return;
-    if (q.t === 'm') setPending((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i].sort()));
-    else submit([i]);
+    const ok = i === q.a;
+    playTone(ok);
+    setProgress((p) => ({ ...p, answers: { ...p.answers, [q.id]: [i] } }));
+    if (!ok) setShowExplanation(true);
+    else if (autoNext && index < questions.length - 1) timer.current = window.setTimeout(() => goTo(index + 1), 900);
   };
 
   const toggleFavorite = () => {
@@ -344,7 +336,6 @@ export function PracticeQuiz({
     if (!window.confirm('풀이 기록을 모두 지우고 처음부터 다시 풀까요?')) return;
     window.clearTimeout(timer.current);
     setProgress({ index: 0, answers: {} });
-    setPending([]);
     setShowExplanation(false);
   };
 
@@ -370,7 +361,7 @@ export function PracticeQuiz({
       <QuestionCard
         q={q}
         label={`${index + 1}/${questions.length}.`}
-        selected={answered ?? pending}
+        selected={answered ?? []}
         reveal={!!answered}
         onSelect={answered ? undefined : handleSelect}
         headerRight={
@@ -384,16 +375,6 @@ export function PracticeQuiz({
           </button>
         }
       />
-
-      {q.t === 'm' && !answered && (
-        <button
-          onClick={() => submit(pending)}
-          disabled={pending.length === 0}
-          className="mt-4 px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          답 확인
-        </button>
-      )}
 
       {(showExplanation || answered) && (showExplanation || !isCorrect(q, answered)) && <ExplanationBox q={q} />}
 
@@ -522,19 +503,36 @@ export function readSequentialStats() {
   return { total: progress.total, correct: progress.correct ?? 0, wrong: progress.wrong ?? 0 };
 }
 
-// 주제별 연습: 장별 순서대로 / 랜덤으로 풀기
+type PracticeGroup = { key: string; title: string; questions: DLQuestion[] };
+
+// 주제별 연습: 법규 단계별 / 그림 문제 형태별, 순서대로 또는 랜덤으로 풀기
 export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => void; selectedCity: string }) {
   const { data, failed } = useDriverLicenseData();
-  const [session, setSession] = useState<{ chapter: DLChapter; random: boolean; questions: DLQuestion[]; key: number } | null>(null);
+  const [session, setSession] = useState<{ group: PracticeGroup; random: boolean; questions: DLQuestion[]; key: number } | null>(null);
 
-  const chapters = useMemo(
-    () =>
-      data?.chapters.map((chapter) => ({
-        ...chapter,
-        questions: data.questions.filter((q) => q.c === chapter.id),
-      })) ?? [],
-    [data],
-  );
+  const sections = useMemo(() => {
+    if (!data) return [];
+    return [
+      {
+        title: '',
+        note: '',
+        groups: data.chapters.map((chapter) => ({
+          key: `ch${chapter.id}`,
+          title: `제${chapter.id}장 ${chapter.title}`,
+          questions: data.questions.filter((q) => q.c === chapter.id),
+        })),
+      },
+      {
+        title: '그림 문제 집중 연습',
+        note: '실제 시험 100문제 중 절반 이상이 그림(상황 그림·계기판), 교통 표지, 신호등·교통경찰 수신호 문제입니다.',
+        groups: (['pic', 'sign', 'sig'] as DLKind[]).map((kind) => ({
+          key: `k-${kind}`,
+          title: KIND_LABEL[kind],
+          questions: data.questions.filter((q) => kindOf(q) === kind),
+        })),
+      },
+    ];
+  }, [data]);
 
   if (!data) return <LoadingState failed={failed} onBack={onBack} />;
 
@@ -543,9 +541,9 @@ export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => vo
       <PracticeQuiz
         key={session.key}
         questions={session.questions}
-        title={`제${session.chapter.id}장 ${session.chapter.title} (${session.random ? '랜덤' : '순서대로'})`}
+        title={`${session.group.title} (${session.random ? '랜덤' : '순서대로'})`}
         breadcrumb="홈 > 모의고사 > 소형차 필기(과목1) > 주제별 연습"
-        storageKey={session.random ? undefined : `dl-progress-ch${session.chapter.id}`}
+        storageKey={session.random ? undefined : `dl-progress-${session.group.key}`}
         onBack={() => setSession(null)}
         backLabel="주제별 연습으로 돌아가기"
       />
@@ -561,35 +559,48 @@ export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => vo
         <p className="text-sm text-gray-500">법규 챕터에 따라 단계별로 분류</p>
       </header>
 
-      <div className="border-t border-gray-100">
-        {chapters.map((chapter) => {
-          const saved = readStore<Progress | null>(`dl-progress-ch${chapter.id}`, null);
-          const solved = saved ? Object.keys(saved.answers).length : 0;
-          return (
-            <div key={chapter.id} className="py-6 border-b border-gray-100">
-              <div className="text-base sm:text-lg font-medium text-gray-800 mb-4">
-                제{chapter.id}장 {chapter.title}{' '}
-                <span className="text-gray-500 font-normal text-sm sm:text-base">({chapter.questions.length}문제)</span>
-                {solved > 0 && <span className="ml-2 text-xs text-[#37a7f0] font-normal">{solved}문제 풀이</span>}
-              </div>
-              <div className="flex gap-6 sm:gap-10 pl-2.5 text-sm text-gray-600">
-                <button
-                  onClick={() => setSession({ chapter, random: false, questions: chapter.questions, key: Date.now() })}
-                  className="flex items-center gap-2 hover:text-[#37a7f0] before:content-['•'] before:text-gray-300 hover:before:text-[#37a7f0]"
-                >
-                  순서대로 풀기
-                </button>
-                <button
-                  onClick={() => setSession({ chapter, random: true, questions: shuffle(chapter.questions), key: Date.now() })}
-                  className="flex items-center gap-2 hover:text-[#37a7f0] before:content-['•'] before:text-gray-300 hover:before:text-[#37a7f0]"
-                >
-                  랜덤으로 풀기
-                </button>
-              </div>
+      {sections.map((section) => (
+        <section key={section.title} className="mb-12">
+          {section.title && (
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-[#2c3e50] mb-1">
+                <i className="fa-solid fa-images mr-2 text-[#37a7f0]"></i>
+                {section.title}
+              </h2>
+              <p className="text-sm text-gray-500">{section.note}</p>
             </div>
-          );
-        })}
-      </div>
+          )}
+          <div className="border-t border-gray-100">
+            {section.groups.map((group) => {
+              const saved = readStore<Progress | null>(`dl-progress-${group.key}`, null);
+              const solved = saved ? Object.keys(saved.answers).length : 0;
+              return (
+                <div key={group.key} className="py-6 border-b border-gray-100">
+                  <div className="text-base sm:text-lg font-medium text-gray-800 mb-4">
+                    {group.title}{' '}
+                    <span className="text-gray-500 font-normal text-sm sm:text-base">({group.questions.length}문제)</span>
+                    {solved > 0 && <span className="ml-2 text-xs text-[#37a7f0] font-normal">{solved}문제 풀이</span>}
+                  </div>
+                  <div className="flex gap-6 sm:gap-10 pl-2.5 text-sm text-gray-600">
+                    <button
+                      onClick={() => setSession({ group, random: false, questions: group.questions, key: Date.now() })}
+                      className="flex items-center gap-2 hover:text-[#37a7f0] before:content-['•'] before:text-gray-300 hover:before:text-[#37a7f0]"
+                    >
+                      순서대로 풀기
+                    </button>
+                    <button
+                      onClick={() => setSession({ group, random: true, questions: shuffle(group.questions), key: Date.now() })}
+                      className="flex items-center gap-2 hover:text-[#37a7f0] before:content-['•'] before:text-gray-300 hover:before:text-[#37a7f0]"
+                    >
+                      랜덤으로 풀기
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
@@ -648,19 +659,21 @@ export function FavoritesPractice() {
 
 // ───────────────── 모의고사 ─────────────────
 
-const EXAM_JUDGE = 40;
-const EXAM_SINGLE = 60;
+const EXAM_TOTAL = 100;
+const EXAM_JUDGE = 40; // 판단형 40 + 단일 선택형 60
 const EXAM_SECONDS = 45 * 60;
 const PASS_SCORE = 90;
+// 문제 형태별 구성: 글 45 · 그림 상황 35 · 교통 표지 10 · 신호등·교통경찰 수신호 10
+const EXAM_MIX: Record<DLKind, number> = { txt: 45, pic: 35, sign: 10, sig: 10 };
+const KINDS: DLKind[] = ['txt', 'pic', 'sign', 'sig'];
 
 type MockResult = { best: number; last: number; attempts: number; date: string };
 
 // 같은 문제(문구·보기·그림이 모두 같은 중복 문항)는 한 번만 사용
-function uniquePool(questions: DLQuestion[], type: DLQuestion['t']) {
+function uniquePool(questions: DLQuestion[]) {
   const seen = new Set<string>();
   return questions.filter((q) => {
-    if (q.t !== type) return false;
-    const key = `${q.q}|${(q.o ?? []).join('|')}|${(q.img ?? []).join(',')}`;
+    const key = `${q.t}|${q.q}|${(q.o ?? []).join('|')}|${(q.img ?? []).join(',')}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -689,8 +702,9 @@ function allocate(sizes: number[], total: number) {
   return quota;
 }
 
-// 한 유형(판단형/선택형)의 문제를 장별로 나누고, 회차마다 장별로 정해진 수만큼 돌아가며 뽑음
+// 문제 묶음을 장별로 나누고, 회차마다 장별로 정해진 수만큼 돌아가며 뽑음
 function examPlan(pool: DLQuestion[], total: number, seed: number) {
+  if (pool.length === 0 || total <= 0) return () => [] as DLQuestion[];
   const chapters = [...new Set(pool.map((q) => q.c))].sort((a, b) => a - b);
   const groups = chapters.map((c) => shuffle(pool.filter((q) => q.c === c), seed + c));
   const quotas = allocate(groups.map((g) => g.length), total);
@@ -698,25 +712,44 @@ function examPlan(pool: DLQuestion[], total: number, seed: number) {
     groups.flatMap((group, i) => Array.from({ length: quotas[i] }, (_, j) => group[(round * quotas[i] + j) % group.length]));
 }
 
-// 회차별 고정 문제: 판단형 40 + 선택형 60, 모든 단계에서 골고루 출제 (큰 단계는 회차끼리 겹치지 않음)
+// 형태(글·그림·표지·신호)마다 판단형/선택형 수를 정함: 그림·표지·신호는 각 묶음의 판단형 비율대로,
+// 나머지 판단형은 글 문제로 채워 전체 판단형 40 · 선택형 60을 맞춤
+function examDraws(questions: DLQuestion[], seed: number) {
+  const pool = uniquePool(questions);
+  const judges: Record<DLKind, number> = { txt: 0, pic: 0, sign: 0, sig: 0 };
+  for (const kind of KINDS.slice(1)) {
+    const items = pool.filter((q) => kindOf(q) === kind);
+    judges[kind] = Math.round((EXAM_MIX[kind] * items.filter((q) => q.t === 'j').length) / items.length);
+  }
+  judges.txt = EXAM_JUDGE - judges.pic - judges.sign - judges.sig;
+  return KINDS.flatMap((kind, i) =>
+    (['j', 's'] as const).map((type, j) => ({
+      type,
+      draw: examPlan(
+        pool.filter((q) => kindOf(q) === kind && q.t === type),
+        type === 'j' ? judges[kind] : EXAM_MIX[kind] - judges[kind],
+        seed + (i * 2 + j) * 101,
+      ),
+    })),
+  );
+}
+
+// 판단형 40문제 → 단일 선택형 60문제 순서, 각 안에서는 섞음
+function assembleExam(draws: ReturnType<typeof examDraws>, round: number, seed: number) {
+  const pick = (type: DLQuestion['t'], s: number) => shuffle(draws.filter((d) => d.type === type).flatMap((d) => d.draw(round)), s);
+  return [...pick('j', seed), ...pick('s', seed + 1)];
+}
+
+// 회차별 고정 문제 (전체 문제 수 ÷ 100 회분): 형태·단계별로 골고루, 큰 묶음은 회차끼리 겹치지 않음
 function buildExamSets(questions: DLQuestion[]) {
-  const judges = uniquePool(questions, 'j');
-  const singles = uniquePool(questions, 's');
-  const drawJudges = examPlan(judges, EXAM_JUDGE, 2026);
-  const drawSingles = examPlan(singles, EXAM_SINGLE, 1309);
-  const count = Math.min(Math.floor(judges.length / EXAM_JUDGE), Math.floor(singles.length / EXAM_SINGLE));
-  return Array.from({ length: count }, (_, k) => [
-    ...shuffle(drawJudges(k), 100 + k),
-    ...shuffle(drawSingles(k), 200 + k),
-  ]);
+  const draws = examDraws(questions, 2026);
+  const count = Math.floor(uniquePool(questions).length / EXAM_TOTAL);
+  return Array.from({ length: count }, (_, k) => assembleExam(draws, k, 100 + k * 2));
 }
 
 function buildRandomExam(questions: DLQuestion[]) {
   const seed = Math.floor(Math.random() * 2 ** 31);
-  return [
-    ...shuffle(examPlan(uniquePool(questions, 'j'), EXAM_JUDGE, seed)(0)),
-    ...shuffle(examPlan(uniquePool(questions, 's'), EXAM_SINGLE, seed + 99)(0)),
-  ];
+  return assembleExam(examDraws(questions, seed), 0, seed);
 }
 
 type ExamSession = { no: number | null; questions: DLQuestion[]; answers: Record<number, number>; startedAt: number };
@@ -796,20 +829,25 @@ export function MockExamPage({ onBack }: { onBack: () => void }) {
         </p>
       </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         {[
-          { icon: 'fa-list-check', label: '문제 수', value: '100문제' },
-          { icon: 'fa-layer-group', label: '구성', value: `판단형 ${EXAM_JUDGE} + 선택형 ${EXAM_SINGLE}` },
-          { icon: 'fa-clock', label: '시험 시간', value: '45분' },
-          { icon: 'fa-award', label: '합격 기준', value: `${PASS_SCORE}점 이상` },
+          { icon: 'fa-list-check', label: '문제 수', value: '100문제', sub: `판단형 ${EXAM_JUDGE} · 단일 선택형 ${EXAM_TOTAL - EXAM_JUDGE}` },
+          { icon: 'fa-images', label: '문제 형태', value: `그림 포함 ${EXAM_TOTAL - EXAM_MIX.txt}문제`, sub: KINDS.map((k) => `${KIND_SHORT[k]} ${EXAM_MIX[k]}`).join(' · ') },
+          { icon: 'fa-clock', label: '시험 시간', value: '45분', sub: '시간이 끝나면 자동 제출' },
+          { icon: 'fa-award', label: '합격 기준', value: `${PASS_SCORE}점 이상`, sub: '100점 만점, 오답 10문제까지' },
         ].map((item) => (
           <div key={item.label} className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
             <i className={`fa-solid ${item.icon} text-xl mb-2`} style={{ color: PRIMARY }}></i>
             <div className="text-xs text-gray-500">{item.label}</div>
             <div className="text-sm sm:text-base font-medium text-gray-800">{item.value}</div>
+            <div className="text-[11px] sm:text-xs text-gray-500 mt-1">{item.sub}</div>
           </div>
         ))}
       </div>
+      <p className="text-xs text-gray-400 mb-10 leading-relaxed">
+        과목1은 판단형과 단일 선택형 두 가지 유형만 출제됩니다. 2026년 개편 내용에 맞춰 그림(상황 그림·계기판), 교통 표지·노면
+        표시, 신호등·교통경찰 수신호 문제를 합쳐 회차마다 55문제를 넣었고, 신에너지차·스마트 보조 주행 문제도 회차마다 포함됩니다.
+      </p>
 
       <button
         onClick={() => start(null)}
@@ -973,11 +1011,13 @@ function ExamResult({
   onList: () => void;
 }) {
   const passed = outcome.score >= PASS_SCORE;
+  const tally = (key: string, label: string, match: (q: DLQuestion) => boolean) => {
+    const items = outcome.questions.map((q, i) => ({ q, i })).filter(({ q }) => match(q));
+    return { key, label, total: items.length, correct: items.filter(({ q, i }) => outcome.answers[i] === q.a).length };
+  };
+  const byKind = KINDS.map((kind) => tally(kind, KIND_LABEL[kind], (q) => kindOf(q) === kind)).filter((row) => row.total > 0);
   const byChapter = chapters
-    .map((chapter) => {
-      const items = outcome.questions.map((q, i) => ({ q, i })).filter(({ q }) => q.c === chapter.id);
-      return { chapter, total: items.length, correct: items.filter(({ q, i }) => outcome.answers[i] === q.a).length };
-    })
+    .map((chapter) => tally(String(chapter.id), `제${chapter.id}장 ${chapter.title}`, (q) => q.c === chapter.id))
     .filter((row) => row.total > 0);
   const wrong = outcome.questions
     .map((q, i) => ({ q, i, selected: outcome.answers[i] }))
@@ -1004,25 +1044,30 @@ function ExamResult({
         </div>
       </div>
 
-      <h3 className="text-lg font-medium text-gray-800 mb-3">단계별 결과</h3>
-      <div className="mb-10 border border-gray-200 rounded-lg divide-y divide-gray-100">
-        {byChapter.map(({ chapter, total, correct }) => (
-          <div key={chapter.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-            <span className="flex-1 text-gray-700">
-              제{chapter.id}장 {chapter.title}
-            </span>
-            <div className="hidden sm:block w-40 h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full ${correct === total ? 'bg-[#2ecc71]' : 'bg-[#37a7f0]'}`}
-                style={{ width: `${(correct / total) * 100}%` }}
-              ></div>
-            </div>
-            <span className="w-16 text-right text-gray-600">
-              {correct}/{total}
-            </span>
+      {[
+        { title: '문제 형태별 결과', rows: byKind },
+        { title: '단계별 결과', rows: byChapter },
+      ].map((section) => (
+        <div key={section.title}>
+          <h3 className="text-lg font-medium text-gray-800 mb-3">{section.title}</h3>
+          <div className="mb-8 border border-gray-200 rounded-lg divide-y divide-gray-100">
+            {section.rows.map(({ key, label, total, correct }) => (
+              <div key={key} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <span className="flex-1 text-gray-700">{label}</span>
+                <div className="hidden sm:block w-40 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${correct === total ? 'bg-[#2ecc71]' : 'bg-[#37a7f0]'}`}
+                    style={{ width: `${(correct / total) * 100}%` }}
+                  ></div>
+                </div>
+                <span className="w-16 text-right text-gray-600">
+                  {correct}/{total}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
 
       {wrong.length > 0 && (
         <>
