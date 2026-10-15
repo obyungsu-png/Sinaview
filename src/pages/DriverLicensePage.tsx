@@ -1,6 +1,6 @@
 import { ArrowLeft } from 'lucide-react@0.487.0';
 import { Button } from '../components/ui/button';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DriverLicenseCommunity } from '../components/DriverLicenseCommunity';
 import {
   ChapterPracticePage,
@@ -10,9 +10,46 @@ import {
   WrongNotesPage,
   readSequentialStats,
 } from '../components/DriverLicenseQuiz';
+import { RETENTION_DAYS, startDriverLicenseSync, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
 
 interface DriverLicensePageProps {
   onBack: () => void;
+  onLoginClick?: () => void;
+}
+
+// 학습 기록 저장 안내: 회원은 휴대폰·PC 어디서든 이어서, 비회원은 이 기기에만
+function RecordSyncNotice({ onLoginClick }: { onLoginClick?: () => void }) {
+  const { loggedIn, status } = useDriverLicenseRecords();
+  if (!loggedIn) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-6 px-4 py-3 rounded-lg bg-[#fff8e6] border border-[#f5d58a] text-sm text-gray-700">
+        <i className="fa-solid fa-mobile-screen-button text-[#e0a100]"></i>
+        <span className="flex-1 min-w-[200px]">
+          지금은 이 기기에만 저장돼요. <strong>로그인하면 휴대폰·PC 어디서 풀어도</strong> 틀린 문제·진도·모의고사 점수가 이어집니다
+          (최근 {RETENTION_DAYS / 7}주 기록 보관).
+        </span>
+        {onLoginClick && (
+          <button onClick={onLoginClick} className="px-4 py-1.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] shrink-0">
+            로그인
+          </button>
+        )}
+      </div>
+    );
+  }
+  const statusText =
+    status === 'syncing' ? '기록을 맞추는 중…' : status === 'error' ? '서버에 연결하지 못해 이 기기에 먼저 저장 중 (연결되면 자동 저장)' : '저장됨';
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-6 px-4 py-3 rounded-lg bg-[#eef7fe] border border-[#bfe2fa] text-sm text-gray-700">
+      <i className="fa-solid fa-cloud text-[#37a7f0]"></i>
+      <span className="flex-1 min-w-[200px]">
+        회원 기록 저장 중 · 휴대폰·PC 어디서 풀어도 이어집니다 (최근 {RETENTION_DAYS / 7}주 기록 보관)
+      </span>
+      <span className={`text-xs ${status === 'error' ? 'text-[#e74c3c]' : 'text-gray-500'}`}>
+        {status === 'syncing' && <i className="fa-solid fa-rotate fa-spin mr-1"></i>}
+        {statusText}
+      </span>
+    </div>
+  );
 }
 
 // 난점 공략 페이지 컴포넌트
@@ -325,10 +362,14 @@ function DifficultPointsPage({ onBack }: { onBack: () => void }) {
   );
 }
 
-export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
+export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePageProps) {
   const [selectedCity, setSelectedCity] = useState('대련');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'difficult' | 'mock' | 'wrong' | 'community' | 'app123'>('home');
+  useDriverLicenseRecords();
+  useEffect(() => {
+    startDriverLicenseSync();
+  }, []);
   const sequentialStats = currentView === 'practice' ? readSequentialStats() : null;
   const correctPercent = sequentialStats ? Math.round((sequentialStats.correct / sequentialStats.total) * 100) : 0;
   const wrongPercent = sequentialStats ? Math.round((sequentialStats.wrong / sequentialStats.total) * 100) : 0;
@@ -343,8 +384,8 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
       {/* 헤더 영역 */}
       <header>
         <div className="max-w-[1200px] mx-auto px-4">
-          <div className="flex justify-between items-center py-5">
-            <div className="flex items-center gap-3 text-2xl font-bold" style={{ color: '#37a7f0' }}>
+          <div className="flex flex-wrap justify-between items-center gap-y-2 py-3 sm:py-5">
+            <div className="flex items-center gap-3 text-xl sm:text-2xl font-bold whitespace-nowrap" style={{ color: '#37a7f0' }}>
               <i className="fa-solid fa-car-side text-4xl"></i>
               <span>운전면허 보감</span>
               <div className="relative ml-2">
@@ -399,7 +440,7 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 돌아가기
               </Button>
-              <div className="flex border border-gray-300">
+              <div className="hidden md:flex border border-gray-300">
                 <input 
                   type="text" 
                   placeholder="키워드를 입력하세요"
@@ -417,49 +458,49 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
           <ul className="max-w-[1200px] mx-auto px-4 flex overflow-x-auto">
             <li 
               onClick={() => setCurrentView('home')}
-              className={`px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'home' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'home' ? 'bg-blue-600' : ''}`}
             >
               홈
             </li>
             <li 
               onClick={() => setCurrentView('practice')}
-              className={`px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'practice' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'practice' ? 'bg-blue-600' : ''}`}
             >
               필기시험
             </li>
             <li 
               onClick={() => setCurrentView('lecture')}
-              className={`px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'lecture' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'lecture' ? 'bg-blue-600' : ''}`}
             >
               동영상 강의
             </li>
             <li 
               onClick={() => setCurrentView('faq')}
-              className={`px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'faq' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'faq' ? 'bg-blue-600' : ''}`}
             >
               FAQ
             </li>
             <li 
               onClick={() => setCurrentView('community')}
-              className={`px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'community' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'community' ? 'bg-blue-600' : ''}`}
             >
               커뮤니티
             </li>
             <li 
               onClick={() => setCurrentView('wrong')}
-              className={`px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'wrong' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'wrong' ? 'bg-blue-600' : ''}`}
             >
               틀린문제
             </li>
             <li 
               onClick={() => setCurrentView('favorites')}
-              className={`px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'favorites' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'favorites' ? 'bg-blue-600' : ''}`}
             >
               즐겨찾기
             </li>
             <li 
               onClick={() => setCurrentView('app123')}
-              className={`px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'app123' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'app123' ? 'bg-blue-600' : ''}`}
             >
               123123 앱
             </li>
@@ -841,9 +882,9 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
             현재 위치: 홈 &gt; 모의고사 &gt; 필기시험 (과목1)
           </div>
 
-          <div className="flex gap-8 mb-12 flex-wrap lg:flex-nowrap">
+          <div className="flex flex-col lg:flex-row gap-8 mb-12">
             {/* 왼쪽 메인 패널 */}
-            <div className="flex-[3] min-w-0">
+            <div className="lg:flex-[3] min-w-0">
               {/* 소개 박스 */}
               <div className="bg-gray-50 border border-gray-200 p-8 text-center mb-5">
                 <h2 className="text-2xl mb-4 text-gray-900">2026년 운전면허 필기시험 (과목1)</h2>
@@ -853,7 +894,7 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
               </div>
 
               {/* 연습 메뉴 그리드 - 한 줄로 표시 */}
-              <div className="grid grid-cols-3 gap-5 mb-8">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5 mb-8">
                 <div 
                   onClick={() => setCurrentView('sequential')}
                   className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-6"
@@ -903,6 +944,7 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
               {/* 통계 섹션 */}
               <div className="mt-10">
                 <h3 className="text-xl mb-5 pb-3 border-b border-gray-200">운전면허 필기시험 연습 및 시험 통계</h3>
+                <RecordSyncNotice onLoginClick={onLoginClick} />
                 
                 <div className="flex items-center justify-between flex-wrap gap-8">
                   {/* 차트 영역 */}
@@ -940,17 +982,17 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
 
                   {/* 하단 아이콘 버튼 */}
                   <div className="flex gap-10 flex-wrap">
-                    <div className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform">
+                    <div onClick={() => setCurrentView('favorites')} className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform">
                       <div className="w-16 h-16 rounded-full flex justify-center items-center text-white text-2xl mb-2 shadow-lg" style={{ backgroundColor: '#ff7675' }}>
                         <i className="fa-solid fa-star"></i>
                       </div>
                       <span className="text-sm">나의 즐겨찾기</span>
                     </div>
-                    <div className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform">
+                    <div onClick={() => setCurrentView('mock')} className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform">
                       <div className="w-16 h-16 rounded-full flex justify-center items-center text-white text-2xl mb-2 shadow-lg" style={{ backgroundColor: '#37a7f0' }}>
                         <i className="fa-solid fa-clock-rotate-left"></i>
                       </div>
-                      <span className="text-sm">시�� 기록</span>
+                      <span className="text-sm">시험 기록</span>
                     </div>
                     <div className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform">
                       <div className="w-16 h-16 rounded-full flex justify-center items-center text-white text-2xl mb-2 shadow-lg" style={{ backgroundColor: '#f1c40f' }}>
@@ -964,7 +1006,7 @@ export function DriverLicensePage({ onBack }: DriverLicensePageProps) {
             </div>
 
             {/* 오른쪽 사이드바 */}
-            <div className="flex-1 min-w-[280px]">
+            <div className="lg:flex-1 lg:min-w-[280px]">
               {/* 동영상 강의 */}
               <div 
                 onClick={() => setCurrentView('lecture')}

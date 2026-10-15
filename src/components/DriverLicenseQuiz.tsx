@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { STAGE_INFO, type StageInfo } from '../data/driverLicenseStages';
+import {
+  getFavorites,
+  getMockResults,
+  getProgress,
+  getWrongMap,
+  recordAnswers,
+  setFavorites as saveFavorites,
+  setMockResult,
+  setProgress as saveProgress,
+  useDriverLicenseRecords,
+} from '../utils/driverLicenseRecords';
 
 // 과목1 문제 데이터 (원본: 2026年科目一新规2309题, 한국어 번역본)
 // 과목1 공식 문제 유형은 판단형(判断题)과 단일 선택형(单选题) 두 가지뿐
@@ -67,21 +78,11 @@ function writeStore(key: string, value: unknown) {
 const JUDGE_OPTIONS = ['맞음', '틀림'];
 const LETTERS = 'ABCD';
 const PRIMARY = '#37a7f0';
-const FAVORITES_KEY = 'dl-favorites';
-const SEQUENTIAL_KEY = 'dl-progress-all';
-const MOCK_RESULTS_KEY = 'dl-mock-results';
-const WRONG_KEY = 'dl-wrong';
+const SEQUENTIAL_KEY = 'all';
 
-// 오답 노트: 문제 id → 마지막으로 틀리게 고른 답. 나중에 다시 맞히면 지움
-const readWrong = () => readStore<Record<number, number>>(WRONG_KEY, {});
-function recordAnswers(results: { id: number; selected: number; correct: boolean }[]) {
-  const wrong = readWrong();
-  for (const { id, selected, correct } of results) {
-    if (correct) delete wrong[id];
-    else wrong[id] = selected;
-  }
-  writeStore(WRONG_KEY, wrong);
-}
+// 오답 노트: 문제 id → 마지막으로 틀리게 고른 답. 나중에 다시 맞히면 빠짐
+// (기록은 utils/driverLicenseRecords: 이 기기에 저장하고, 로그인한 회원은 서버에도 저장해 휴대폰·PC에서 이어서 풂)
+const readWrong = getWrongMap;
 
 const TYPE_HINT: Record<DLQuestion['t'], string> = {
   j: '판단형 문제 – 맞음/틀림을 고르세요.',
@@ -294,20 +295,30 @@ export function PracticeQuiz({
   backLabel: string;
   onReviewWrong?: () => void;
 }) {
+  const { version } = useDriverLicenseRecords();
   const [progress, setProgress] = useState<Progress>(() =>
-    storageKey ? readStore<Progress>(storageKey, { index: 0, answers: {} }) : { index: 0, answers: {} },
+    storageKey ? getProgress<Progress>(storageKey) ?? { index: 0, answers: {} } : { index: 0, answers: {} },
   );
   const [autoNext, setAutoNext] = useState(() => readStore('dl-auto-next', true));
   const [showExplanation, setShowExplanation] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
-  const [favorites, setFavorites] = useState<number[]>(() => readStore<number[]>(FAVORITES_KEY, []));
+  const [favorites, setFavorites] = useState<number[]>(getFavorites);
   const timer = useRef<number>();
+  const loadedVersion = useRef(version);
 
   const index = Math.min(progress.index, questions.length - 1);
   const q = questions[index];
   const answered = progress.answers[q.id];
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  // 다른 기기에서 푼 기록을 받아오면 진도·즐겨찾기를 다시 읽음
+  useEffect(() => {
+    if (loadedVersion.current === version) return;
+    loadedVersion.current = version;
+    if (storageKey) setProgress(getProgress<Progress>(storageKey) ?? { index: 0, answers: {} });
+    setFavorites(getFavorites());
+  }, [version, storageKey]);
 
   const stats = useMemo(() => {
     let correct = 0;
@@ -321,7 +332,7 @@ export function PracticeQuiz({
     return { correct, wrong };
   }, [questions, progress.answers]);
   useEffect(() => {
-    if (storageKey) writeStore(storageKey, { ...progress, total: questions.length, correct: stats.correct, wrong: stats.wrong });
+    if (storageKey) saveProgress(storageKey, { ...progress, total: questions.length, correct: stats.correct, wrong: stats.wrong });
   }, [storageKey, progress, questions.length, stats]);
 
   const accuracy = stats.correct + stats.wrong > 0 ? Math.round((stats.correct / (stats.correct + stats.wrong)) * 100) : 0;
@@ -345,7 +356,7 @@ export function PracticeQuiz({
   const toggleFavorite = () => {
     const next = favorites.includes(q.id) ? favorites.filter((id) => id !== q.id) : [...favorites, q.id];
     setFavorites(next);
-    writeStore(FAVORITES_KEY, next);
+    saveFavorites(next);
   };
 
   const resetProgress = () => {
@@ -360,7 +371,7 @@ export function PracticeQuiz({
   const wrongCount = useMemo(() => {
     const wrong = readWrong();
     return questions.filter((item) => item.id in wrong).length;
-  }, [questions, progress.answers]);
+  }, [questions, progress.answers, version]);
 
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
@@ -568,7 +579,8 @@ function WrongNotes({
 }) {
   const [retry, setRetry] = useState<{ questions: DLQuestion[]; key: number } | null>(null);
   const [version, setVersion] = useState(0);
-  const wrong = useMemo(() => readWrong(), [retry, version]);
+  const records = useDriverLicenseRecords();
+  const wrong = useMemo(() => readWrong(), [retry, version, records.version]);
   const items = useMemo(() => pool.map((q, i) => ({ q, no: i + 1 })).filter(({ q }) => q.id in wrong), [pool, wrong]);
 
   if (retry) {
@@ -644,7 +656,7 @@ export function WrongNotesPage({ onBack }: { onBack: () => void }) {
 
 // 필기시험 홈의 통계용: 순서 연습 진행 상황
 export function readSequentialStats() {
-  const progress = readStore<Progress | null>(SEQUENTIAL_KEY, null);
+  const progress = getProgress<Progress>(SEQUENTIAL_KEY);
   if (!progress?.total) return null;
   return { total: progress.total, correct: progress.correct ?? 0, wrong: progress.wrong ?? 0 };
 }
@@ -672,7 +684,8 @@ function StageIntro({
   onWrong: () => void;
   onBack: () => void;
 }) {
-  const saved = readStore<Progress | null>(`dl-progress-${group.key}`, null);
+  useDriverLicenseRecords();
+  const saved = getProgress<Progress>(group.key);
   const solved = saved ? Object.keys(saved.answers).length : 0;
   const wrong = readWrong();
   const wrongCount = group.questions.filter((q) => q.id in wrong).length;
@@ -747,6 +760,7 @@ function StageIntro({
 export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => void; selectedCity: string }) {
   const { data, failed } = useDriverLicenseData();
   const [view, setView] = useState<StageView>({ mode: 'list' });
+  useDriverLicenseRecords();
 
   const sections = useMemo(() => {
     if (!data) return [];
@@ -797,7 +811,7 @@ export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => vo
         questions={view.questions}
         title={`${group.title} (${view.random ? '랜덤' : '순서대로'})`}
         breadcrumb={STAGE_BREADCRUMB}
-        storageKey={view.random ? undefined : `dl-progress-${group.key}`}
+        storageKey={view.random ? undefined : group.key}
         onBack={() => setView({ mode: 'intro', group })}
         backLabel="영역 설명으로 돌아가기"
         onReviewWrong={() => setView({ mode: 'wrong', group })}
@@ -842,7 +856,7 @@ export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => vo
           )}
           <div className="border-t border-gray-100">
             {section.groups.map((group) => {
-              const saved = readStore<Progress | null>(`dl-progress-${group.key}`, null);
+              const saved = getProgress<Progress>(group.key);
               const solved = saved ? Object.keys(saved.answers).length : 0;
               const wrongCount = group.questions.filter((q) => q.id in wrong).length;
               const info = STAGE_INFO[group.key];
@@ -888,11 +902,12 @@ export function ChapterPracticePage({ onBack, selectedCity }: { onBack: () => vo
 export function FavoritesPractice() {
   const { data, failed } = useDriverLicenseData();
   const [started, setStarted] = useState(0);
+  const { version } = useDriverLicenseRecords();
   const favorites = useMemo(() => {
     if (!data) return [];
-    const ids = new Set(readStore<number[]>(FAVORITES_KEY, []));
+    const ids = new Set(getFavorites());
     return data.questions.filter((q) => ids.has(q.id));
-  }, [data, started]);
+  }, [data, started, version]);
 
   if (!data) return <LoadingState failed={failed} onBack={() => setStarted((n) => n + 1)} />;
 
@@ -1037,7 +1052,9 @@ type ExamOutcome = ExamSession & { score: number; seconds: number };
 export function MockExamPage({ onBack }: { onBack: () => void }) {
   const { data, failed } = useDriverLicenseData();
   const sets = useMemo(() => (data ? buildExamSets(data.questions) : []), [data]);
-  const [results, setResults] = useState<Record<string, MockResult>>(() => readStore(MOCK_RESULTS_KEY, {}));
+  const [results, setResults] = useState<Record<string, MockResult>>(() => getMockResults<MockResult>());
+  const { version } = useDriverLicenseRecords();
+  useEffect(() => setResults(getMockResults<MockResult>()), [version]);
   const [session, setSession] = useState<ExamSession | null>(null);
   const [outcome, setOutcome] = useState<ExamOutcome | null>(null);
 
@@ -1060,18 +1077,14 @@ export function MockExamPage({ onBack }: { onBack: () => void }) {
     const seconds = Math.min(EXAM_SECONDS, Math.round((Date.now() - finished.startedAt) / 1000));
     if (finished.no !== null) {
       const key = String(finished.no);
-      const prev = results[key];
-      const next = {
-        ...results,
-        [key]: {
-          best: Math.max(prev?.best ?? 0, score),
-          last: score,
-          attempts: (prev?.attempts ?? 0) + 1,
-          date: new Date().toLocaleDateString('ko-KR'),
-        },
-      };
-      setResults(next);
-      writeStore(MOCK_RESULTS_KEY, next);
+      const prev = getMockResults<MockResult>()[key];
+      setMockResult(key, {
+        best: Math.max(prev?.best ?? 0, score),
+        last: score,
+        attempts: (prev?.attempts ?? 0) + 1,
+        date: new Date().toLocaleDateString('ko-KR'),
+      });
+      setResults(getMockResults<MockResult>());
     }
     setSession(null);
     setOutcome({ ...finished, score, seconds });

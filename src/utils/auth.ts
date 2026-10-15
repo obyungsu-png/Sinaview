@@ -45,6 +45,8 @@ export async function signUp(username: string, password: string, region: string)
 }
 
 export async function signOut() {
+  // 운전면허 학습 기록: 못 올린 기록을 올리고 이 기기에서 지움 (다음 사람 기록과 섞이지 않게)
+  await import('./driverLicenseRecords').then((m) => m.finishDriverLicenseSync()).catch(() => {});
   await supabase.auth.signOut().catch(() => {});
   localStorage.removeItem('currentUser');
 }

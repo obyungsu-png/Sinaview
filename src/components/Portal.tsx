@@ -263,7 +263,7 @@ export function Portal() {
     securities: <SecuritiesPage onBack={handleBackToHome} />,
     lsm: <LSMPage onBack={handleBackToHome} />,
     csm: <CSMPage onBack={handleBackToHome} />,
-    driverlicense: <DriverLicensePage onBack={handleBackToHome} />,
+    driverlicense: <DriverLicensePage onBack={handleBackToHome} onLoginClick={() => setIsLoginModalOpen(true)} />,
     login: <LoginPage onBack={handleBackToHome} />,
     wechatlogin: <WeChatLoginPage onBack={handleBackToHome} />,
     realestate: <RealEstatePage onBack={handleBackToHome} />,

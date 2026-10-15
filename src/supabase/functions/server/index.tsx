@@ -2,6 +2,7 @@ import { Hono } from "npm:hono@4";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
+import { mergeRecords, sanitizeRecords } from "./driver_license_records.ts";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3";
 import OpenAI from "npm:openai";
@@ -1810,6 +1811,36 @@ app.delete("/make-server-c6687586/community/posts/:id/comments/:commentId", asyn
     await kv.set(commentsKey(id), next);
     const s = await updateStats(id, (s) => { s.comments = next.length; });
     return c.json({ success: true, stats: s });
+  } catch (error) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// ===== 운전면허 필기 학습 기록: 회원별로 저장해 휴대폰·PC 어디서든 이어서 풀기 (2주 보관) =====
+const dlRecordsKey = (userId: string) => `driver-license:records:${userId}`;
+
+app.get("/make-server-c6687586/driver-license/records", async (c) => {
+  try {
+    const user = await getAuthUser(c);
+    if (!user) return requireLogin(c);
+    const records = mergeRecords(await kv.get(dlRecordsKey(user.id)), null);
+    return c.json({ success: true, records });
+  } catch (error) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// 브라우저에서 바뀐 항목만 보내면 저장된 기록과 합친다
+app.post("/make-server-c6687586/driver-license/records", async (c) => {
+  try {
+    const user = await getAuthUser(c);
+    if (!user) return requireLogin(c);
+    const body = await c.req.text();
+    if (body.length > 1_000_000) return c.json({ success: false, error: "기록이 너무 큽니다." }, 413);
+    const changes = sanitizeRecords(JSON.parse(body || "{}").changes);
+    const key = dlRecordsKey(user.id);
+    await kv.set(key, mergeRecords(await kv.get(key), changes));
+    return c.json({ success: true });
   } catch (error) {
     return c.json({ success: false, error: error.message }, 500);
   }
