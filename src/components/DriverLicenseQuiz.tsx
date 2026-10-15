@@ -104,13 +104,15 @@ const answerText = (q: DLQuestion) => `${LETTERS[q.a]}. ${optionsOf(q)[q.a]}`;
 const imageUrl = (name: string) => `${import.meta.env.BASE_URL}driver-license/img/${name}`;
 
 // 원본 그림이 작아서(가로 200~400px) 시험지처럼 크게 보여 줌: 상황 그림은 가로 최대 640px, 표지·계기판은 세로 최대 300px
-function imageStyle(name: string, count: number): CSSProperties | undefined {
+function imageStyle(name: string, count: number, exam = false): CSSProperties | undefined {
   const size = dataCache?.imgSize?.[name];
   if (!size) return undefined;
   const [w, h] = size;
-  const maxWidth = count > 1 ? 300 : 640;
-  const maxHeight = count > 1 ? 200 : 300;
-  return { width: Math.round(Math.min(w * 2.2, maxWidth, (maxHeight * w) / h)), aspectRatio: `${w} / ${h}` };
+  const maxWidth = Math.min(w * 2.2, count > 1 ? 300 : 640);
+  const aspectRatio = `${w} / ${h}`;
+  // 모의고사 시험 화면: 스크롤 없이 한 화면에 들어오도록 화면 높이에 맞춤 (그림 높이 최대 화면의 34%)
+  if (exam) return { width: `min(${Math.round(maxWidth)}px, ${(((count > 1 ? 20 : 34) * w) / h).toFixed(1)}vh)`, aspectRatio };
+  return { width: Math.round(Math.min(maxWidth, ((count > 1 ? 200 : 300) * w) / h)), aspectRatio };
 }
 
 let audioContext: AudioContext | null = null;
@@ -200,6 +202,7 @@ function BackButton({ onClick, label }: { onClick: () => void; label: string }) 
 }
 
 // 문제 한 개 (연습·모의고사·결과 화면 공통)
+// exam: 모의고사 시험 화면용 - 한 화면에 들어가도록 작게, 넓은 화면에서는 보기(왼쪽)와 그림(오른쪽)을 나란히
 function QuestionCard({
   q,
   label,
@@ -207,6 +210,7 @@ function QuestionCard({
   reveal,
   onSelect,
   headerRight,
+  exam = false,
 }: {
   q: DLQuestion;
   label: string;
@@ -214,63 +218,79 @@ function QuestionCard({
   reveal: boolean;
   onSelect?: (index: number) => void;
   headerRight?: ReactNode;
+  exam?: boolean;
 }) {
+  const images = q.img && (
+    <div className={exam ? 'flex flex-wrap gap-2 lg:order-2' : 'flex flex-wrap gap-3 mb-6'}>
+      {q.img.map((name) => (
+        <img
+          key={name}
+          src={imageUrl(name)}
+          alt="문제 그림"
+          loading="lazy"
+          style={imageStyle(name, q.img!.length, exam)}
+          className="max-w-full h-auto rounded border border-gray-200 bg-white object-contain"
+        />
+      ))}
+    </div>
+  );
+
+  const options = (
+    <div className={`flex flex-col ${exam ? 'gap-2 sm:gap-2.5 lg:order-1' : 'gap-3'}`}>
+      {optionsOf(q).map((text, i) => {
+        const isSelected = selected.includes(i);
+        const isAnswer = i === q.a;
+        let tone = 'border-gray-200 hover:bg-gray-50';
+        let mark: ReactNode = <span className="w-6 h-6 rounded-full border-2 border-gray-300"></span>;
+        if (reveal && isAnswer) {
+          tone = 'border-green-500 bg-green-50';
+          mark = <i className="fa-solid fa-circle-check text-green-500 text-[28px]"></i>;
+        } else if (reveal && isSelected) {
+          tone = 'border-red-500 bg-red-50';
+          mark = <i className="fa-solid fa-circle-xmark text-red-500 text-[28px]"></i>;
+        } else if (isSelected) {
+          tone = 'border-[#37a7f0] bg-blue-50';
+          mark = <i className="fa-solid fa-circle-check text-[#37a7f0] text-[28px]"></i>;
+        }
+        return (
+          <button
+            key={i}
+            type="button"
+            disabled={!onSelect}
+            onClick={() => onSelect?.(i)}
+            className={`w-full flex items-center gap-3 text-left px-4 border-2 rounded-lg bg-white transition-colors ${
+              exam ? 'py-2 sm:py-3 text-[15px] sm:text-base' : 'py-3 sm:py-4 text-base sm:text-lg'
+            } ${tone} ${onSelect ? 'cursor-pointer' : 'cursor-default'}`}
+          >
+            <span className="shrink-0 w-7 flex justify-center">{mark}</span>
+            <span>
+              {LETTERS[i]}. {text}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div>
-      <div className="flex justify-between items-start gap-4 mb-5">
-        <h2 className="text-lg sm:text-[22px] leading-relaxed text-gray-900 font-normal">
+      <div className={`flex justify-between items-start gap-4 ${exam ? 'mb-4' : 'mb-5'}`}>
+        <h2 className={`${exam ? 'text-lg sm:text-xl' : 'text-lg sm:text-[22px]'} leading-relaxed text-gray-900 font-normal`}>
           {label} {q.q}
         </h2>
         {headerRight}
       </div>
-
-      {q.img && (
-        <div className="flex flex-wrap gap-3 mb-6">
-          {q.img.map((name) => (
-            <img
-              key={name}
-              src={imageUrl(name)}
-              alt="문제 그림"
-              loading="lazy"
-              style={imageStyle(name, q.img!.length)}
-              className="max-w-full h-auto rounded border border-gray-200 bg-white object-contain"
-            />
-          ))}
+      {exam ? (
+        <div className={q.img ? 'flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start' : ''}>
+          {images}
+          {options}
         </div>
+      ) : (
+        <>
+          {images}
+          {options}
+        </>
       )}
-
-      <div className="flex flex-col gap-3">
-        {optionsOf(q).map((text, i) => {
-          const isSelected = selected.includes(i);
-          const isAnswer = i === q.a;
-          let tone = 'border-gray-200 hover:bg-gray-50';
-          let mark: ReactNode = <span className="w-6 h-6 rounded-full border-2 border-gray-300"></span>;
-          if (reveal && isAnswer) {
-            tone = 'border-green-500 bg-green-50';
-            mark = <i className="fa-solid fa-circle-check text-green-500 text-[28px]"></i>;
-          } else if (reveal && isSelected) {
-            tone = 'border-red-500 bg-red-50';
-            mark = <i className="fa-solid fa-circle-xmark text-red-500 text-[28px]"></i>;
-          } else if (isSelected) {
-            tone = 'border-[#37a7f0] bg-blue-50';
-            mark = <i className="fa-solid fa-circle-check text-[#37a7f0] text-[28px]"></i>;
-          }
-          return (
-            <button
-              key={i}
-              type="button"
-              disabled={!onSelect}
-              onClick={() => onSelect?.(i)}
-              className={`w-full flex items-center gap-3 text-left px-4 py-3 sm:py-4 border-2 rounded-lg bg-white text-base sm:text-lg transition-colors ${tone} ${onSelect ? 'cursor-pointer' : 'cursor-default'}`}
-            >
-              <span className="shrink-0 w-7 flex justify-center">{mark}</span>
-              <span>
-                {LETTERS[i]}. {text}
-              </span>
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -1205,13 +1225,18 @@ function ExamRunner({
 }) {
   const [index, setIndex] = useState(0);
   const [now, setNow] = useState(Date.now());
+  const [showSheet, setShowSheet] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const latest = useRef(session);
   latest.current = session;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const remaining = EXAM_SECONDS - Math.floor((now - session.startedAt) / 1000);
   const answeredCount = Object.keys(session.answers).length;
   const q = session.questions[index];
   const total = session.questions.length;
+  const canFullscreen = typeof document !== 'undefined' && !!document.fullscreenEnabled;
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -1225,15 +1250,52 @@ function ExamRunner({
     }
   }, [remaining <= 0]);
 
+  // 시험 화면이 열려 있는 동안 뒤 페이지가 스크롤되지 않게, 끝나면 전체 화면도 해제
+  useEffect(() => {
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onFullscreen = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFullscreen);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener('fullscreenchange', onFullscreen);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    };
+  }, []);
+
+  useEffect(() => {
+    panelRef.current?.scrollTo({ top: 0 });
+  }, [index]);
+
   const select = (i: number) => {
-    onChange({ ...session, answers: { ...session.answers, [index]: i } });
+    onChange({ ...latest.current, answers: { ...latest.current.answers, [index]: i } });
     if (index < total - 1) window.setTimeout(() => setIndex((cur) => (cur === index ? index + 1 : cur)), 250);
   };
+
+  // 키보드: ← → 이전·다음 문제, 1~4 또는 A~D 로 답 고르기
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || e.repeat) return;
+      if (e.key === 'ArrowRight') setIndex((i) => Math.min(total - 1, i + 1));
+      else if (e.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1));
+      else {
+        const choice = Math.max('1234'.indexOf(e.key), 'abcd'.indexOf(e.key.toLowerCase()));
+        if (choice >= 0 && choice < optionsOf(q).length) select(choice);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   const submit = () => {
     const left = total - answeredCount;
     const message = left > 0 ? `아직 풀지 않은 문제가 ${left}개 있습니다. 그래도 제출할까요?` : '답안을 제출할까요?';
     if (window.confirm(message)) onSubmit(session);
+  };
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else rootRef.current?.requestFullscreen().catch(() => {});
   };
 
   const judgeCount = session.questions.filter((item) => item.t === 'j').length;
@@ -1250,87 +1312,133 @@ function ExamRunner({
     { title: `단일 선택형 ${judgeCount + 1}~${total}번`, from: judgeCount, to: total },
   ].filter((group) => group.to > group.from);
 
+  const sheet = (
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-medium text-gray-800">
+          답안지 <span className="text-sm font-normal text-gray-500">({answeredCount}/{total})</span>
+        </span>
+        <span className="text-xs text-gray-500">
+          <span className="inline-block w-2.5 h-2.5 mr-1 rounded-sm bg-blue-50 border border-[#37a7f0] align-middle"></span>답함
+          <span className="inline-block w-2.5 h-2.5 ml-2.5 mr-1 rounded-sm bg-white border border-gray-300 align-middle"></span>안 풂
+        </span>
+      </div>
+      {sheetGroups.map((group) => (
+        <div key={group.title} className="mb-3 last:mb-0">
+          <div className="text-xs text-gray-500 mb-1.5">{group.title}</div>
+          <div className="grid grid-cols-10 gap-1 sm:gap-1.5">
+            {session.questions.slice(group.from, group.to).map((item, offset) => {
+              const i = group.from + offset;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setIndex(i);
+                    setShowSheet(false);
+                  }}
+                  className={sheetCell(i)}
+                >
+                  {i + 1}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      <button onClick={submit} className="w-full mt-4 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9]">
+        답안 제출 ({answeredCount}/{total})
+      </button>
+    </>
+  );
+
+  // 시험 화면: 사이트 메뉴를 덮는 전체 화면 창 (위: 시간·제출, 왼쪽: 문제, 오른쪽: 답안지)
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
-      <div className="sticky top-0 z-10 -mx-4 sm:mx-0 px-4 py-3 mb-6 bg-white/95 backdrop-blur border-b border-gray-200 flex flex-wrap items-center gap-3">
+    <div ref={rootRef} className="fixed inset-0 z-[1000] bg-white flex flex-col" role="dialog" aria-modal="true" aria-label="모의고사 시험 화면">
+      <div className="flex-none flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
         <span className="font-medium text-gray-800">{session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`}</span>
-        <span className="text-sm text-gray-500">
+        <span className="hidden sm:inline text-sm text-gray-500">
           {answeredCount}/{total} 답함
         </span>
         <span
-          className={`ml-auto font-mono text-lg px-3 py-1 rounded ${remaining <= 300 ? 'bg-red-50 text-[#e74c3c]' : 'bg-gray-50 text-gray-800'}`}
+          className={`ml-auto font-mono text-lg px-3 py-1 rounded ${remaining <= 300 ? 'bg-red-50 text-[#e74c3c]' : 'bg-white text-gray-800'}`}
         >
           <i className="fa-regular fa-clock mr-1.5"></i>
           {formatTime(remaining)}
         </span>
-        <button onClick={submit} className="px-4 py-2 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] text-sm">
-          답안 제출
-        </button>
-        <button onClick={onExit} className="px-3 py-2 rounded border border-gray-300 text-sm text-gray-600 hover:border-[#e74c3c] hover:text-[#e74c3c]">
-          그만두기
-        </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => setShowSheet((v) => !v)}
+            className="lg:hidden flex-1 sm:flex-none whitespace-nowrap px-3 py-1.5 rounded border border-[#37a7f0] text-sm text-[#2a8bc9] bg-white"
+          >
+            답안지 {answeredCount}/{total}
+          </button>
+          {canFullscreen && (
+            <button
+              onClick={toggleFullscreen}
+              className="hidden sm:inline-block px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-600 bg-white hover:border-[#37a7f0] hover:text-[#2a8bc9]"
+            >
+              <i className={`fa-solid ${fullscreen ? 'fa-compress' : 'fa-expand'} mr-1`}></i>
+              {fullscreen ? '전체 화면 끝' : '전체 화면'}
+            </button>
+          )}
+          <button onClick={submit} className="flex-1 sm:flex-none whitespace-nowrap px-3 sm:px-4 py-1.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] text-sm">
+            답안 제출
+          </button>
+          <button
+            onClick={onExit}
+            className="flex-1 sm:flex-none whitespace-nowrap px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-600 bg-white hover:border-[#e74c3c] hover:text-[#e74c3c]"
+          >
+            그만두기
+          </button>
+        </div>
       </div>
 
-      {/* 넓은 화면: 왼쪽 문제, 오른쪽 답안지 (실제 시험 화면처럼) / 휴대폰: 답안지는 아래 */}
-      <div className="lg:flex lg:items-start lg:gap-8">
-        <div className="flex-1 min-w-0">
-          <QuestionCard
-            q={q}
-            label={`${index + 1}.`}
-            selected={session.answers[index] === undefined ? [] : [session.answers[index]]}
-            reveal={false}
-            onSelect={select}
-          />
-          <div className="text-sm text-gray-400 mt-5">{TYPE_HINT[q.t]}</div>
-
-          <div className="flex gap-3 my-8">
-            <button
-              onClick={() => setIndex(index - 1)}
-              disabled={index === 0}
-              className="px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              이전 문제
-            </button>
-            <button
-              onClick={() => setIndex(index + 1)}
-              disabled={index === total - 1}
-              className="px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              다음 문제
-            </button>
+      <div className="flex-1 min-h-0 flex relative">
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div ref={panelRef} className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-5 sm:py-6">
+            <div className="max-w-[1100px] mx-auto">
+              <QuestionCard
+                q={q}
+                label={`${index + 1}.`}
+                selected={session.answers[index] === undefined ? [] : [session.answers[index]]}
+                reveal={false}
+                onSelect={select}
+                exam
+              />
+            </div>
+          </div>
+          <div className="flex-none border-t border-gray-200 px-4 sm:px-8 py-2.5">
+            <div className="max-w-[1100px] mx-auto flex items-center gap-3">
+              <span className="hidden md:inline text-sm text-gray-400 mr-auto">
+                {TYPE_HINT[q.t]} <span className="ml-2">키보드: ← → 이동, 1~{optionsOf(q).length} 답 고르기</span>
+              </span>
+              <button
+                onClick={() => setIndex(index - 1)}
+                disabled={index === 0}
+                className="flex-1 md:flex-none px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                이전 문제
+              </button>
+              <button
+                onClick={() => setIndex(index + 1)}
+                disabled={index === total - 1}
+                className="flex-1 md:flex-none px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                다음 문제
+              </button>
+            </div>
           </div>
         </div>
 
-        <aside className="lg:w-[340px] lg:shrink-0 lg:sticky lg:top-20 p-4 sm:p-5 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-medium text-gray-800">답안지</span>
-            <span className="text-xs text-gray-500">
-              <span className="inline-block w-2.5 h-2.5 mr-1 rounded-sm bg-blue-50 border border-[#37a7f0] align-middle"></span>답함
-              <span className="inline-block w-2.5 h-2.5 ml-2.5 mr-1 rounded-sm bg-white border border-gray-300 align-middle"></span>안 풂
-            </span>
-          </div>
-          {sheetGroups.map((group) => (
-            <div key={group.title} className="mb-3 last:mb-0">
-              <div className="text-xs text-gray-500 mb-1.5">{group.title}</div>
-              <div className="grid grid-cols-10 gap-1 sm:gap-1.5 max-w-[560px]">
-                {session.questions.slice(group.from, group.to).map((item, offset) => {
-                  const i = group.from + offset;
-                  return (
-                    <button key={item.id} onClick={() => setIndex(i)} className={sheetCell(i)}>
-                      {i + 1}
-                    </button>
-                  );
-                })}
-              </div>
+        <aside className="hidden lg:block w-[340px] shrink-0 overflow-y-auto p-5 bg-gray-50 border-l border-gray-200">{sheet}</aside>
+
+        {showSheet && (
+          <div className="lg:hidden absolute inset-0 z-10 bg-black/30" onClick={() => setShowSheet(false)}>
+            <div className="absolute inset-x-0 top-0 max-h-full overflow-y-auto p-4 bg-white shadow-lg" onClick={(e) => e.stopPropagation()}>
+              {sheet}
             </div>
-          ))}
-          <button
-            onClick={submit}
-            className="hidden lg:block w-full mt-4 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9]"
-          >
-            답안 제출 ({answeredCount}/{total})
-          </button>
-        </aside>
+          </div>
+        )}
       </div>
     </div>
   );
