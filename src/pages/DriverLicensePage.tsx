@@ -460,49 +460,49 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
           <ul className="max-w-[1200px] mx-auto px-4 flex overflow-x-auto">
             <li 
               onClick={() => setCurrentView('home')}
-              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'home' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'home' ? 'bg-blue-600' : ''}`}
             >
               홈
             </li>
             <li 
               onClick={() => setCurrentView('practice')}
-              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'practice' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'practice' ? 'bg-blue-600' : ''}`}
             >
               필기시험
             </li>
             <li 
               onClick={() => setCurrentView('lecture')}
-              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'lecture' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'lecture' ? 'bg-blue-600' : ''}`}
             >
               동영상 강의
             </li>
             <li 
               onClick={() => setCurrentView('faq')}
-              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'faq' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'faq' ? 'bg-blue-600' : ''}`}
             >
               FAQ
             </li>
             <li 
               onClick={() => setCurrentView('community')}
-              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'community' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'community' ? 'bg-blue-600' : ''}`}
             >
               커뮤니티
             </li>
             <li 
               onClick={() => setCurrentView('wrong')}
-              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'wrong' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'wrong' ? 'bg-blue-600' : ''}`}
             >
               틀린문제
             </li>
             <li 
               onClick={() => setCurrentView('favorites')}
-              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'favorites' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'favorites' ? 'bg-blue-600' : ''}`}
             >
               즐겨찾기
             </li>
             <li 
               onClick={() => setCurrentView('app123')}
-              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'app123' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'app123' ? 'bg-blue-600' : ''}`}
             >
               123123 앱
             </li>

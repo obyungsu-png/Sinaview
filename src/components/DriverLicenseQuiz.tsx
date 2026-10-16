@@ -932,11 +932,11 @@ function StageIntro({
             </section>
           )}
 
-          {(!info.sections || info.sections.length === 0) && info.points.length > 0 && (
+          {(!info.sections || info.sections.length === 0) && !!info.points?.length && (
             <section className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-5">
               <h3 className="text-base font-medium text-gray-800 mb-2">핵심 내용</h3>
               <ul className="flex flex-col gap-2 text-[15px] text-gray-700 leading-relaxed">
-                {info.points.map((point) => (
+                {info.points!.map((point) => (
                   <li key={point} className="flex gap-2">
                     <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
                     <span>{point}</span>
