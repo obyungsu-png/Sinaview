@@ -366,6 +366,7 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
   const [selectedCity, setSelectedCity] = useState('대련');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'difficult' | 'mock' | 'wrong' | 'community' | 'app123'>('home');
+  const [introOpen, setIntroOpen] = useState(false);
   useDriverLicenseRecords();
   useEffect(() => {
     startDriverLicenseSync();
@@ -384,14 +385,14 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
       {/* 헤더 영역 */}
       <header>
         <div className="max-w-[1200px] mx-auto px-4">
-          <div className="flex flex-wrap justify-between items-center gap-y-2 py-3 sm:py-5">
-            <div className="flex items-center gap-3 text-xl sm:text-2xl font-bold whitespace-nowrap" style={{ color: '#37a7f0' }}>
-              <i className="fa-solid fa-car-side text-4xl"></i>
+          <div className="flex justify-between items-center gap-2 py-2.5 sm:py-5">
+            <div className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-bold whitespace-nowrap" style={{ color: '#37a7f0' }}>
+              <i className="fa-solid fa-car-side text-3xl sm:text-4xl"></i>
               <span>운전면허 보감</span>
-              <div className="relative ml-2">
+              <div className="relative sm:ml-2">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="text-lg font-normal text-gray-600 hover:text-blue-600 hover:scale-105 transition-all duration-200 flex items-center gap-1 px-3 py-1 rounded hover:bg-blue-50 hover:shadow-md"
+                  className="text-base sm:text-lg font-normal text-gray-600 hover:text-blue-600 hover:scale-105 transition-all duration-200 flex items-center gap-1 px-2 sm:px-3 py-1 rounded hover:bg-blue-50 hover:shadow-md"
                   style={{ 
                     border: '2px solid transparent',
                     transition: 'all 0.3s ease'
@@ -435,10 +436,11 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
                 variant="ghost" 
                 size="sm" 
                 onClick={onBack}
-                className="mr-4"
+                className="sm:mr-4 px-2 sm:px-3"
+                aria-label="돌아가기"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                돌아가기
+                <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline">돌아가기</span>
               </Button>
               <div className="hidden md:flex border border-gray-300">
                 <input 
@@ -458,49 +460,49 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
           <ul className="max-w-[1200px] mx-auto px-4 flex overflow-x-auto">
             <li 
               onClick={() => setCurrentView('home')}
-              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'home' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'home' ? 'bg-blue-600' : ''}`}
             >
               홈
             </li>
             <li 
               onClick={() => setCurrentView('practice')}
-              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'practice' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'practice' ? 'bg-blue-600' : ''}`}
             >
               필기시험
             </li>
             <li 
               onClick={() => setCurrentView('lecture')}
-              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'lecture' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'lecture' ? 'bg-blue-600' : ''}`}
             >
               동영상 강의
             </li>
             <li 
               onClick={() => setCurrentView('faq')}
-              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'faq' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'faq' ? 'bg-blue-600' : ''}`}
             >
               FAQ
             </li>
             <li 
               onClick={() => setCurrentView('community')}
-              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'community' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'community' ? 'bg-blue-600' : ''}`}
             >
               커뮤니티
             </li>
             <li 
               onClick={() => setCurrentView('wrong')}
-              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'wrong' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'wrong' ? 'bg-blue-600' : ''}`}
             >
               틀린문제
             </li>
             <li 
               onClick={() => setCurrentView('favorites')}
-              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'favorites' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'favorites' ? 'bg-blue-600' : ''}`}
             >
               즐겨찾기
             </li>
             <li 
               onClick={() => setCurrentView('app123')}
-              className={`shrink-0 whitespace-nowrap px-4 sm:px-6 text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'app123' ? 'bg-blue-600' : ''}`}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'app123' ? 'bg-blue-600' : ''}`}
             >
               123123 앱
             </li>
@@ -777,6 +779,23 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               100% { transform: translateX(-10px); opacity: 0; }
             }
 
+            @media (max-width: 640px) {
+              .hero-wrapper-home { position: relative !important; min-height: 0 !important; padding: 0 16px 96px; }
+              .hero-container { margin-top: 20px !important; }
+              .hero-text { min-width: 0; }
+              .hero-badge { font-size: 12px; padding: 6px 14px; margin-bottom: 12px; }
+              .hero-wrapper-home h1 { font-size: 32px; margin-bottom: 10px; }
+              .hero-highlight::after { height: 10px; bottom: 3px; }
+              .hero-description { font-size: 15px; margin-bottom: 18px; }
+              .hero-btn-group { flex-direction: column; gap: 8px; margin-bottom: 8px; }
+              .hero-btn { width: 100%; padding: 12px 20px; font-size: 15px; }
+              .hero-text { flex: none; }
+              .hero-image { flex: none !important; min-height: 0 !important; height: auto !important; margin-top: 14px !important; display: flex; justify-content: center; }
+              .b1, .b2, .b4, .b5 { display: none; }
+              .b3 { position: relative; top: auto; right: auto; bottom: auto; left: auto; width: 128px; height: 128px; }
+              .car-wrapper { width: 96px !important; bottom: -4px; }
+            }
+
             @media (max-width: 900px) {
               .hero-container { 
                 flex-direction: column; 
@@ -817,6 +836,25 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
                 <p className="hero-description">
                   운전면허 보감과 함께라면 합격이 즐거워집니다.
                 </p>
+
+                {/* 휴대폰: 바로 풀기 */}
+                <div className="sm:hidden grid grid-cols-2 gap-2 mb-4 text-left">
+                  {([
+                    ['sequential', 'fa-list-ol', '순서 연습', '#37a7f0'],
+                    ['chapter', 'fa-layer-group', '주제별 연습', '#2ecc71'],
+                    ['mock', 'fa-pen-to-square', '실전 모의고사', '#f39c12'],
+                    ['wrong', 'fa-circle-xmark', '틀린 문제', '#e74c3c'],
+                  ] as const).map(([view, icon, label, color]) => (
+                    <button
+                      key={view}
+                      onClick={() => setCurrentView(view)}
+                      className="flex items-center gap-2 px-3 py-3 rounded-xl bg-white border border-gray-200 shadow-sm text-[15px] font-medium text-gray-800"
+                    >
+                      <i className={`fa-solid ${icon} text-lg`} style={{ color }}></i>
+                      {label}
+                    </button>
+                  ))}
+                </div>
 
                 <div className="hero-btn-group">
                   <a className="hero-btn hero-btn-primary">소프트웨어 다운로드</a>
@@ -886,9 +924,19 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
             {/* 왼쪽 메인 패널 */}
             <div className="lg:flex-[3] min-w-0">
               {/* 소개 박스 */}
-              <div className="bg-gray-50 border border-gray-200 p-8 text-center mb-5">
-                <h2 className="text-2xl mb-4 text-gray-900">2026년 운전면허 필기시험 (과목1)</h2>
-                <p className="text-sm text-gray-700 leading-relaxed text-left">
+              <div className="bg-gray-50 border border-gray-200 p-4 sm:p-8 text-center mb-5 rounded sm:rounded-none">
+                <h2 className="text-lg sm:text-2xl mb-3 sm:mb-4 text-gray-900 font-medium sm:font-normal">2026년 운전면허 필기시험 (과목1)</h2>
+                <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
+                  {['100문제', '45분', '90점 이상 합격', '판단형 + 단일 선택형'].map((fact) => (
+                    <span key={fact} className="px-2.5 py-1 rounded-full bg-white border border-gray-200 text-xs sm:text-sm text-gray-700">
+                      {fact}
+                    </span>
+                  ))}
+                </div>
+                <button onClick={() => setIntroOpen((open) => !open)} className="sm:hidden text-xs text-[#2a8bc9] py-1">
+                  {introOpen ? '접기 ▲' : '시험 안내 자세히 보기 ▼'}
+                </button>
+                <p className={`${introOpen ? 'block mt-2' : 'hidden'} sm:block text-sm text-gray-700 leading-relaxed text-left`}>
                   필기시험(과목1)은 운전면허 이론 시험으로, 운전자 이론 시험이라고도 합니다. 자동차 운전면허 신청 및 사용 규정에 따라 시험 내용은 운전 이론 기초, 도로 안전 법률 및 규정, 지방성 법규 등 관련 지식을 포함합니다. 시험은 전국 통일 문제 은행에서 무작위로 뽑은 100문제를 컴퓨터로 푸는 방식이며, 문제 유형은 판단형(맞음/틀림)과 단일 선택형(4지선다) 두 가지입니다. 시험 시간은 45분, 100점 만점에 90점 이상이면 합격(오답 10문제까지)입니다. 2026년부터는 신에너지차(전기차) 안전 사용, 스마트 보조 주행 기초, 그림·영상을 보고 상황을 판단하는 문제가 크게 늘었습니다.
                 </p>
               </div>
@@ -897,44 +945,44 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5 mb-8">
                 <div 
                   onClick={() => setCurrentView('sequential')}
-                  className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-6"
+                  className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-4 sm:p-6"
                 >
-                  <i className="fa-solid fa-list-ol text-5xl mb-3" style={{ color: '#37a7f0' }}></i>
-                  <span className="text-lg font-medium text-gray-700 mb-3">순서 연습</span>
-                  <p className="text-xs text-gray-500 text-center leading-relaxed">
+                  <i className="fa-solid fa-list-ol text-4xl sm:text-5xl mb-2 sm:mb-3" style={{ color: '#37a7f0' }}></i>
+                  <span className="text-base sm:text-lg font-medium text-gray-700 sm:mb-3">순서 연습</span>
+                  <p className="hidden sm:block text-xs text-gray-500 text-center leading-relaxed">
                     과목별로 순차적으로 문제 풀이<br/>
                     체계적인 단계별 학습 가능
                   </p>
                 </div>
                 <div 
                   onClick={() => setCurrentView('chapter')}
-                  className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-6"
+                  className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-4 sm:p-6"
                 >
-                  <i className="fa-solid fa-book-open text-5xl mb-3" style={{ color: '#ff6b6b' }}></i>
-                  <span className="text-lg font-medium text-gray-700 mb-3">주제별 연습</span>
-                  <p className="text-xs text-gray-500 text-center leading-relaxed">
+                  <i className="fa-solid fa-book-open text-4xl sm:text-5xl mb-2 sm:mb-3" style={{ color: '#ff6b6b' }}></i>
+                  <span className="text-base sm:text-lg font-medium text-gray-700 sm:mb-3">주제별 연습</span>
+                  <p className="hidden sm:block text-xs text-gray-500 text-center leading-relaxed">
                     교통법규를 단원별로 학습<br/>
                     특정 주제를 집중적으로 연습
                   </p>
                 </div>
                 <div 
                   onClick={() => setCurrentView('difficult')}
-                  className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-6"
+                  className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-4 sm:p-6"
                 >
-                  <i className="fa-solid fa-bullseye text-5xl mb-3" style={{ color: '#f39c12' }}></i>
-                  <span className="text-lg font-medium text-gray-700 mb-3">난점 공략</span>
-                  <p className="text-xs text-gray-500 text-center leading-relaxed">
+                  <i className="fa-solid fa-bullseye text-4xl sm:text-5xl mb-2 sm:mb-3" style={{ color: '#f39c12' }}></i>
+                  <span className="text-base sm:text-lg font-medium text-gray-700 sm:mb-3">난점 공략</span>
+                  <p className="hidden sm:block text-xs text-gray-500 text-center leading-relaxed">
                     사용자의 오답률 높은 문제 집중 연습<br/>
                     약점 분석 및 보완 학습
                   </p>
                 </div>
                 <div 
                   onClick={() => setCurrentView('mock')}
-                  className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-6"
+                  className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-4 sm:p-6"
                 >
-                  <i className="fa-solid fa-pen-to-square text-5xl mb-3" style={{ color: '#37a7f0' }}></i>
-                  <span className="text-lg font-medium text-gray-700 mb-3">모의고사</span>
-                  <p className="text-xs text-gray-500 text-center leading-relaxed">
+                  <i className="fa-solid fa-pen-to-square text-4xl sm:text-5xl mb-2 sm:mb-3" style={{ color: '#37a7f0' }}></i>
+                  <span className="text-base sm:text-lg font-medium text-gray-700 sm:mb-3">모의고사</span>
+                  <p className="hidden sm:block text-xs text-gray-500 text-center leading-relaxed">
                     실제 시험 환경의 모의 테스트<br/>
                     2026년 최신 문제 반영
                   </p>

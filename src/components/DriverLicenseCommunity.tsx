@@ -756,6 +756,38 @@ https://cafe.naver.com/kts9719/3447817
             cursor: not-allowed;
             transform: none;
         }
+
+        /* === 휴대폰: 사이드바는 위쪽 가로 메뉴, 게시글은 카드 목록 === */
+        @media (max-width: 768px) {
+            .community-wrapper { flex-direction: column; border: none; min-height: auto; }
+            .community-sidebar { width: 100%; padding: 10px 12px; border-right: none; border-bottom: 1px solid #eee; }
+            .profile-card { display: none; }
+            .menu-list { display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; padding-bottom: 2px; scrollbar-width: none; }
+            .menu-list::-webkit-scrollbar { display: none; }
+            .menu-list li.title { display: none; }
+            .menu-list li { flex: none; border: 1px solid #e5e7eb; border-radius: 999px; padding: 6px 12px; font-size: 13px; background: #fff; }
+            .menu-list li i { display: none; }
+            .menu-list li:hover:not(.title) { padding-left: 12px; }
+
+            .community-content { padding: 14px 12px 24px; }
+            .board-header { margin-bottom: 8px; padding-bottom: 10px; }
+            .board-header h2 { font-size: 17px; }
+            .toolbar { margin-bottom: 4px; padding: 6px 0; }
+            .tool-right { display: none; }
+
+            .board-table, .board-table tbody { display: block; width: 100%; }
+            .board-table colgroup, .board-table thead { display: none; }
+            .board-table tr { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 12px 2px; border-bottom: 1px solid #f0f0f0; }
+            .board-table td { display: block; border: none; padding: 0; text-align: left; font-size: 12px; color: #999; }
+            .board-table td:nth-child(1) { display: none; }
+            .board-table td:nth-child(2):not(:has(.badge-box)) { display: none; }
+            .board-table td.title-col { order: -1; flex: 1 1 100%; padding: 0; font-size: 15px; color: #222; white-space: normal; line-height: 1.45; }
+            .board-table td:nth-child(2) { order: -2; }
+            .board-table td:nth-child(6)::before { content: '조회 '; }
+            .board-table td:nth-child(7)::before { content: '추천 '; }
+            .board-footer .footer-left { display: none; }
+            .board-footer { justify-content: flex-end; }
+        }
       `}</style>
 
       <div className="community-wrapper">

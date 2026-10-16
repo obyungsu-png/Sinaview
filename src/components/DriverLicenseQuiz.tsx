@@ -11,6 +11,7 @@ import {
   setProgress as saveProgress,
   useDriverLicenseRecords,
 } from '../utils/driverLicenseRecords';
+import { askAi, setAiContext } from '../utils/aiAssistant';
 
 // 과목1 문제 데이터 (원본: 2026年科目一新规2309题, 한국어 번역본)
 // 과목1 공식 문제 유형은 판단형(判断题)과 단일 선택형(单选题) 두 가지뿐
@@ -295,13 +296,51 @@ function QuestionCard({
   );
 }
 
-function ExplanationBox({ q }: { q: DLQuestion }) {
+// AI 도우미에게 보낼 해설 요청 (공식 정답을 전제로 정답·오답 이유를 짧게)
+function explainPrompt(q: DLQuestion, selected?: number) {
+  const options = optionsOf(q);
+  return [
+    '[중국 운전면허 과목1(필기) 문제 해설 요청]',
+    `문제: ${q.q}`,
+    '보기:',
+    ...options.map((text, i) => `${LETTERS[i]}. ${text}`),
+    `공식 정답: ${answerText(q)}`,
+    selected !== undefined && selected !== q.a ? `내가 고른 답: ${LETTERS[selected]}. ${options[selected]}` : '',
+    q.img ? '(그림이 있는 문제입니다. 그림은 볼 수 없으니 문제 글과 보기로 설명해 주세요.)' : '',
+    '',
+    '공식 정답이 맞다는 전제로, 정답인 이유와 다른 보기(특히 내가 고른 답)가 틀린 이유를 중국 도로교통안전법 기준으로 한국어 3~5줄 이내로 간단히 설명해 주세요. 관련 숫자(벌점·속도·거리·기간 등)가 있으면 꼭 넣어 주세요.',
+  ]
+    .filter((line, i, all) => line !== '' || (i > 0 && all[i - 1] !== ''))
+    .join('\n');
+}
+
+function ExplanationBox({ q, selected }: { q: DLQuestion; selected?: number }) {
+  const correct = selected === undefined ? null : selected === q.a;
   return (
-    <div className="mt-5 p-5 bg-[#e3f2fd] border-l-4 border-[#37a7f0] rounded">
-      <h4 className="text-base font-medium text-gray-800 mb-2">
-        <i className="fa-solid fa-lightbulb mr-2 text-[#37a7f0]"></i>정답: {answerText(q)}
+    <div className={`mt-5 p-4 sm:p-5 border-l-4 rounded ${correct === false ? 'bg-[#fdf0ef] border-[#e74c3c]' : 'bg-[#e3f2fd] border-[#37a7f0]'}`}>
+      <h4 className="text-base font-medium text-gray-800 mb-1.5">
+        {correct === true && <span className="mr-2 text-green-600">⭕ 정답이에요!</span>}
+        {correct === false && <span className="mr-2 text-[#e74c3c]">❌ 틀렸어요.</span>}
+        <span className={correct === null ? '' : 'text-gray-600 font-normal'}>정답 {answerText(q)}</span>
       </h4>
-      {q.e && <p className="text-[15px] text-gray-600 leading-relaxed">{q.e}</p>}
+      {q.e && (
+        <p className="text-[15px] text-gray-700 leading-relaxed">
+          <i className="fa-solid fa-lightbulb mr-1.5 text-[#f1b10f]"></i>
+          {q.e}
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={() =>
+          askAi({
+            label: correct === false ? `${LETTERS[selected!]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답 이유를 자세히 설명해 줘',
+            prompt: explainPrompt(q, selected),
+          })
+        }
+        className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#bfe2fa] bg-white text-sm text-[#2a8bc9] hover:bg-[#eef7fe]"
+      >
+        <span aria-hidden>🤖</span> AI에게 더 자세히 묻기
+      </button>
     </div>
   );
 }
@@ -343,6 +382,17 @@ export function PracticeQuiz({
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
+  // AI 도우미 버튼을 누르면 지금 보는 문제를 바로 설명받을 수 있게
+  useEffect(() => {
+    const selected = answered?.[0];
+    setAiContext({
+      title: `${title} ${index + 1}번 문제`,
+      label: selected !== undefined && selected !== q.a ? `${LETTERS[selected]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답·오답 이유를 설명해 줘',
+      prompt: explainPrompt(q, selected),
+    });
+  }, [q, index, title, answered]);
+  useEffect(() => () => setAiContext(null), []);
+
   // 다른 기기에서 푼 기록을 받아오면 진도·즐겨찾기를 다시 읽음
   useEffect(() => {
     if (loadedVersion.current === version) return;
@@ -381,7 +431,7 @@ export function PracticeQuiz({
     setProgress((p) => ({ ...p, answers: { ...p.answers, [q.id]: [i] } }));
     recordAnswers([{ id: q.id, selected: i, correct: ok }]);
     if (!ok) setShowExplanation(true);
-    else if (autoNext && index < questions.length - 1) timer.current = window.setTimeout(() => goTo(index + 1), 900);
+    else if (autoNext && index < questions.length - 1) timer.current = window.setTimeout(() => goTo(index + 1), 1500);
   };
 
   const toggleFavorite = () => {
@@ -439,7 +489,7 @@ export function PracticeQuiz({
         }
       />
 
-      {(showExplanation || answered) && (showExplanation || !isCorrect(q, answered)) && <ExplanationBox q={q} />}
+      {(showExplanation || answered) && <ExplanationBox q={q} selected={answered?.[0]} />}
 
       <div className="text-sm text-gray-400 mt-6 pb-5 border-b border-gray-100">{TYPE_HINT[q.t]}</div>
 
@@ -669,7 +719,7 @@ function WrongNotes({
           {items.map(({ q, no }) => (
             <div key={q.id} className="p-5 border border-gray-200 rounded-lg">
               <QuestionCard q={q} label={`${no}.`} selected={[wrong[q.id]]} reveal />
-              <ExplanationBox q={q} />
+              <ExplanationBox q={q} selected={wrong[q.id]} />
             </div>
           ))}
         </div>
@@ -701,7 +751,46 @@ type StageView =
 
 const STAGE_BREADCRUMB = '홈 > 모의고사 > 소형차 필기(과목1) > 주제별 연습';
 
-// 영역 설명: 영역 소개 · 핵심 내용 · 암기 요령을 보고 풀기 시작
+// 영역 설명의 기출 예시: 문제를 보고 '정답 보기'를 누르면 정답과 해설
+function ExampleQuestion({ q }: { q: DLQuestion }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="p-3 sm:p-4 rounded-lg border border-gray-200 bg-[#fafbfc] text-[14px] sm:text-[15px]">
+      <p className="text-gray-800 leading-relaxed">
+        <span className="mr-1.5 px-1.5 py-0.5 rounded bg-[#eef7fe] text-[#2a8bc9] text-xs align-middle">{q.t === 'j' ? '판단형' : '선택형'}</span>
+        {q.q}
+      </p>
+      {q.img && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {q.img.map((name) => (
+            <img key={name} src={imageUrl(name)} alt="문제 그림" loading="lazy" className="max-h-36 max-w-full w-auto rounded border border-gray-200 bg-white" />
+          ))}
+        </div>
+      )}
+      {q.t === 's' && (
+        <ul className="mt-2 grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-gray-600">
+          {optionsOf(q).map((text, i) => (
+            <li key={i}>
+              {LETTERS[i]}. {text}
+            </li>
+          ))}
+        </ul>
+      )}
+      {show ? (
+        <div className="mt-2 leading-relaxed">
+          <b className="text-green-700">정답 {answerText(q)}</b>
+          {q.e && <span className="text-gray-600"> — {q.e}</span>}
+        </div>
+      ) : (
+        <button onClick={() => setShow(true)} className="mt-2 text-sm text-[#2a8bc9] hover:underline">
+          정답 보기 ▼
+        </button>
+      )}
+    </div>
+  );
+}
+
+// 영역 설명: 영역 소개 · 소주제별 핵심 내용(기출 예시) · 함정 · 암기 요령을 보고 풀기 시작
 function StageIntro({
   group,
   info,
@@ -721,6 +810,30 @@ function StageIntro({
   const wrong = readWrong();
   const wrongCount = group.questions.filter((q) => q.id in wrong).length;
   const images = group.questions.filter((q) => q.img).length;
+  const [closed, setClosed] = useState<Set<number>>(() => new Set());
+  const byId = useMemo(() => new Map(group.questions.map((q) => [q.id, q])), [group.questions]);
+
+  const startButtons = (className: string) => (
+    <div className={`flex flex-wrap gap-2 sm:gap-3 ${className}`}>
+      <button onClick={() => onStart(false)} className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-white bg-[#37a7f0] hover:bg-[#2a8bc9]">
+        <i className="fa-solid fa-play mr-2"></i>
+        {solved > 0 && solved < group.questions.length ? `이어서 풀기 (${solved}/${group.questions.length})` : '순서대로 풀기'}
+      </button>
+      <button
+        onClick={() => onStart(true)}
+        className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg border border-gray-300 bg-white text-gray-700 hover:border-[#37a7f0] hover:text-[#37a7f0]"
+      >
+        <i className="fa-solid fa-shuffle mr-2"></i>랜덤으로 풀기
+      </button>
+      <button
+        onClick={onWrong}
+        disabled={wrongCount === 0}
+        className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg border border-[#e74c3c] bg-white text-[#e74c3c] hover:bg-red-50 disabled:border-gray-200 disabled:text-gray-300 disabled:hover:bg-white disabled:cursor-not-allowed"
+      >
+        <i className="fa-solid fa-circle-xmark mr-2"></i>틀린 문제만 보기 ({wrongCount})
+      </button>
+    </div>
+  );
 
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
@@ -740,49 +853,122 @@ function StageIntro({
         </div>
       </header>
 
+      {startButtons('mb-8')}
+
       {info && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 sm:p-7">
-          <h2 className="text-lg font-medium text-gray-800 mb-2">
-            <i className="fa-solid fa-book-open mr-2 text-[#37a7f0]"></i>영역 설명
-          </h2>
-          <p className="text-[15px] text-gray-700 leading-relaxed mb-5">{info.summary}</p>
-          <h3 className="text-base font-medium text-gray-800 mb-2">핵심 내용</h3>
-          <ul className="flex flex-col gap-2 text-[15px] text-gray-700 leading-relaxed">
-            {info.points.map((point) => (
-              <li key={point} className="flex gap-2">
-                <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
-                <span>{point}</span>
-              </li>
-            ))}
-          </ul>
+        <>
+          <section className="mb-6">
+            <h2 className="text-lg font-medium text-gray-800 mb-2">
+              <i className="fa-solid fa-book-open mr-2 text-[#37a7f0]"></i>영역 설명
+            </h2>
+            <p className="text-[15px] text-gray-700 leading-relaxed">{info.summary}</p>
+          </section>
+
+          {info.sections && info.sections.length > 0 && (
+            <section className="mb-6">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h2 className="text-lg font-medium text-gray-800">
+                  <i className="fa-solid fa-list-check mr-2 text-[#37a7f0]"></i>핵심 내용 <span className="text-sm font-normal text-gray-500">(기출 기반 · {info.sections.length}개 주제)</span>
+                </h2>
+                <button
+                  onClick={() => setClosed(closed.size ? new Set() : new Set(info.sections!.map((_, i) => i)))}
+                  className="shrink-0 text-sm text-[#2a8bc9] hover:underline"
+                >
+                  {closed.size ? '모두 펼치기' : '모두 접기'}
+                </button>
+              </div>
+              <div className="flex flex-col gap-3">
+                {info.sections.map((section, i) => {
+                  const open = !closed.has(i);
+                  const examples = (section.examples ?? []).map((id) => byId.get(id)).filter((q): q is DLQuestion => !!q);
+                  return (
+                    <div key={section.title} className="border border-gray-200 rounded-lg bg-white overflow-hidden">
+                      <button
+                        onClick={() => {
+                          const next = new Set(closed);
+                          if (open) next.add(i);
+                          else next.delete(i);
+                          setClosed(next);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 text-left bg-gray-50 hover:bg-gray-100"
+                        aria-expanded={open}
+                      >
+                        <span className="shrink-0 w-7 h-7 rounded-full bg-[#37a7f0] text-white text-sm flex items-center justify-center">{i + 1}</span>
+                        <span className="flex-1 font-medium text-gray-800 text-[15px] sm:text-base">{section.title}</span>
+                        <i className={`fa-solid fa-chevron-${open ? 'up' : 'down'} text-gray-400 text-sm`}></i>
+                      </button>
+                      {open && (
+                        <div className="px-4 sm:px-5 py-4">
+                          <ul className="flex flex-col gap-2 text-[15px] text-gray-700 leading-relaxed">
+                            {section.points.map((point) => (
+                              <li key={point} className="flex gap-2">
+                                <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
+                                <span>{point}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          {section.memo && (
+                            <div className="mt-3 px-3 py-2 bg-[#fff8e1] rounded text-sm text-gray-800">
+                              <b className="mr-1.5">암기</b>
+                              {section.memo}
+                            </div>
+                          )}
+                          {examples.length > 0 && (
+                            <div className="mt-4">
+                              <div className="text-sm font-medium text-gray-600 mb-2">기출 예시</div>
+                              <div className="flex flex-col gap-2">
+                                {examples.map((q) => (
+                                  <ExampleQuestion key={q.id} q={q} />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {(!info.sections || info.sections.length === 0) && info.points.length > 0 && (
+            <section className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-5">
+              <h3 className="text-base font-medium text-gray-800 mb-2">핵심 내용</h3>
+              <ul className="flex flex-col gap-2 text-[15px] text-gray-700 leading-relaxed">
+                {info.points.map((point) => (
+                  <li key={point} className="flex gap-2">
+                    <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {info.traps && info.traps.length > 0 && (
+            <section className="mb-6 p-4 sm:p-5 bg-[#fdf0ef] border border-[#f5c6c1] rounded-lg">
+              <h2 className="text-base font-medium text-[#c0392b] mb-2">
+                <i className="fa-solid fa-triangle-exclamation mr-2"></i>자주 틀리는 함정
+              </h2>
+              <ul className="flex flex-col gap-1.5 text-[15px] text-gray-700 leading-relaxed list-disc pl-5">
+                {info.traps.map((trap) => (
+                  <li key={trap}>{trap}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {info.tip && (
-            <div className="mt-5 p-4 bg-[#fff8e1] border-l-4 border-[#ffc107] rounded text-[15px] text-gray-800">
+            <div className="p-4 bg-[#fff8e1] border-l-4 border-[#ffc107] rounded text-[15px] text-gray-800">
               <b className="mr-2">암기 요령</b>
               {info.tip}
             </div>
           )}
-        </div>
+        </>
       )}
 
-      <div className="flex flex-wrap gap-3 mt-8">
-        <button onClick={() => onStart(false)} className="px-6 py-3 rounded-lg text-white bg-[#37a7f0] hover:bg-[#2a8bc9]">
-          <i className="fa-solid fa-play mr-2"></i>
-          {solved > 0 && solved < group.questions.length ? `이어서 풀기 (${solved}/${group.questions.length})` : '순서대로 풀기'}
-        </button>
-        <button
-          onClick={() => onStart(true)}
-          className="px-6 py-3 rounded-lg border border-gray-300 bg-white text-gray-700 hover:border-[#37a7f0] hover:text-[#37a7f0]"
-        >
-          <i className="fa-solid fa-shuffle mr-2"></i>랜덤으로 풀기
-        </button>
-        <button
-          onClick={onWrong}
-          disabled={wrongCount === 0}
-          className="px-6 py-3 rounded-lg border border-[#e74c3c] bg-white text-[#e74c3c] hover:bg-red-50 disabled:border-gray-200 disabled:text-gray-300 disabled:hover:bg-white disabled:cursor-not-allowed"
-        >
-          <i className="fa-solid fa-circle-xmark mr-2"></i>틀린 문제만 보기 ({wrongCount})
-        </button>
-      </div>
+      {startButtons('mt-8')}
     </div>
   );
 }
@@ -1522,7 +1708,7 @@ function ExamResult({
               <div key={q.id} className="p-5 border border-gray-200 rounded-lg">
                 <QuestionCard q={q} label={`${i + 1}.`} selected={selected === undefined ? [] : [selected]} reveal />
                 {selected === undefined && <div className="mt-3 text-sm text-[#e74c3c]">풀지 않은 문제</div>}
-                <ExplanationBox q={q} />
+                <ExplanationBox q={q} selected={selected} />
               </div>
             ))}
           </div>

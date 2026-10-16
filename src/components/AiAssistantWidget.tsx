@@ -4,10 +4,12 @@ import { X, Sparkles, Send, Bot, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { serverUrl } from '../utils/supabase/client';
+import { getAiContext, onAiAsk, onAiContextChange, type AiContext } from '../utils/aiAssistant';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  prompt?: string; // 화면에는 content(짧은 질문)를 보이고, AI 에게는 prompt(문제 전체)를 보냄
   timestamp: number;
 }
 
@@ -100,38 +102,57 @@ export function AiAssistantWidget() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [context, setContext] = useState<AiContext | null>(getAiContext);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  messagesRef.current = chatMessages;
+  const loadingRef = useRef(false);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isAiLoading]);
+
+  // 지금 보고 있는 화면(예: 운전면허 문제)을 알고 있으면 바로 물어볼 수 있게
+  useEffect(() => onAiContextChange(() => setContext(getAiContext())), []);
+  useEffect(
+    () =>
+      onAiAsk(({ label, prompt }) => {
+        setIsOpen(true);
+        void sendMessage(label, prompt);
+      }),
+    [],
+  );
 
   const handleSuggestedQuestion = (q: string) => {
     setChatInput(q);
   };
 
   const handleSendMessage = async () => {
-    if (!chatInput.trim() || isAiLoading) return;
-
+    if (!chatInput.trim()) return;
     const userMessage = chatInput;
-    setChatInput('');
+    if (await sendMessage(userMessage)) setChatInput('');
+  };
+
+  const sendMessage = async (userMessage: string, prompt?: string) => {
+    if (loadingRef.current) return false;
+    loadingRef.current = true;
 
     const newHistory: ChatMessage[] = [
-      ...chatMessages,
-      { role: 'user', content: userMessage, timestamp: Date.now() }
+      ...messagesRef.current,
+      { role: 'user', content: userMessage, prompt, timestamp: Date.now() }
     ];
     setChatMessages(newHistory);
     setIsAiLoading(true);
 
     try {
-      const historyForRequest = newHistory.slice(0, -1).slice(-10).map(msg => ({ role: msg.role, content: msg.content }));
+      const historyForRequest = newHistory.slice(0, -1).slice(-10).map(msg => ({ role: msg.role, content: msg.prompt ?? msg.content }));
       const response = await fetch(`${serverUrl}/api/ai-chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: userMessage,
+          message: prompt ?? userMessage,
           history: historyForRequest,
         })
       });
@@ -154,8 +175,21 @@ export function AiAssistantWidget() {
       ]);
     } finally {
       setIsAiLoading(false);
+      loadingRef.current = false;
     }
+    return true;
   };
+
+  const contextButton = context && (
+    <button
+      onClick={() => void sendMessage(context.label, context.prompt)}
+      disabled={isAiLoading}
+      className="w-full text-left rounded-2xl border border-[#bfe2fa] bg-[#eef7fe] px-4 py-3 hover:bg-[#e2f1fd] disabled:opacity-60 transition-colors"
+    >
+      <span className="block text-xs text-[#2a8bc9] mb-0.5">지금 보는 화면 · {context.title}</span>
+      <span className="block text-sm font-medium text-gray-800">💡 {context.label}</span>
+    </button>
+  );
 
   return (
     <>
@@ -341,6 +375,7 @@ export function AiAssistantWidget() {
                 <p className="text-sm text-gray-500 mt-2 mb-6">
                   비자, 거류증, 병원, 부동산 등 무엇이든 편하게 물어보세요
                 </p>
+                {contextButton && <div className="mb-4">{contextButton}</div>}
                 <div className="bg-gray-50 rounded-2xl px-4">
                   {suggestedQuestions.map((q, idx) => (
                     <button
@@ -391,6 +426,15 @@ export function AiAssistantWidget() {
             )}
 
             <div className="p-3 border-t bg-white shrink-0">
+              {context && chatMessages.length > 0 && (
+                <button
+                  onClick={() => void sendMessage(context.label, context.prompt)}
+                  disabled={isAiLoading}
+                  className="mb-2 max-w-full truncate px-3 py-1.5 rounded-full border border-[#bfe2fa] bg-[#eef7fe] text-xs text-[#2a8bc9] disabled:opacity-60"
+                >
+                  💡 {context.label}
+                </button>
+              )}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();

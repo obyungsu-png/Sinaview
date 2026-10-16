@@ -1,5 +1,13 @@
 // 주제별 연습 영역 설명 (영역 소개 → 핵심 내용 → 암기 요령). 키는 a{영역 번호}, 그림 문제 묶음은 k-{형태}
-export type StageInfo = { summary: string; points: string[]; tip?: string; isNew?: boolean };
+export type StageSection = { title: string; points: string[]; examples?: number[]; memo?: string };
+export type StageInfo = {
+  summary: string;
+  points: string[];
+  sections?: StageSection[]; // 소주제별 핵심 내용 (기출 기반)
+  traps?: string[]; // 자주 틀리는 함정
+  tip?: string;
+  isNew?: boolean;
+};
 
 export const STAGE_INFO: Record<string, StageInfo> = {
   a1: {
