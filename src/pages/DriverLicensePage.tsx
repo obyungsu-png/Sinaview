@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { DriverLicenseCommunity } from '../components/DriverLicenseCommunity';
 import {
   ChapterPracticePage,
+  FastCoursePage,
   FavoritesPractice,
   MockExamPage,
   SequentialPracticePage,
@@ -52,320 +53,10 @@ function RecordSyncNotice({ onLoginClick }: { onLoginClick?: () => void }) {
   );
 }
 
-// 난점 공략 페이지 컴포넌트
-function DifficultPointsPage({ onBack }: { onBack: () => void }) {
-  const difficultCategories = [
-    { 
-      id: 1, 
-      title: '교통 표지판 완벽 정리', 
-      icon: 'fa-solid fa-signs-post',
-      color: '#e74c3c',
-      questionCount: 120,
-      accuracy: 65,
-      description: '헷갈리기 쉬운 교통 표지판을 집중 학습하세요'
-    },
-    { 
-      id: 2, 
-      title: '벌점 제도 총정리', 
-      icon: 'fa-solid fa-ban',
-      color: '#e67e22',
-      questionCount: 85,
-      accuracy: 72,
-      description: '위반 행위별 벌점과 처벌 규정을 마스터하세요'
-    },
-    { 
-      id: 3, 
-      title: '안전 거리 및 속도 제한', 
-      icon: 'fa-solid fa-gauge-high',
-      color: '#f39c12',
-      questionCount: 95,
-      accuracy: 68,
-      description: '도로별 속도 제한과 안전 거리 계산법'
-    },
-    { 
-      id: 4, 
-      title: '교차로 통행 규칙', 
-      icon: 'fa-solid fa-traffic-light',
-      color: '#3498db',
-      questionCount: 110,
-      accuracy: 61,
-      description: '신호등과 교차로에서의 올바른 통행 방법'
-    },
-    { 
-      id: 5, 
-      title: '특수 상황 대처법', 
-      icon: 'fa-solid fa-cloud-showers-heavy',
-      color: '#9b59b6',
-      questionCount: 78,
-      accuracy: 58,
-      description: '악천후, 고장, 사고 시 대처 요령'
-    },
-    { 
-      id: 6, 
-      title: '주차 및 정차 규정', 
-      icon: 'fa-solid fa-square-parking',
-      color: '#1abc9c',
-      questionCount: 92,
-      accuracy: 70,
-      description: '주차 금지 구역과 정차 규정 완벽 정리'
-    }
-  ];
-
-  return (
-    <div className="max-w-[1200px] mx-auto px-4">
-      <style>{`
-        .back-btn-chapter {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
-          background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          color: #666;
-          margin-bottom: 30px;
-          transition: all 0.2s;
-        }
-        .back-btn-chapter:hover {
-          border-color: #37a7f0;
-          color: #37a7f0;
-        }
-
-        .difficult-container {
-          font-family: 'Noto Sans KR', sans-serif;
-          background-color: #fff;
-        }
-
-        .difficult-header {
-          text-align: center;
-          margin-bottom: 50px;
-        }
-
-        .difficult-header h1 {
-          font-size: 28px;
-          font-weight: 700;
-          margin-bottom: 12px;
-          color: #2c3e50;
-        }
-
-        .difficult-header p {
-          font-size: 15px;
-          color: #7f8c8d;
-          line-height: 1.6;
-        }
-
-        .difficult-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 24px;
-          margin-top: 40px;
-        }
-
-        .difficult-card {
-          background: white;
-          border: 2px solid #ecf0f1;
-          border-radius: 12px;
-          padding: 28px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .difficult-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 4px;
-          background: var(--card-color);
-          transform: scaleX(0);
-          transition: transform 0.3s ease;
-        }
-
-        .difficult-card:hover::before {
-          transform: scaleX(1);
-        }
-
-        .difficult-card:hover {
-          transform: translateY(-8px);
-          border-color: var(--card-color);
-          box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-        }
-
-        .difficult-card-icon {
-          font-size: 48px;
-          margin-bottom: 20px;
-          color: var(--card-color);
-        }
-
-        .difficult-card-title {
-          font-size: 20px;
-          font-weight: 600;
-          color: #2c3e50;
-          margin-bottom: 10px;
-        }
-
-        .difficult-card-desc {
-          font-size: 14px;
-          color: #7f8c8d;
-          line-height: 1.6;
-          margin-bottom: 20px;
-        }
-
-        .difficult-card-stats {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 16px;
-          border-top: 1px solid #ecf0f1;
-        }
-
-        .stat-item {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .stat-label {
-          font-size: 12px;
-          color: #95a5a6;
-        }
-
-        .stat-value {
-          font-size: 18px;
-          font-weight: 700;
-          color: #2c3e50;
-        }
-
-        .accuracy-badge {
-          display: inline-block;
-          padding: 6px 14px;
-          border-radius: 20px;
-          font-size: 13px;
-          font-weight: 600;
-          background: rgba(231, 76, 60, 0.1);
-          color: #e74c3c;
-        }
-
-        .accuracy-badge.medium {
-          background: rgba(243, 156, 18, 0.1);
-          color: #f39c12;
-        }
-
-        .accuracy-badge.high {
-          background: rgba(46, 204, 113, 0.1);
-          color: #2ecc71;
-        }
-
-        .info-banner {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          padding: 24px 30px;
-          border-radius: 12px;
-          margin-bottom: 40px;
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .info-banner-icon {
-          font-size: 40px;
-          opacity: 0.9;
-        }
-
-        .info-banner-content h3 {
-          font-size: 18px;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-
-        .info-banner-content p {
-          font-size: 14px;
-          opacity: 0.95;
-          line-height: 1.5;
-        }
-
-        @media (max-width: 768px) {
-          .difficult-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .info-banner {
-            flex-direction: column;
-            text-align: center;
-          }
-        }
-      `}</style>
-
-      <div className="difficult-container">
-        {/* 뒤로가기 버튼 */}
-        <button onClick={onBack} className="back-btn-chapter">
-          <i className="fa-solid fa-arrow-left"></i>
-          필기시험으로 돌아가기
-        </button>
-
-        {/* 헤더 */}
-        <header className="difficult-header">
-          <h1>🎯 난점 공략 - 어려운 주제 집중 학습</h1>
-          <p>
-            많은 학습자들이 어려워하는 주제를 선별하여 집중적으로 연습할 수 있습니다.<br/>
-            각 카테고리별로 오답률이 높은 문제들을 모아두었습니다.
-          </p>
-        </header>
-
-        {/* 안내 배너 */}
-        <div className="info-banner">
-          <i className="fa-solid fa-lightbulb info-banner-icon"></i>
-          <div className="info-banner-content">
-            <h3>💡 학습 팁</h3>
-            <p>정답률이 낮은 카테고리부터 시작하세요. 반복 학습을 통해 약점을 보완할 수 있습니다!</p>
-          </div>
-        </div>
-
-        {/* 난점 카테고리 그리드 */}
-        <div className="difficult-grid">
-          {difficultCategories.map((category) => (
-            <div 
-              key={category.id} 
-              className="difficult-card"
-              style={{ '--card-color': category.color } as React.CSSProperties}
-            >
-              <i className={`${category.icon} difficult-card-icon`}></i>
-              <h3 className="difficult-card-title">{category.title}</h3>
-              <p className="difficult-card-desc">{category.description}</p>
-              
-              <div className="difficult-card-stats">
-                <div className="stat-item">
-                  <span className="stat-label">문제 수</span>
-                  <span className="stat-value">{category.questionCount}개</span>
-                </div>
-                <div className="stat-item">
-                  <span 
-                    className={`accuracy-badge ${
-                      category.accuracy >= 70 ? 'high' : 
-                      category.accuracy >= 65 ? 'medium' : ''
-                    }`}
-                  >
-                    평균 {category.accuracy}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePageProps) {
   const [selectedCity, setSelectedCity] = useState('대련');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'difficult' | 'mock' | 'wrong' | 'community' | 'app123'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'fast' | 'mock' | 'wrong' | 'community' | 'app123'>('home');
   const [introOpen, setIntroOpen] = useState(false);
   useDriverLicenseRecords();
   useEffect(() => {
@@ -839,6 +530,13 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
 
                 {/* 휴대폰: 바로 풀기 */}
                 <div className="sm:hidden grid grid-cols-2 gap-2 mb-4 text-left">
+                  <button
+                    onClick={() => setCurrentView('fast')}
+                    className="col-span-2 flex items-center justify-center gap-2 px-3 py-3 rounded-xl bg-[#fff8ec] border border-[#f7d9a8] shadow-sm text-[15px] font-bold text-[#b9560e]"
+                  >
+                    <i className="fa-solid fa-bolt text-lg" style={{ color: '#f39c12' }}></i>
+                    ⚡ 속성 과정 (시간 없을 때)
+                  </button>
                   {([
                     ['sequential', 'fa-list-ol', '순서 연습', '#37a7f0'],
                     ['chapter', 'fa-layer-group', '주제별 연습', '#2ecc71'],
@@ -966,14 +664,15 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
                   </p>
                 </div>
                 <div 
-                  onClick={() => setCurrentView('difficult')}
-                  className="bg-gray-50 flex flex-col justify-center items-center cursor-pointer hover:bg-gray-100 hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-4 sm:p-6"
+                  onClick={() => setCurrentView('fast')}
+                  className="relative bg-[#fff8ec] border border-[#f7d9a8] flex flex-col justify-center items-center cursor-pointer hover:bg-[#fff1da] hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-4 sm:p-6"
                 >
-                  <i className="fa-solid fa-bullseye text-4xl sm:text-5xl mb-2 sm:mb-3" style={{ color: '#f39c12' }}></i>
-                  <span className="text-base sm:text-lg font-medium text-gray-700 sm:mb-3">난점 공략</span>
+                  <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-[#f39c12] text-white text-[11px]">시간 없을 때</span>
+                  <i className="fa-solid fa-bolt text-4xl sm:text-5xl mb-2 sm:mb-3" style={{ color: '#f39c12' }}></i>
+                  <span className="text-base sm:text-lg font-medium text-gray-700 sm:mb-3">⚡ 속성 과정</span>
                   <p className="hidden sm:block text-xs text-gray-500 text-center leading-relaxed">
-                    사용자의 오답률 높은 문제 집중 연습<br/>
-                    약점 분석 및 보완 학습
+                    암기 요령 → 핵심 500문제<br/>
+                    → 시험 전날 실전 100문제
                   </p>
                 </div>
                 <div 
@@ -1467,9 +1166,9 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
       ) : currentView === 'chapter' ? (
         // 주제별 연습 페이지
         <ChapterPracticePage onBack={() => setCurrentView('practice')} selectedCity={selectedCity} />
-      ) : currentView === 'difficult' ? (
-        // 난점 공략 페이지
-        <DifficultPointsPage onBack={() => setCurrentView('practice')} />
+      ) : currentView === 'fast' ? (
+        // 속성 과정: 암기 요령 → 핵심 500문제 → 시험 전날 100문제
+        <FastCoursePage onBack={() => setCurrentView('practice')} />
       ) : currentView === 'mock' ? (
         // 모의고사 페이지
         <MockExamPage onBack={() => setCurrentView('practice')} />

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { STAGE_INFO, type StageInfo } from '../data/driverLicenseStages';
+import { FAST_CARDS } from '../data/driverLicenseFastCards';
 import {
   getFavorites,
   getMockResults,
@@ -28,7 +29,9 @@ export type DLQuestion = {
 };
 export type DLKind = 'txt' | 'pic' | 'sign' | 'sig';
 export type DLChapter = { id: number; title: string };
-type DLData = { chapters: DLChapter[]; questions: DLQuestion[]; imgSize?: Record<string, [number, number]> };
+// 속성 과정(정선 500문제): 문제 id(책 순서), 문제별 요령, 시험 전날 100문제
+type DLFast = { ids: number[]; tips: Record<string, string>; exam?: number[] };
+type DLData = { chapters: DLChapter[]; questions: DLQuestion[]; imgSize?: Record<string, [number, number]>; fast?: DLFast };
 
 let dataCache: DLData | null = null;
 let dataPromise: Promise<DLData> | null = null;
@@ -103,6 +106,13 @@ const optionsOf = (q: DLQuestion) => (q.t === 'j' ? JUDGE_OPTIONS : q.o ?? []);
 const isCorrect = (q: DLQuestion, selected: number[] | undefined) => selected?.length === 1 && selected[0] === q.a;
 const answerText = (q: DLQuestion) => `${LETTERS[q.a]}. ${optionsOf(q)[q.a]}`;
 const imageUrl = (name: string) => `${import.meta.env.BASE_URL}driver-license/img/${name}`;
+
+let fastIdSet: Set<number> | null = null;
+const isFast = (q: DLQuestion) => {
+  if (!fastIdSet && dataCache?.fast) fastIdSet = new Set(dataCache.fast.ids);
+  return !!fastIdSet?.has(q.id);
+};
+const fastTip = (q: DLQuestion) => dataCache?.fast?.tips[q.id];
 
 // 원본 그림이 작아서(가로 200~400px) 시험지처럼 크게 보여 줌: 상황 그림은 가로 최대 640px, 표지·계기판은 세로 최대 300px
 function imageStyle(name: string, count: number, exam = false): CSSProperties | undefined {
@@ -277,7 +287,13 @@ function QuestionCard({
     <div>
       <div className={`flex justify-between items-start gap-4 ${exam ? 'mb-4' : 'mb-5'}`}>
         <h2 className={`${exam ? 'text-lg sm:text-xl' : 'text-lg sm:text-[22px]'} leading-relaxed text-gray-900 font-normal`}>
-          {label} {q.q}
+          {label}{' '}
+          {!exam && isFast(q) && (
+            <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded bg-[#fff4e0] text-[#d35400] text-xs font-medium" title="속성 과정 핵심 500문제">
+              ⚡속성
+            </span>
+          )}
+          {q.q}
         </h2>
         {headerRight}
       </div>
@@ -329,6 +345,7 @@ function ExplanationBox({ q, selected }: { q: DLQuestion; selected?: number }) {
           {q.e}
         </p>
       )}
+      {fastTip(q) && <p className="mt-1.5 text-[15px] text-[#b9560e] leading-relaxed">⚡ {fastTip(q)}</p>}
       <button
         type="button"
         onClick={() =>
@@ -1168,6 +1185,266 @@ export function FavoritesPractice() {
   );
 }
 
+// ───────────────── ⚡ 속성 과정 ─────────────────
+// 시험이 얼마 안 남았을 때: ① 암기 구결·요령 카드 → ② 핵심 500문제 → ③ 시험 전날 실전 100문제
+const FAST_PROGRESS = 'fast500';
+const FAST_CARDS_PROGRESS = 'fast-cards';
+const FAST_EXAM_RESULT = 'fast100';
+const FAST_BREADCRUMB = '홈 > 필기시험 > 속성 과정';
+type FastView =
+  | { mode: 'home' }
+  | { mode: 'cards' }
+  | { mode: 'quiz'; random: boolean; questions: DLQuestion[]; key: number }
+  | { mode: 'wrong' };
+
+function fastExamQuestions(data: DLData, fast: DLQuestion[]) {
+  const byId = new Map(data.questions.map((q) => [q.id, q]));
+  const fixed = (data.fast?.exam ?? []).map((id) => byId.get(id)).filter((q): q is DLQuestion => !!q);
+  if (fixed.length >= 50) return { questions: fixed, fromBook: true };
+  // 시험 전날 100문제 자료가 없으면 핵심 500문제에서 실제 시험처럼 판단형 40 + 선택형 60
+  const judge = shuffle(fast.filter((q) => q.t === 'j'), 20261103).slice(0, EXAM_JUDGE);
+  const single = shuffle(fast.filter((q) => q.t !== 'j'), 20261104).slice(0, EXAM_TOTAL - judge.length);
+  return { questions: [...judge, ...single], fromBook: false };
+}
+
+function FastCards({ onBack }: { onBack: () => void }) {
+  useDriverLicenseRecords();
+  const done = new Set(getProgress<{ done: number[] }>(FAST_CARDS_PROGRESS)?.done ?? []);
+  const topics = ['전체', ...Array.from(new Set(FAST_CARDS.map((card) => card.topic)))];
+  const [topic, setTopic] = useState('전체');
+  const toggle = (i: number) => {
+    const next = new Set(done);
+    if (next.has(i)) next.delete(i);
+    else next.add(i);
+    saveProgress(FAST_CARDS_PROGRESS, { done: Array.from(next).sort((a, b) => a - b) });
+  };
+  const cards = FAST_CARDS.map((card, i) => ({ card, i })).filter(({ card }) => topic === '전체' || card.topic === topic);
+
+  return (
+    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
+      <BackButton onClick={onBack} label="속성 과정으로 돌아가기" />
+      <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">① 암기 구결·요령</h1>
+      <p className="text-sm text-gray-500 mb-5">
+        자주 나오는 숫자·규칙을 먼저 외우세요. 외운 카드는 "외웠어요"를 눌러 표시해 두면 진도가 저장돼요. ({done.size}/{FAST_CARDS.length})
+      </p>
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+        {topics.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTopic(t)}
+            className={`shrink-0 px-3 py-1.5 rounded-full border text-sm ${topic === t ? 'bg-[#37a7f0] border-[#37a7f0] text-white' : 'bg-white border-gray-300 text-gray-700'}`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+      {FAST_CARDS.length === 0 ? (
+        <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg">암기 카드를 준비하고 있어요.</div>
+      ) : (
+        <div className="grid sm:grid-cols-2 gap-4">
+          {cards.map(({ card, i }) => (
+            <div key={i} className={`p-4 sm:p-5 rounded-lg border ${done.has(i) ? 'border-green-300 bg-green-50/40' : 'border-gray-200 bg-white'}`}>
+              <div className="flex items-start gap-2 mb-2">
+                <span className="shrink-0 px-2 py-0.5 rounded bg-[#eef7fe] text-[#2a8bc9] text-xs">{card.topic}</span>
+                <h3 className="flex-1 font-medium text-gray-800">{card.title}</h3>
+              </div>
+              <ul className="flex flex-col gap-1.5 text-[15px] text-gray-700 leading-relaxed">
+                {card.points.map((point) => (
+                  <li key={point} className="flex gap-2">
+                    <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+              {card.memo && <div className="mt-3 px-3 py-2 bg-[#fff8e1] rounded text-sm text-gray-800">⚡ {card.memo}</div>}
+              <button
+                onClick={() => toggle(i)}
+                className={`mt-3 text-sm px-3 py-1.5 rounded-full border ${done.has(i) ? 'border-green-500 text-green-700 bg-white' : 'border-gray-300 text-gray-600 bg-white hover:border-[#37a7f0]'}`}
+              >
+                {done.has(i) ? '✓ 외웠어요' : '외웠어요'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function FastCoursePage({ onBack }: { onBack: () => void }) {
+  const { data, failed } = useDriverLicenseData();
+  const [view, setView] = useState<FastView>({ mode: 'home' });
+  const [session, setSession] = useState<ExamSession | null>(null);
+  const [outcome, setOutcome] = useState<ExamOutcome | null>(null);
+  useDriverLicenseRecords();
+
+  const fast = useMemo(() => {
+    if (!data?.fast) return [];
+    const byId = new Map(data.questions.map((q) => [q.id, q]));
+    return data.fast.ids.map((id) => byId.get(id)).filter((q): q is DLQuestion => !!q);
+  }, [data]);
+  const exam = useMemo(() => (data ? fastExamQuestions(data, fast) : { questions: [], fromBook: false }), [data, fast]);
+
+  if (!data) return <LoadingState failed={failed} onBack={onBack} />;
+
+  const title = '⚡ 시험 전날 실전 100문제';
+  const startExam = () => {
+    setOutcome(null);
+    setSession({ no: null, title, questions: exam.questions, answers: {}, startedAt: Date.now() });
+    window.scrollTo({ top: 0 });
+  };
+  const finishExam = (finished: ExamSession) => {
+    const score = finished.questions.filter((q, i) => finished.answers[i] === q.a).length;
+    recordAnswers(
+      finished.questions
+        .map((q, i) => ({ id: q.id, selected: finished.answers[i], correct: finished.answers[i] === q.a }))
+        .filter((r) => r.selected !== undefined),
+    );
+    const prev = getMockResults<MockResult>()[FAST_EXAM_RESULT];
+    setMockResult(FAST_EXAM_RESULT, {
+      best: Math.max(prev?.best ?? 0, score),
+      last: score,
+      attempts: (prev?.attempts ?? 0) + 1,
+      date: new Date().toLocaleDateString('ko-KR'),
+    });
+    setSession(null);
+    setOutcome({ ...finished, score, seconds: Math.min(EXAM_SECONDS, Math.round((Date.now() - finished.startedAt) / 1000)) });
+    window.scrollTo({ top: 0 });
+  };
+
+  if (session) {
+    return (
+      <ExamRunner
+        session={session}
+        onChange={setSession}
+        onSubmit={finishExam}
+        onExit={() => {
+          if (window.confirm('시험을 그만두시겠어요? 지금까지 고른 답은 저장되지 않습니다.')) setSession(null);
+        }}
+      />
+    );
+  }
+  if (outcome) {
+    return <ExamResult outcome={outcome} chapters={data.chapters} onRetry={startExam} onList={() => setOutcome(null)} listLabel="속성 과정으로" />;
+  }
+  if (view.mode === 'cards') return <FastCards onBack={() => setView({ mode: 'home' })} />;
+  if (view.mode === 'quiz') {
+    return (
+      <PracticeQuiz
+        key={view.key}
+        questions={view.questions}
+        title={`⚡ 핵심 500문제 (${view.random ? '랜덤' : '순서대로'})`}
+        breadcrumb={FAST_BREADCRUMB}
+        storageKey={view.random ? undefined : FAST_PROGRESS}
+        onBack={() => setView({ mode: 'home' })}
+        backLabel="속성 과정으로 돌아가기"
+        onReviewWrong={() => setView({ mode: 'wrong' })}
+      />
+    );
+  }
+  if (view.mode === 'wrong') {
+    return <WrongNotes pool={fast} title="⚡ 핵심 500문제" breadcrumb={FAST_BREADCRUMB} onBack={() => setView({ mode: 'home' })} backLabel="속성 과정으로 돌아가기" />;
+  }
+
+  const cardsDone = getProgress<{ done: number[] }>(FAST_CARDS_PROGRESS)?.done.length ?? 0;
+  const saved = getProgress<Progress>(FAST_PROGRESS);
+  const solved = saved ? Object.keys(saved.answers).length : 0;
+  const wrong = readWrong();
+  const wrongCount = fast.filter((q) => q.id in wrong).length;
+  const examResult = getMockResults<MockResult>()[FAST_EXAM_RESULT];
+  const pct = (n: number, total: number) => (total ? Math.round((n / total) * 100) : 0);
+  const steps = [
+    {
+      no: 1,
+      title: '암기 구결·요령',
+      when: '먼저',
+      desc: '벌금·벌점·속도·거리처럼 꼭 나오는 숫자와 규칙을 카드로 외워요.',
+      progress: pct(cardsDone, FAST_CARDS.length),
+      status: `${cardsDone}/${FAST_CARDS.length}장 외움`,
+      actions: [{ label: '카드 보기', primary: true, onClick: () => setView({ mode: 'cards' }) }],
+    },
+    {
+      no: 2,
+      title: '핵심 500문제',
+      when: '그다음',
+      desc: '자주 나오는 문제와 새 규정 문제만 골랐어요. 문제마다 ⚡ 풀이 요령이 붙어 있어요.',
+      progress: pct(solved, fast.length),
+      status: `${solved}/${fast.length}문제 풀이${wrongCount ? ` · 틀린 문제 ${wrongCount}개` : ''}`,
+      actions: [
+        {
+          label: solved > 0 && solved < fast.length ? `이어서 풀기 (${solved}/${fast.length})` : '순서대로 풀기',
+          primary: true,
+          onClick: () => setView({ mode: 'quiz', random: false, questions: fast, key: Date.now() }),
+        },
+        { label: '랜덤으로 풀기', onClick: () => setView({ mode: 'quiz', random: true, questions: shuffle(fast), key: Date.now() }) },
+        ...(wrongCount ? [{ label: `틀린 문제만 (${wrongCount})`, danger: true, onClick: () => setView({ mode: 'wrong' }) }] : []),
+      ],
+    },
+    {
+      no: 3,
+      title: '시험 전날 실전 100문제',
+      when: '시험 1일 전',
+      desc: exam.fromBook
+        ? '시험 전날 보는 실전 문제 100개를 실제 시험처럼 45분 동안 풀어요.'
+        : '핵심 500문제에서 실제 시험처럼 판단형 40 + 선택형 60문제를 골라 45분 동안 풀어요.',
+      progress: examResult ? Math.min(100, examResult.best) : 0,
+      status: examResult ? `최고 ${examResult.best}점 · 최근 ${examResult.last}점 (${examResult.attempts}회)` : '아직 안 봤어요',
+      actions: [{ label: '실전 시험 보기', primary: true, onClick: startExam }],
+    },
+  ];
+
+  return (
+    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
+      <BackButton onClick={onBack} label="필기시험으로 돌아가기" />
+      <header className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#2c3e50] mb-2">⚡ 속성 과정</h1>
+        <p className="text-[15px] text-gray-600 leading-relaxed">
+          시험이 얼마 안 남았을 때, 꼭 나오는 것만 3단계로 빠르게 끝내요. 전체 {data.questions.length}문제 중 속성 문제는 다른 연습에서도 ⚡속성 표시로 보여요.
+        </p>
+      </header>
+      <ol className="flex flex-col gap-4">
+        {steps.map((step) => (
+          <li key={step.no} className="p-4 sm:p-6 rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <span className="shrink-0 w-9 h-9 rounded-full bg-[#f39c12] text-white font-bold flex items-center justify-center">{step.no}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                  <h2 className="text-lg font-bold text-gray-800">{step.title}</h2>
+                  <span className="px-2 py-0.5 rounded-full bg-[#fff4e0] text-[#d35400] text-xs">{step.when}</span>
+                </div>
+                <p className="text-[15px] text-gray-600 leading-relaxed mb-3">{step.desc}</p>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                    <div className="h-full bg-[#f39c12]" style={{ width: `${step.progress}%` }}></div>
+                  </div>
+                  <span className="shrink-0 text-xs text-gray-500">{step.status}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {step.actions.map((action) => (
+                    <button
+                      key={action.label}
+                      onClick={action.onClick}
+                      className={`px-4 py-2 rounded-lg text-[15px] ${
+                        'primary' in action && action.primary
+                          ? 'text-white bg-[#37a7f0] hover:bg-[#2a8bc9]'
+                          : 'danger' in action && action.danger
+                            ? 'border border-[#e74c3c] text-[#e74c3c] bg-white hover:bg-red-50'
+                            : 'border border-gray-300 text-gray-700 bg-white hover:border-[#37a7f0] hover:text-[#37a7f0]'
+                      }`}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 // ───────────────── 모의고사 ─────────────────
 
 const EXAM_TOTAL = 100;
@@ -1263,7 +1540,7 @@ function buildRandomExam(questions: DLQuestion[]) {
   return assembleExam(examDraws(questions, seed), 0, seed);
 }
 
-type ExamSession = { no: number | null; questions: DLQuestion[]; answers: Record<number, number>; startedAt: number };
+type ExamSession = { no: number | null; title?: string; questions: DLQuestion[]; answers: Record<number, number>; startedAt: number };
 type ExamOutcome = ExamSession & { score: number; seconds: number };
 
 export function MockExamPage({ onBack }: { onBack: () => void }) {
@@ -1541,7 +1818,7 @@ function ExamRunner({
   return (
     <div ref={rootRef} className="fixed inset-0 z-[1000] bg-white flex flex-col" role="dialog" aria-modal="true" aria-label="모의고사 시험 화면">
       <div className="flex-none flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
-        <span className="font-medium text-gray-800">{session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`}</span>
+        <span className="font-medium text-gray-800">{session.title ?? (session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`)}</span>
         <span className="hidden sm:inline text-sm text-gray-500">
           {answeredCount}/{total} 답함
         </span>
@@ -1635,11 +1912,13 @@ function ExamResult({
   chapters,
   onRetry,
   onList,
+  listLabel = '모의고사 목록',
 }: {
   outcome: ExamOutcome;
   chapters: DLChapter[];
   onRetry: () => void;
   onList: () => void;
+  listLabel?: string;
 }) {
   const passed = outcome.score >= PASS_SCORE;
   const tally = (key: string, label: string, match: (q: DLQuestion) => boolean) => {
@@ -1657,7 +1936,7 @@ function ExamResult({
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
       <div className={`rounded-xl p-6 sm:p-8 text-center mb-8 ${passed ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-        <div className="text-sm text-gray-500 mb-1">{outcome.no === null ? '랜덤 모의고사' : `제${outcome.no}회 모의고사`} 결과</div>
+        <div className="text-sm text-gray-500 mb-1">{outcome.title ?? (outcome.no === null ? '랜덤 모의고사' : `제${outcome.no}회 모의고사`)} 결과</div>
         <div className={`text-5xl font-bold mb-2 ${passed ? 'text-[#2ecc71]' : 'text-[#e74c3c]'}`}>{outcome.score}점</div>
         <div className={`inline-block px-4 py-1 rounded-full text-white text-sm mb-4 ${passed ? 'bg-[#2ecc71]' : 'bg-[#e74c3c]'}`}>
           {passed ? '합격' : '불합격'} (합격 기준 {PASS_SCORE}점)
@@ -1667,10 +1946,10 @@ function ExamResult({
         </div>
         <div className="flex flex-wrap justify-center gap-3 mt-6">
           <button onClick={onRetry} className="px-5 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9]">
-            {outcome.no === null ? '새 랜덤 모의고사' : '이 회차 다시 풀기'}
+            {outcome.title ? '다시 풀기' : outcome.no === null ? '새 랜덤 모의고사' : '이 회차 다시 풀기'}
           </button>
           <button onClick={onList} className="px-5 py-2.5 rounded border border-gray-300 bg-white text-gray-700 hover:border-[#37a7f0] hover:text-[#37a7f0]">
-            모의고사 목록
+            {listLabel}
           </button>
         </div>
       </div>
