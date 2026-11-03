@@ -1258,6 +1258,16 @@ function FastCards({ onBack }: { onBack: () => void }) {
                   </li>
                 ))}
               </ul>
+              {card.images && (
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {card.images.map((pic) => (
+                    <figure key={pic.src} className="w-[110px] sm:w-[130px] text-center">
+                      <img src={imageUrl(pic.src)} alt={pic.caption || card.title} loading="lazy" className="w-full h-auto rounded border border-gray-200 bg-white" />
+                      {pic.caption && <figcaption className="mt-1 text-xs text-gray-600 leading-snug">{pic.caption}</figcaption>}
+                    </figure>
+                  ))}
+                </div>
+              )}
               {card.memo && <div className="mt-3 px-3 py-2 bg-[#fff8e1] rounded text-sm text-gray-800">⚡ {card.memo}</div>}
               <button
                 onClick={() => toggle(i)}
