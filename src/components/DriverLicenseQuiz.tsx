@@ -1387,7 +1387,7 @@ export function FastCoursePage({ onBack }: { onBack: () => void }) {
       title: '시험 전날 실전 100문제',
       when: '시험 1일 전',
       desc: exam.fromBook
-        ? '시험 전날 보는 실전 문제 100개를 실제 시험처럼 45분 동안 풀어요.'
+        ? '시험 전날 보는 실전 문제 100개를 실제 시험처럼 45분 동안 풀어요. 이 100문제만 보지 말고 ①·②단계를 먼저 끝내세요.'
         : '핵심 500문제에서 실제 시험처럼 판단형 40 + 선택형 60문제를 골라 45분 동안 풀어요.',
       progress: examResult ? Math.min(100, examResult.best) : 0,
       status: examResult ? `최고 ${examResult.best}점 · 최근 ${examResult.last}점 (${examResult.attempts}회)` : '아직 안 봤어요',
