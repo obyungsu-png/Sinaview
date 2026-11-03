@@ -1,5 +1,6 @@
 // 속성 과정 1단계: 암기 구결·요령 카드 (口诀技巧秘籍·常考知识点速记·知识点合集(官方版)·과목1 답 고르는 요령 자료를 한국어로 정리)
-export type FastCard = { topic: string; title: string; points: string[]; memo?: string; images?: { src: string; caption?: string }[] };
+// images/bankIds: 문제 은행의 기출 문제에서 그림과 문제 id를 가져와 설명·체크에 사용
+export type FastCard = { topic: string; title: string; points: string[]; memo?: string; images?: { src: string; caption?: string }[]; bankIds?: number[] };
 
 export const FAST_CARDS: FastCard[] = [
   {
@@ -194,7 +195,13 @@ export const FAST_CARDS: FastCard[] = [
       "같은 방향 3차로 이상: 왼쪽 110~120, 가운데 90~110, 오른쪽 60~90km/h",
       "추월은 언제나 왼쪽 차로로"
     ],
-    "memo": "2차로는 100이 경계, 3차로는 90·110이 경계 — 왼쪽일수록 빠르게"
+    "memo": "2차로는 100이 경계, 3차로는 90·110이 경계 — 왼쪽일수록 빠르게",
+    "images": [
+      { "src": "p1-image141.webp", "caption": "최고 속도 제한 표지 — 110km/h" },
+      { "src": "p1-image142.webp", "caption": "최고 속도 제한 표지 — 120km/h" },
+      { "src": "p1-image143.webp", "caption": "최저 속도 표지 — 60km/h" }
+    ],
+    "bankIds": [437, 438, 439]
   },
   {
     "topic": "속도·거리",
@@ -205,7 +212,12 @@ export const FAST_CARDS: FastCard[] = [
       "가시거리 50m 미만: 20km/h 이하, 가장 가까운 출구로 빨리 고속도로를 벗어남",
       "짙은 안개·폭우로 운전이 어려우면 정차"
     ],
-    "memo": "가시거리·속도·차간 = 2·6·1 / 1·4·5 / 5·2·벗어남(离)"
+    "memo": "가시거리·속도·차간 = 2·6·1 / 1·4·5 / 5·2·벗어남(离)",
+    "images": [
+      { "src": "p1-image154.webp", "caption": "고속도로 앞차 따라갈 때 — 차간거리 100m 이상" },
+      { "src": "p1-image155.webp", "caption": "가시거리 200m 미만·60km/h — 안전거리 100m 이상" }
+    ],
+    "bankIds": [461, 462]
   },
   {
     "topic": "속도·거리",
@@ -219,7 +231,14 @@ export const FAST_CARDS: FastCard[] = [
       "30km/h: 안개·비·눈·황사·우박으로 가시거리 50m 이내",
       "30km/h: 고장 차를 견인할 때"
     ],
-    "memo": "城三公四·城五公七 — 중앙선 없으면 도시 3·공로 4, 있으면 도시 5·공로 7 (×10km/h)"
+    "memo": "城三公四·城五公七 — 중앙선 없으면 도시 3·공로 4, 있으면 도시 5·공로 7 (×10km/h)",
+    "images": [
+      { "src": "p1-image44.webp", "caption": "도시 도로·중앙선 없음 → 30km/h" },
+      { "src": "p1-image45.webp", "caption": "공로·중앙선 없음 → 40km/h" },
+      { "src": "p1-image46.webp", "caption": "도시 도로·중앙선 있음 → 50km/h" },
+      { "src": "p1-image47.webp", "caption": "공로·중앙선 있음 → 70km/h" }
+    ],
+    "bankIds": [258, 259, 260, 261, 262, 263, 276]
   },
   {
     "topic": "속도·거리",
@@ -230,7 +249,13 @@ export const FAST_CARDS: FastCard[] = [
       "그 밖의 정차 금지 거리는 모두 50m",
       "횡단보도·노란 격자선(网状线) 위에는 정차 금지"
     ],
-    "memo": "口5站3 — 길목(口)은 50m, 정거장(站)은 30m"
+    "memo": "口5站3 — 길목(口)은 50m, 정거장(站)은 30m",
+    "images": [
+      { "src": "p1-image16.webp", "caption": "노란 격자선 구역 — 안에서 정차 금지" },
+      { "src": "p1-image110.webp", "caption": "정차 금지 표시선 구간에 정차 — 위법" },
+      { "src": "p1-image120.webp", "caption": "정차해도 되는 위치 — A차처럼" }
+    ],
+    "bankIds": [210, 390, 394, 409, 413]
   },
   {
     "topic": "면허·수습",
@@ -299,7 +324,14 @@ export const FAST_CARDS: FastCard[] = [
       "도로 중간에서 노란불이 계속 깜박임 = 위험 구간 알림",
       "초록불(통행 허가): 막히지 않고 사람이 없으면 통행"
     ],
-    "memo": "노랑은 정지선 기준, 빨강 우회전은 원형 신호등만"
+    "memo": "노랑은 정지선 기준, 빨강 우회전은 원형 신호등만",
+    "images": [
+      { "src": "p1-image13.webp", "caption": "빨간 원형 신호 — 통행 금지" },
+      { "src": "p1-image14.webp", "caption": "초록 신호 — 통행 허가" },
+      { "src": "p1-image18.webp", "caption": "화살표 신호 — 화살표 방향만 통행" },
+      { "src": "p2-image194.webp", "caption": "깜박이는 노란불 — 교차로 경고·주의 진행" }
+    ],
+    "bankIds": [207, 208, 212, 1414]
   },
   {
     "topic": "등화·신호",
@@ -316,7 +348,17 @@ export const FAST_CARDS: FastCard[] = [
       "두 손이 하나는 높고 하나는 낮으면 회전 — 아래쪽 손 방향으로 회전",
       "경찰 지휘가 다른 신호·표지와 다르면 경찰 지휘를 따름"
     ],
-    "memo": "손바닥=정지, 쭉 뻗음=직진, 가슴=차로 변경, 우산대=대기, 높낮이=회전"
+    "memo": "손바닥=정지, 쭉 뻗음=직진, 가슴=차로 변경, 우산대=대기, 높낮이=회전",
+    "images": [
+      { "src": "p2-image180.webp", "caption": "정지 신호" },
+      { "src": "p2-image181.webp", "caption": "직진 신호" },
+      { "src": "p2-image182.webp", "caption": "좌회전 신호" },
+      { "src": "p2-image184.webp", "caption": "좌회전 대기 신호" },
+      { "src": "p2-image185.webp", "caption": "우회전 신호" },
+      { "src": "p2-image187.webp", "caption": "차로 변경 신호" },
+      { "src": "p2-image188.webp", "caption": "감속·서행 신호" }
+    ],
+    "bankIds": [1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408]
   },
   {
     "topic": "등화·신호",
@@ -328,7 +370,13 @@ export const FAST_CARDS: FastCard[] = [
       "상향·하향 번갈아: 신호 없는 교차로, 추월할 때",
       "방향지시등은 항상 미리 켬 — 켜지 않는 보기는 틀림"
     ],
-    "memo": "밝으면 하향·어두우면 상향, 위험 구간·추월은 번갈아"
+    "memo": "밝으면 하향·어두우면 상향, 위험 구간·추월은 번갈아",
+    "images": [
+      { "src": "p1-image26.webp", "caption": "비 오는 날 — 하향등 사용" },
+      { "src": "p1-image29.webp", "caption": "급커브 — 상향·하향 번갈아" },
+      { "src": "p1-image39.webp", "caption": "야간 조명 좋은 구간 — 하향등" }
+    ],
+    "bankIds": [227, 228, 234, 243, 244, 246, 251, 253, 254, 255, 256, 257]
   },
   {
     "topic": "등화·신호",
@@ -341,7 +389,12 @@ export const FAST_CARDS: FastCard[] = [
       "고속도로 가시거리 200m 미만: 안개등·하향등·차폭등·앞뒤 위치등",
       "가시거리 100m·50m 미만: 위 등화에 비상등까지 켬"
     ],
-    "memo": "서 있거나·끌려가거나·안 보이면 비상등, 100m 아래면 비상등까지 전부"
+    "memo": "서 있거나·끌려가거나·안 보이면 비상등, 100m 아래면 비상등까지 전부",
+    "images": [
+      { "src": "p2-image250.webp", "caption": "안개 낀 날 교차로 — 감속·등화 사용" },
+      { "src": "p2-image304.webp", "caption": "짙은 안개 속 교행 — 하향등으로" }
+    ],
+    "bankIds": [1498, 1851]
   },
   {
     "topic": "등화·신호",
@@ -355,7 +408,20 @@ export const FAST_CARDS: FastCard[] = [
       "냉각수 부족 표시 = 엔진 온도가 높음",
       "점화 스위치: LOCK 핸들 잠금 → ACC 잠금 해제 → ON 전원 → START 시동"
     ],
-    "memo": "상향 곧게·하향 비스듬히, 앞 안개등 초록 왼쪽·뒤 안개등 노랑 오른쪽"
+    "memo": "상향 곧게·하향 비스듬히, 앞 안개등 초록 왼쪽·뒤 안개등 노랑 오른쪽",
+    "images": [
+      { "src": "p2-image314.webp", "caption": "앞 안개등 켜짐 (초록·왼쪽)" },
+      { "src": "p2-image315.webp", "caption": "뒤 안개등 켜짐 (노랑·오른쪽)" },
+      { "src": "p2-image319.webp", "caption": "엔진 오일 압력 낮음 (주전자 모양)" },
+      { "src": "p2-image327.webp", "caption": "연료 최저 수준 (주유기 모양)" },
+      { "src": "p2-image323.webp", "caption": "주차 브레이크 걸림 (P)" },
+      { "src": "p2-image322.webp", "caption": "ABS 고장" },
+      { "src": "p2-image329.webp", "caption": "엔진 온도 높음 (냉각수 부족)" },
+      { "src": "p2-image332.webp", "caption": "전조등 상향 (수평 빛줄기)" },
+      { "src": "p2-image333.webp", "caption": "전조등 하향 (아래로 기울어짐)" },
+      { "src": "p2-image336.webp", "caption": "안전벨트 미착용" }
+    ],
+    "bankIds": [1962, 1963, 1964, 1968, 1972, 1973, 1979, 1981, 1984, 1985, 1988]
   },
   {
     "topic": "표지",
@@ -371,7 +437,15 @@ export const FAST_CARDS: FastCard[] = [
       "보조 표지: 다른 표지와 함께 시간·차종 등 예외를 알림",
       "금지 표시선(이중 실선·실선·정지선)은 밟거나 넘지 말 것, 점선·대기 구역은 통행 가능"
     ],
-    "memo": "빨강 = 하지 마, 노랑 = 조심해, 파랑 = 이렇게 해"
+    "memo": "빨강 = 하지 마, 노랑 = 조심해, 파랑 = 이렇게 해",
+    "images": [
+      { "src": "p2-image34.webp", "caption": "경고 표지 — 노란 삼각형·검은 테두리 (왼쪽 급커브)" },
+      { "src": "p2-image105.webp", "caption": "금지 표지 — 흰 바탕·빨간 원 (모든 차·보행자 통행 금지)" },
+      { "src": "p1-image278.webp", "caption": "지시 표지 — 파란 바탕·흰 그림 (직진·우회전 공용 차로)" },
+      { "src": "p2-image120.webp", "caption": "노면 표시 — 노란 점선 (마주 오는 흐름 구분, 넘을 수 있음)" },
+      { "src": "p2-image122.webp", "caption": "노면 표시 — 흰 점선 (같은 방향 차로 경계)" }
+    ],
+    "bankIds": [1272, 1319, 1145, 1334, 1336, 1338]
   },
   {
     "topic": "표지",
@@ -384,7 +458,16 @@ export const FAST_CARDS: FastCard[] = [
       "낙석 주의(注意落石) ↔ 제방 도로(堤坝路) ↔ 산악 위험 도로(傍山险路)",
       "미끄러운 노면(易滑) ↔ 연속 커브(连续转弯) ↔ 반대 방향 커브(反向弯路)"
     ],
-    "memo": "노란 삼각형은 그림을 끝까지 — '좁다·솟다·떨어지다·굽다' 네 짝"
+    "memo": "노란 삼각형은 그림을 끝까지 — '좁다·솟다·떨어지다·굽다' 네 짝",
+    "images": [
+      { "src": "p2-image41.webp", "caption": "앞 오른쪽 차로·노면 좁아짐" },
+      { "src": "p2-image42.webp", "caption": "앞 왼쪽 차로·노면 좁아짐" },
+      { "src": "p2-image59.webp", "caption": "울퉁불퉁한 노면·다리 이음부 충격" },
+      { "src": "p2-image62.webp", "caption": "물 넘치는 노면·다리 구간" },
+      { "src": "p2-image34.webp", "caption": "왼쪽 급커브" },
+      { "src": "p2-image88.webp", "caption": "연속 커브" }
+    ],
+    "bankIds": [1275, 1276, 1277, 1278, 1290, 1291, 1272, 1273, 1274, 1285, 1304, 1310]
   },
   {
     "topic": "표지",
@@ -496,7 +579,12 @@ export const FAST_CARDS: FastCard[] = [
       "경고 표지의 목적 = 뒤에서 오는 차가 미리 보고 피하게 함",
       "'신속히 신고·즉시 신고' 보기는 맞음"
     ],
-    "memo": "비상등→하차→표지→대기, 표지는 일반 50~100m·고속 150m 밖"
+    "memo": "비상등→하차→표지→대기, 표지는 일반 50~100m·고속 150m 밖",
+    "images": [
+      { "src": "p1-image156.webp", "caption": "고속도로 고장 차 — 경고 표지를 차 뒤 150m 밖에" },
+      { "src": "p1-image159.webp", "caption": "더 이상 주행할 수 없을 때 — 위험 경고 표지 설치" }
+    ],
+    "bankIds": [463, 475]
   },
   {
     "topic": "사고·응급",
@@ -526,7 +614,13 @@ export const FAST_CARDS: FastCard[] = [
       "ABS가 작동하면 '다다닥' 소리 — 1초에 수십 번 풀었다 잡았다 함",
       "ABS 판단형에 '(제동 거리가) 짧아진다'가 있으면 틀림"
     ],
-    "memo": "펑크·미끄럼엔 급·세게 X, 핸들 꽉 / ABS는 급제동 OK·급핸들 X"
+    "memo": "펑크·미끄럼엔 급·세게 X, 핸들 꽉 / ABS는 급제동 OK·급핸들 X",
+    "images": [
+      { "src": "p2-image321.webp", "caption": "제동 장치 이상 표시등" },
+      { "src": "p2-image325.webp", "caption": "ABS 고장 표시등 (켜지면 ABS 고장)" },
+      { "src": "p2-image324.webp", "caption": "풋브레이크 장치 고장 표시등" }
+    ],
+    "bankIds": [1971, 1974, 1975, 1976, 1977]
   },
   {
     "topic": "답 고르는 요령",
@@ -572,7 +666,13 @@ export const FAST_CARDS: FastCard[] = [
       "보조 도로 차가 주도로 차에 양보",
       "물 넘치는 도로·다리, 관리인 없는 철도 건널목: 한 번 서고, 살피고, 통과"
     ],
-    "memo": "양보하는 쪽: 회전·우회전·장애물 쪽·내리막·진입·산 쪽·보조 도로"
+    "memo": "양보하는 쪽: 회전·우회전·장애물 쪽·내리막·진입·산 쪽·보조 도로",
+    "images": [
+      { "src": "p1-image55.webp", "caption": "회전하는 차는 직진 차에 양보" },
+      { "src": "p1-image61.webp", "caption": "교차로 우선 통행권 판단 — 그림으로 확인" },
+      { "src": "p1-image62.webp", "caption": "교차로 앞 상황 — 누가 먼저 갈까?" }
+    ],
+    "bankIds": [287, 288, 289, 297, 298, 304, 305, 306]
   },
   {
     "topic": "답 고르는 요령",
@@ -586,7 +686,14 @@ export const FAST_CARDS: FastCard[] = [
       "유턴 금지: 유턴 금지·좌회전 금지 표지가 있는 곳, 흐름을 나누는 실선",
       "유턴 금지: 급커브·철도 건널목·교량·급경사·터널 등 위험한 구간"
     ],
-    "memo": "특수 구간·앞차가 왼쪽으로·특수 차량이면 추월 X / 좌회전 금지면 유턴도 X"
+    "memo": "특수 구간·앞차가 왼쪽으로·특수 차량이면 추월 X / 좌회전 금지면 유턴도 X",
+    "images": [
+      { "src": "p1-image76.webp", "caption": "추월은 앞차의 왼쪽으로" },
+      { "src": "p1-image77.webp", "caption": "이런 상황에서는 추월할 수 없다" },
+      { "src": "p1-image80.webp", "caption": "교차로 안은 상황이 복잡해 추월 금지" },
+      { "src": "p1-image84.webp", "caption": "앞차(C)가 감속해도 상황 보고 추월 포기" }
+    ],
+    "bankIds": [326, 336, 337, 338, 341, 345, 346, 347, 348, 349, 1588, 1589]
   },
   {
     "topic": "답 고르는 요령",

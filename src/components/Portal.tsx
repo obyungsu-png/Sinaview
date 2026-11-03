@@ -275,7 +275,8 @@ export function Portal() {
     return (
       <Suspense fallback={<LoadingSpinner />}>
         {pageMap[currentPage]}
-        <AiAssistantWidget />
+        {/* 운전보감은 문제 해설이 이미 포함되어 있어 AI 도우미를 표시하지 않음 */}
+        {currentPage !== 'driverlicense' && <AiAssistantWidget />}
         {bottomNav}
         {authModals}
       </Suspense>

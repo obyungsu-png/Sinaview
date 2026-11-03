@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { STAGE_INFO, type StageInfo } from '../data/driverLicenseStages';
 import { FAST_CARDS } from '../data/driverLicenseFastCards';
+import { bankCheckQuestions, buildSectionGalleries, cardCheckQuestions, sectionCheckQuestions } from '../data/driverLicenseCheckQuestions';
+import { ContentCheck, checkedCount, scrollToId } from './DriverLicenseContentCheck';
 import {
   getFavorites,
   getMockResults,
@@ -12,7 +14,6 @@ import {
   setProgress as saveProgress,
   useDriverLicenseRecords,
 } from '../utils/driverLicenseRecords';
-import { askAi, setAiContext } from '../utils/aiAssistant';
 
 // 과목1 문제 데이터 (원본: 2026年科目一新规2309题, 한국어 번역본)
 // 과목1 공식 문제 유형은 판단형(判断题)과 단일 선택형(单选题) 두 가지뿐
@@ -231,8 +232,9 @@ function QuestionCard({
   headerRight?: ReactNode;
   exam?: boolean;
 }) {
+  const [zoom, setZoom] = useState(false);
   const images = q.img && (
-    <div className={exam ? 'flex flex-wrap gap-2 lg:order-2' : 'flex flex-wrap gap-3 mb-6'}>
+    <div className={exam ? 'flex flex-wrap gap-2 justify-center' : 'flex flex-wrap gap-3 mb-6'}>
       {q.img.map((name) => (
         <img
           key={name}
@@ -240,17 +242,37 @@ function QuestionCard({
           alt="문제 그림"
           loading="lazy"
           style={imageStyle(name, q.img!.length, exam)}
-          className="max-w-full h-auto rounded border border-gray-200 bg-white object-contain"
+          onClick={exam ? () => setZoom(true) : undefined}
+          className={`max-w-full h-auto rounded border border-gray-200 bg-white object-contain ${exam ? 'cursor-zoom-in' : ''}`}
         />
       ))}
     </div>
   );
 
   const options = (
-    <div className={`flex flex-col ${exam ? 'gap-2 sm:gap-2.5 lg:order-1' : 'gap-3'}`}>
+    <div className={`flex flex-col ${exam ? 'gap-2 sm:gap-2.5' : 'gap-3'}`}>
       {optionsOf(q).map((text, i) => {
         const isSelected = selected.includes(i);
         const isAnswer = i === q.a;
+        if (exam) {
+          let tone = 'text-gray-700';
+          let icon: ReactNode = null;
+          if (reveal && isAnswer) {
+            tone = 'text-green-700 bg-green-50';
+            icon = <i className="fa-solid fa-circle-check text-green-500"></i>;
+          } else if (reveal && isSelected) {
+            tone = 'text-[#c0392b] bg-red-50';
+            icon = <i className="fa-solid fa-circle-xmark text-[#e74c3c]"></i>;
+          }
+          // 실전 시험처럼 보기 글자는 눌러도 선택되지 않고, A·B·C·D 버튼으로만 답을 고름
+          return (
+            <div key={i} className={`w-full flex items-start gap-1 px-2 py-1.5 rounded text-[15px] sm:text-base leading-relaxed ${tone}`}>
+              <span className="shrink-0">{LETTERS[i]}、</span>
+              <span className="flex-1">{text}</span>
+              {icon && <span className="shrink-0 mt-0.5">{icon}</span>}
+            </div>
+          );
+        }
         let tone = 'border-gray-200 hover:bg-gray-50';
         let mark: ReactNode = <span className="w-6 h-6 rounded-full border-2 border-gray-300"></span>;
         if (reveal && isAnswer) {
@@ -269,9 +291,9 @@ function QuestionCard({
             type="button"
             disabled={!onSelect}
             onClick={() => onSelect?.(i)}
-            className={`w-full flex items-center gap-3 text-left px-4 border-2 rounded-lg bg-white transition-colors ${
-              exam ? 'py-2 sm:py-3 text-[15px] sm:text-base' : 'py-3 sm:py-4 text-base sm:text-lg'
-            } ${tone} ${onSelect ? 'cursor-pointer' : 'cursor-default'}`}
+            className={`w-full flex items-center gap-3 text-left px-4 border-2 rounded-lg bg-white transition-colors py-3 sm:py-4 text-base sm:text-lg ${tone} ${
+              onSelect ? 'cursor-pointer' : 'cursor-default'
+            }`}
           >
             <span className="shrink-0 w-7 flex justify-center">{mark}</span>
             <span>
@@ -298,9 +320,20 @@ function QuestionCard({
         {headerRight}
       </div>
       {exam ? (
-        <div className={q.img ? 'flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start' : ''}>
-          {images}
+        <div className="flex flex-col gap-4">
           {options}
+          {images}
+          {q.img && (
+            <button type="button" onClick={() => setZoom(true)} className="self-center text-sm text-[#2a8bc9] hover:underline">
+              그림 크게 보기
+            </button>
+          )}
+          <div className="text-sm text-gray-600 border-t border-dashed border-gray-200 pt-2">
+            선택한 답:{' '}
+            <b className={selected.length > 0 ? 'text-[#e74c3c]' : 'text-gray-400'}>
+              {selected.length > 0 ? selected.map((s) => LETTERS[s]).join(', ') : '아직 고르지 않음'}
+            </b>
+          </div>
         </div>
       ) : (
         <>
@@ -308,26 +341,25 @@ function QuestionCard({
           {options}
         </>
       )}
+      {zoom && (
+        <div className="fixed inset-0 z-[60] bg-black/70 flex flex-col items-center justify-center p-4 gap-3" onClick={() => setZoom(false)}>
+          <div className="flex flex-col items-center gap-3 overflow-y-auto max-h-full py-2" onClick={(e) => e.stopPropagation()}>
+            {q.img!.map((name) => (
+              <img key={name} src={imageUrl(name)} alt="문제 그림 확대" className="max-w-full max-h-[80vh] w-auto rounded bg-white object-contain" />
+            ))}
+          </div>
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={() => setZoom(false)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 text-gray-700 text-xl hover:bg-white"
+          >
+            <i className="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      )}
     </div>
   );
-}
-
-// AI 도우미에게 보낼 해설 요청 (공식 정답을 전제로 정답·오답 이유를 짧게)
-function explainPrompt(q: DLQuestion, selected?: number) {
-  const options = optionsOf(q);
-  return [
-    '[중국 운전면허 과목1(필기) 문제 해설 요청]',
-    `문제: ${q.q}`,
-    '보기:',
-    ...options.map((text, i) => `${LETTERS[i]}. ${text}`),
-    `공식 정답: ${answerText(q)}`,
-    selected !== undefined && selected !== q.a ? `내가 고른 답: ${LETTERS[selected]}. ${options[selected]}` : '',
-    q.img ? '(그림이 있는 문제입니다. 그림은 볼 수 없으니 문제 글과 보기로 설명해 주세요.)' : '',
-    '',
-    '공식 정답이 맞다는 전제로, 정답인 이유와 다른 보기(특히 내가 고른 답)가 틀린 이유를 중국 도로교통안전법 기준으로 한국어 3~5줄 이내로 간단히 설명해 주세요. 관련 숫자(벌점·속도·거리·기간 등)가 있으면 꼭 넣어 주세요.',
-  ]
-    .filter((line, i, all) => line !== '' || (i > 0 && all[i - 1] !== ''))
-    .join('\n');
 }
 
 function ExplanationBox({ q, selected }: { q: DLQuestion; selected?: number }) {
@@ -346,18 +378,6 @@ function ExplanationBox({ q, selected }: { q: DLQuestion; selected?: number }) {
         </p>
       )}
       {fastTip(q) && <p className="mt-1.5 text-[15px] text-[#b9560e] leading-relaxed">⚡ {fastTip(q)}</p>}
-      <button
-        type="button"
-        onClick={() =>
-          askAi({
-            label: correct === false ? `${LETTERS[selected!]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답 이유를 자세히 설명해 줘',
-            prompt: explainPrompt(q, selected),
-          })
-        }
-        className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#bfe2fa] bg-white text-sm text-[#2a8bc9] hover:bg-[#eef7fe]"
-      >
-        <span aria-hidden>🤖</span> AI에게 더 자세히 묻기
-      </button>
     </div>
   );
 }
@@ -398,17 +418,6 @@ export function PracticeQuiz({
   const answered = progress.answers[q.id];
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  // AI 도우미 버튼을 누르면 지금 보는 문제를 바로 설명받을 수 있게
-  useEffect(() => {
-    const selected = answered?.[0];
-    setAiContext({
-      title: `${title} ${index + 1}번 문제`,
-      label: selected !== undefined && selected !== q.a ? `${LETTERS[selected]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답·오답 이유를 설명해 줘',
-      prompt: explainPrompt(q, selected),
-    });
-  }, [q, index, title, answered]);
-  useEffect(() => () => setAiContext(null), []);
 
   // 다른 기기에서 푼 기록을 받아오면 진도·즐겨찾기를 다시 읽음
   useEffect(() => {
@@ -597,26 +606,55 @@ export function PracticeQuiz({
       </div>
 
       {showSheet && (
-        <div className="mb-10 p-5 sm:p-8 bg-gray-50 rounded-lg">
-          <div className="text-lg font-medium text-gray-800 mb-4">답안지 ({questions.length}문제)</div>
-          <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(40px,1fr))] max-h-[420px] overflow-y-auto pr-1">
-            {questions.map((item, i) => {
-              const selected = progress.answers[item.id];
-              let tone = 'bg-white border-gray-300 text-gray-600';
-              if (i === index) tone = 'bg-[#37a7f0] border-[#37a7f0] text-white font-bold';
-              else if (selected) tone = isCorrect(item, selected) ? 'bg-green-50 border-green-500 text-green-700' : 'bg-red-50 border-red-400 text-red-600';
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => goTo(i)}
-                  className={`aspect-square rounded border text-xs sm:text-[13px] flex items-center justify-center hover:border-[#37a7f0] ${tone}`}
-                >
-                  {i + 1}
-                </button>
-              );
-            })}
+        <>
+          <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setShowSheet(false)} />
+          <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl shadow-2xl sm:max-w-2xl sm:mx-auto dl-sheet-up">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+              <div className="text-base font-medium text-gray-800">답안지 ({questions.length}문제)</div>
+              <button
+                onClick={() => setShowSheet(false)}
+                aria-label="답안지 닫기"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 text-lg hover:bg-gray-100"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <div className="max-h-[45vh] overflow-y-auto px-5 py-4">
+              <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(40px,1fr))]">
+                {questions.map((item, i) => {
+                  const selected = progress.answers[item.id];
+                  let tone = 'bg-white border-gray-300 text-gray-600';
+                  if (i === index) tone = 'bg-[#37a7f0] border-[#37a7f0] text-white font-bold';
+                  else if (selected)
+                    tone = isCorrect(item, selected) ? 'bg-green-50 border-green-500 text-green-700' : 'bg-red-50 border-red-400 text-red-600';
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        goTo(i);
+                        setShowSheet(false);
+                      }}
+                      className={`aspect-square rounded border text-xs sm:text-[13px] flex items-center justify-center hover:border-[#37a7f0] ${tone}`}
+                    >
+                      {i + 1}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500 pb-1">
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-sm border border-[#37a7f0] bg-[#37a7f0] inline-block"></span>현재 문제
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-sm border border-green-500 bg-green-50 inline-block"></span>정답
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-sm border border-red-400 bg-red-50 inline-block"></span>오답
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <div>
@@ -768,46 +806,7 @@ type StageView =
 
 const STAGE_BREADCRUMB = '홈 > 모의고사 > 소형차 필기(과목1) > 주제별 연습';
 
-// 영역 설명의 기출 예시: 문제를 보고 '정답 보기'를 누르면 정답과 해설
-function ExampleQuestion({ q }: { q: DLQuestion }) {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="p-3 sm:p-4 rounded-lg border border-gray-200 bg-[#fafbfc] text-[14px] sm:text-[15px]">
-      <p className="text-gray-800 leading-relaxed">
-        <span className="mr-1.5 px-1.5 py-0.5 rounded bg-[#eef7fe] text-[#2a8bc9] text-xs align-middle">{q.t === 'j' ? '판단형' : '선택형'}</span>
-        {q.q}
-      </p>
-      {q.img && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {q.img.map((name) => (
-            <img key={name} src={imageUrl(name)} alt="문제 그림" loading="lazy" className="max-h-36 max-w-full w-auto rounded border border-gray-200 bg-white" />
-          ))}
-        </div>
-      )}
-      {q.t === 's' && (
-        <ul className="mt-2 grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-gray-600">
-          {optionsOf(q).map((text, i) => (
-            <li key={i}>
-              {LETTERS[i]}. {text}
-            </li>
-          ))}
-        </ul>
-      )}
-      {show ? (
-        <div className="mt-2 leading-relaxed">
-          <b className="text-green-700">정답 {answerText(q)}</b>
-          {q.e && <span className="text-gray-600"> — {q.e}</span>}
-        </div>
-      ) : (
-        <button onClick={() => setShow(true)} className="mt-2 text-sm text-[#2a8bc9] hover:underline">
-          정답 보기 ▼
-        </button>
-      )}
-    </div>
-  );
-}
-
-// 영역 설명: 영역 소개 · 소주제별 핵심 내용(기출 예시) · 함정 · 암기 요령을 보고 풀기 시작
+// 영역 설명: 영역 소개 · 소주제별 핵심 내용(내용 체크) · 함정 · 암기 요령을 보고 풀기 시작
 function StageIntro({
   group,
   info,
@@ -829,6 +828,14 @@ function StageIntro({
   const images = group.questions.filter((q) => q.img).length;
   const [closed, setClosed] = useState<Set<number>>(() => new Set());
   const byId = useMemo(() => new Map(group.questions.map((q) => [q.id, q])), [group.questions]);
+  // 그림은 영역 안에서 점수가 가장 높은 소주제에만 배정 (중복 표시 방지)
+  const galleries = useMemo(
+    () => buildSectionGalleries(info?.sections ?? [], group.questions),
+    [info, group.questions],
+  );
+  const stageCheckPrefix = `stage:${group.key}:`;
+  const checked = info?.sections ? checkedCount(stageCheckPrefix) : 0;
+  const [, bumpChecks] = useState(0);
 
   const startButtons = (className: string) => (
     <div className={`flex flex-wrap gap-2 sm:gap-3 ${className}`}>
@@ -885,7 +892,7 @@ function StageIntro({
             <section className="mb-6">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <h2 className="text-lg font-medium text-gray-800">
-                  <i className="fa-solid fa-list-check mr-2 text-[#37a7f0]"></i>핵심 내용 <span className="text-sm font-normal text-gray-500">(기출 기반 · {info.sections.length}개 주제)</span>
+                  <i className="fa-solid fa-list-check mr-2 text-[#37a7f0]"></i>핵심 내용 <span className="text-sm font-normal text-gray-500">(기출 기반 · {info.sections.length}개 주제 · 체크 {checked}/{info.sections.length})</span>
                 </h2>
                 <button
                   onClick={() => setClosed(closed.size ? new Set() : new Set(info.sections!.map((_, i) => i)))}
@@ -899,7 +906,7 @@ function StageIntro({
                   const open = !closed.has(i);
                   const examples = (section.examples ?? []).map((id) => byId.get(id)).filter((q): q is DLQuestion => !!q);
                   return (
-                    <div key={section.title} className="border border-gray-200 rounded-lg bg-white overflow-hidden">
+                    <div key={section.title} id={`stage-sec-${i}`} className="border border-gray-200 rounded-lg bg-white overflow-hidden">
                       <button
                         onClick={() => {
                           const next = new Set(closed);
@@ -930,16 +937,36 @@ function StageIntro({
                               {section.memo}
                             </div>
                           )}
-                          {examples.length > 0 && (
-                            <div className="mt-4">
-                              <div className="text-sm font-medium text-gray-600 mb-2">기출 예시</div>
-                              <div className="flex flex-col gap-2">
-                                {examples.map((q) => (
-                                  <ExampleQuestion key={q.id} q={q} />
-                                ))}
+                          {(() => {
+                            // 해당 소주제에 배정된 기출 그림 (다른 소주제와 중복 없음)
+                            const pics = galleries.get(section.title) ?? [];
+                            return pics.length > 0 ? (
+                              <div className="mt-3">
+                                <div className="text-xs text-gray-500 mb-1.5">그림으로 보기 (기출)</div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                  {pics.map((pic) => (
+                                    <figure key={pic.img} className="text-center">
+                                      <img
+                                        src={imageUrl(pic.img)}
+                                        alt={pic.caption}
+                                        loading="lazy"
+                                        className="w-full h-28 sm:h-32 object-contain rounded border border-gray-200 bg-white"
+                                      />
+                                      <figcaption className="mt-1 text-[11px] sm:text-xs leading-snug text-gray-600">{pic.caption}</figcaption>
+                                    </figure>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            ) : null;
+                          })()}
+                          <ContentCheck
+                            itemKey={`${stageCheckPrefix}${section.title}`}
+                            questions={sectionCheckQuestions(section, examples, group.questions, `${stageCheckPrefix}${section.title}`)}
+                            onDone={() => {
+                              scrollToId(`stage-sec-${i + 1}`);
+                              bumpChecks((n) => n + 1);
+                            }}
+                          />
                         </div>
                       )}
                     </div>
@@ -1209,6 +1236,12 @@ function fastExamQuestions(data: DLData, fast: DLQuestion[]) {
 
 function FastCards({ onBack }: { onBack: () => void }) {
   useDriverLicenseRecords();
+  const { data } = useDriverLicenseData();
+  // 카드에 붙은 기출 문제(그림 포함)를 체크에 함께 쓰기 위한 조회 테이블
+  const bankById = useMemo(
+    () => (data ? new Map(data.questions.map((q) => [q.id, q])) : new Map<number, DLQuestion>()),
+    [data],
+  );
   const done = new Set(getProgress<{ done: number[] }>(FAST_CARDS_PROGRESS)?.done ?? []);
   const topics = ['전체', ...Array.from(new Set(FAST_CARDS.map((card) => card.topic)))];
   const [topic, setTopic] = useState('전체');
@@ -1227,7 +1260,7 @@ function FastCards({ onBack }: { onBack: () => void }) {
       <BackButton onClick={onBack} label="속성 과정으로 돌아가기" />
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">① 암기 구결·요령</h1>
       <p className="text-sm text-gray-500 mb-5">
-        자주 나오는 숫자·규칙을 먼저 외우세요. 외운 카드는 "외웠어요"를 눌러 표시해 두면 진도가 저장돼요. ({done.size}/{FAST_CARDS.length})
+        자주 나오는 숫자·규칙을 먼저 외우세요. 외운 카드는 "외웠어요"를 눌러 표시해 두면 진도가 저장돼요. ({done.size}/{FAST_CARDS.length}장 외움 · 체크 {checkedCount('card:')}/{FAST_CARDS.length}장)
       </p>
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
         {topics.map((t) => (
@@ -1245,7 +1278,11 @@ function FastCards({ onBack }: { onBack: () => void }) {
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
           {cards.map(({ card, i }) => (
-            <div key={i} className={`p-4 sm:p-5 rounded-lg border ${done.has(i) ? 'border-green-300 bg-green-50/40' : 'border-gray-200 bg-white'}`}>
+            <div
+              key={i}
+              id={`fast-card-${i}`}
+              className={`p-4 sm:p-5 rounded-lg border ${done.has(i) ? 'border-green-300 bg-green-50/40' : 'border-gray-200 bg-white'}`}
+            >
               <div className="flex items-start gap-2 mb-2">
                 <span className="shrink-0 px-2 py-0.5 rounded bg-[#eef7fe] text-[#2a8bc9] text-xs">{card.topic}</span>
                 <h3 className="flex-1 font-medium text-gray-800">{card.title}</h3>
@@ -1275,6 +1312,20 @@ function FastCards({ onBack }: { onBack: () => void }) {
               >
                 {done.has(i) ? '✓ 외웠어요' : '외웠어요'}
               </button>
+              <ContentCheck
+                itemKey={`card:${i}`}
+                questions={[
+                  ...bankCheckQuestions(
+                    (card.bankIds ?? []).map((id) => bankById.get(id)).filter((q): q is DLQuestion => !!q),
+                    `card:${i}`,
+                  ),
+                  ...cardCheckQuestions(card, i),
+                ]}
+                onDone={() => {
+                  scrollToId(`fast-card-${i + 1}`);
+                  rerender((n) => n + 1);
+                }}
+              />
             </div>
           ))}
         </div>
@@ -1359,6 +1410,7 @@ export function FastCoursePage({ onBack }: { onBack: () => void }) {
   }
 
   const cardsDone = getProgress<{ done: number[] }>(FAST_CARDS_PROGRESS)?.done.length ?? 0;
+  const cardsChecked = checkedCount('card:');
   const saved = getProgress<Progress>(FAST_PROGRESS);
   const solved = saved ? Object.keys(saved.answers).length : 0;
   const wrong = readWrong();
@@ -1372,7 +1424,7 @@ export function FastCoursePage({ onBack }: { onBack: () => void }) {
       when: '먼저',
       desc: '벌금·벌점·속도·거리처럼 꼭 나오는 숫자와 규칙을 카드로 외워요.',
       progress: pct(cardsDone, FAST_CARDS.length),
-      status: `${cardsDone}/${FAST_CARDS.length}장 외움`,
+      status: `${cardsDone}/${FAST_CARDS.length}장 외움 · 체크 ${cardsChecked}/${FAST_CARDS.length}장`,
       actions: [{ label: '카드 보기', primary: true, onClick: () => setView({ mode: 'cards' }) }],
     },
     {
@@ -1463,6 +1515,9 @@ const EXAM_TOTAL = 100;
 const EXAM_JUDGE = 40; // 판단형 40 + 단일 선택형 60
 const EXAM_SECONDS = 45 * 60;
 const PASS_SCORE = 90;
+// 실전 시험 화면의 회색 버튼 (일시정지·이전·다음·제출 모두 같은 색)
+const EXAM_BUTTON =
+  'min-w-[90px] px-4 py-[5px] border border-[#bfbfbf] bg-[#f0f0f0] text-[13px] text-[#333] hover:bg-[#e6e6e6] disabled:text-[#aaa] disabled:bg-[#f7f7f7] disabled:cursor-not-allowed';
 // 문제 형태별 구성: 글 45 · 그림 상황 35 · 교통 표지 10 · 신호등·교통경찰 수신호 10
 const EXAM_MIX: Record<DLKind, number> = { txt: 45, pic: 35, sign: 10, sig: 10 };
 const KINDS: DLKind[] = ['txt', 'pic', 'sign', 'sig'];
@@ -1700,18 +1755,20 @@ function ExamRunner({
 }) {
   const [index, setIndex] = useState(0);
   const [now, setNow] = useState(Date.now());
-  const [showSheet, setShowSheet] = useState(false);
+  const [pausedAt, setPausedAt] = useState<number | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [zoom, setZoom] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const latest = useRef(session);
   latest.current = session;
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const remaining = EXAM_SECONDS - Math.floor((now - session.startedAt) / 1000);
+  // 일시정지 중에는 멈춘 시각 기준으로 남은 시간을 계산해 타이머가 얼어붙게 함
+  const remaining = EXAM_SECONDS - Math.floor(((pausedAt ?? now) - session.startedAt) / 1000);
   const answeredCount = Object.keys(session.answers).length;
   const q = session.questions[index];
   const total = session.questions.length;
-  const canFullscreen = typeof document !== 'undefined' && !!document.fullscreenEnabled;
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -1740,17 +1797,28 @@ function ExamRunner({
 
   useEffect(() => {
     panelRef.current?.scrollTo({ top: 0 });
+    setZoom(false);
   }, [index]);
 
+  // 실전 시험처럼 보기를 고른 뒤에는 그 문제에 머무름 (다음 문제는 '다음'으로 이동)
   const select = (i: number) => {
+    if (pausedAt !== null) return;
     onChange({ ...latest.current, answers: { ...latest.current.answers, [index]: i } });
-    if (index < total - 1) window.setTimeout(() => setIndex((cur) => (cur === index ? index + 1 : cur)), 250);
+  };
+
+  // 일시정지: 시간을 멈추고, 다시 시작할 때 멈춰 있던 만큼 시작 시각을 밀어 시간을 보정
+  const togglePause = () => {
+    if (pausedAt === null) setPausedAt(Date.now());
+    else {
+      onChange({ ...latest.current, startedAt: latest.current.startedAt + (Date.now() - pausedAt) });
+      setPausedAt(null);
+    }
   };
 
   // 키보드: ← → 이전·다음 문제, 1~4 또는 A~D 로 답 고르기
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.altKey || e.ctrlKey || e.metaKey || e.repeat) return;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.repeat || pausedAt !== null) return;
       if (e.key === 'ArrowRight') setIndex((i) => Math.min(total - 1, i + 1));
       else if (e.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1));
       else {
@@ -1762,159 +1830,247 @@ function ExamRunner({
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const submit = () => {
-    const left = total - answeredCount;
-    const message = left > 0 ? `아직 풀지 않은 문제가 ${left}개 있습니다. 그래도 제출할까요?` : '답안을 제출할까요?';
-    if (window.confirm(message)) onSubmit(session);
-  };
-
+  // 실전처럼 제출 전에 확인 창을 띄움
+  const submit = () => setConfirmOpen(true);
+  const unanswered = total - answeredCount;
+  const seat = (session.startedAt % 90) + 10;
   const toggleFullscreen = () => {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     else rootRef.current?.requestFullscreen().catch(() => {});
   };
 
-  const judgeCount = session.questions.filter((item) => item.t === 'j').length;
-  const sheetCell = (i: number) =>
-    `aspect-square rounded border text-[11px] sm:text-xs flex items-center justify-center hover:border-[#37a7f0] ${
-      i === index
-        ? 'bg-[#37a7f0] border-[#37a7f0] text-white font-bold'
-        : session.answers[i] !== undefined
-          ? 'bg-blue-50 border-[#37a7f0] text-[#2a8bc9]'
-          : 'bg-white border-gray-300 text-gray-600'
-    }`;
-  const sheetGroups = [
-    { title: `판단형 1~${judgeCount}번`, from: 0, to: judgeCount },
-    { title: `단일 선택형 ${judgeCount + 1}~${total}번`, from: judgeCount, to: total },
-  ].filter((group) => group.to > group.from);
-
-  const sheet = (
-    <>
-      <div className="flex items-center justify-between mb-3">
-        <span className="font-medium text-gray-800">
-          답안지 <span className="text-sm font-normal text-gray-500">({answeredCount}/{total})</span>
-        </span>
-        <span className="text-xs text-gray-500">
-          <span className="inline-block w-2.5 h-2.5 mr-1 rounded-sm bg-blue-50 border border-[#37a7f0] align-middle"></span>답함
-          <span className="inline-block w-2.5 h-2.5 ml-2.5 mr-1 rounded-sm bg-white border border-gray-300 align-middle"></span>안 풂
-        </span>
-      </div>
-      {sheetGroups.map((group) => (
-        <div key={group.title} className="mb-3 last:mb-0">
-          <div className="text-xs text-gray-500 mb-1.5">{group.title}</div>
-          <div className="grid grid-cols-10 gap-1 sm:gap-1.5">
-            {session.questions.slice(group.from, group.to).map((item, offset) => {
-              const i = group.from + offset;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setIndex(i);
-                    setShowSheet(false);
-                  }}
-                  className={sheetCell(i)}
-                >
-                  {i + 1}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-      <button onClick={submit} className="w-full mt-4 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9]">
-        답안 제출 ({answeredCount}/{total})
-      </button>
-    </>
-  );
-
-  // 시험 화면: 사이트 메뉴를 덮는 전체 화면 창 (위: 시간·제출, 왼쪽: 문제, 오른쪽: 답안지)
+  // 실전 시험 화면과 같은 틀: 왼쪽 수험자 정보, 가운데 문제, 오른쪽 답안지 (화면이 넓어지면 세 열이 같이 넓어짐)
   return (
-    <div ref={rootRef} className="fixed inset-0 z-[1000] bg-white flex flex-col" role="dialog" aria-modal="true" aria-label="모의고사 시험 화면">
-      <div className="flex-none flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
-        <span className="font-medium text-gray-800">{session.title ?? (session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`)}</span>
-        <span className="hidden sm:inline text-sm text-gray-500">
-          {answeredCount}/{total} 답함
-        </span>
-        <span
-          className={`ml-auto font-mono text-lg px-3 py-1 rounded ${remaining <= 300 ? 'bg-red-50 text-[#e74c3c]' : 'bg-white text-gray-800'}`}
-        >
-          <i className="fa-regular fa-clock mr-1.5"></i>
-          {formatTime(remaining)}
-        </span>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={() => setShowSheet((v) => !v)}
-            className="lg:hidden flex-1 sm:flex-none whitespace-nowrap px-3 py-1.5 rounded border border-[#37a7f0] text-sm text-[#2a8bc9] bg-white"
-          >
-            답안지 {answeredCount}/{total}
-          </button>
-          {canFullscreen && (
+    <div ref={rootRef} className="fixed inset-0 z-[1000] bg-white overflow-auto" role="dialog" aria-modal="true" aria-label="모의고사 시험 화면">
+      <div className="min-w-[1024px] min-h-full flex flex-col">
+        {/* 상단 바 (이전 스타일): 시험 이름·남은 시간·전체 화면·제출·그만두기 */}
+        <div className="flex-none flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
+          <span className="font-medium text-gray-800">{session.title ?? (session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`)}</span>
+          <span className="text-sm text-gray-500">
+            {answeredCount}/{total} 답함
+          </span>
+          <span className={`font-mono text-lg px-3 py-1 rounded ${remaining <= 300 ? 'bg-red-50 text-[#e74c3c]' : 'bg-white text-gray-800'}`}>
+            <i className="fa-regular fa-clock mr-1.5"></i>
+            {formatTime(remaining)}
+          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            {typeof document !== 'undefined' && !!document.fullscreenEnabled && (
+              <button
+                onClick={toggleFullscreen}
+                className="px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-600 bg-white hover:border-[#37a7f0] hover:text-[#2a8bc9]"
+              >
+                <i className={`fa-solid ${fullscreen ? 'fa-compress' : 'fa-expand'} mr-1`}></i>
+                {fullscreen ? '전체 화면 끝' : '전체 화면'}
+              </button>
+            )}
             <button
-              onClick={toggleFullscreen}
-              className="hidden sm:inline-block px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-600 bg-white hover:border-[#37a7f0] hover:text-[#2a8bc9]"
+              onClick={onExit}
+              className="px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-600 bg-white hover:border-[#e74c3c] hover:text-[#e74c3c]"
             >
-              <i className={`fa-solid ${fullscreen ? 'fa-compress' : 'fa-expand'} mr-1`}></i>
-              {fullscreen ? '전체 화면 끝' : '전체 화면'}
+              그만두기
             </button>
-          )}
-          <button onClick={submit} className="flex-1 sm:flex-none whitespace-nowrap px-3 sm:px-4 py-1.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] text-sm">
-            답안 제출
-          </button>
+          </div>
+        </div>
+
+        {/* 실전처럼 전체를 감싸는 외곽선 안에 왼쪽·가운데·오른쪽 네모칸 배치 */}
+        <div className="flex-1 min-h-0 p-2.5">
+          <div className="h-full border border-[#c9c9c9] p-2 grid grid-cols-[minmax(150px,1.2fr)_minmax(0,6fr)_minmax(290px,2.2fr)] grid-rows-[minmax(0,auto)_minmax(0,1fr)] gap-2.5">
+            {/* 왼쪽: 수험자 정보 (구역별로 네모칸) */}
+            <aside className="flex flex-col gap-2 min-h-0 text-[13px] text-gray-700">
+              <div className="border border-[#c9c9c9] p-2 text-center">
+                <div className="font-bold text-[14px] text-gray-800">모의 시험장</div>
+                <div className="mt-0.5">제 {seat} 고사대</div>
+              </div>
+              <div className="border border-[#c9c9c9] p-2 flex-1">
+                <div className="font-bold text-gray-800 mb-1.5">수험자 정보</div>
+                <div className="w-[62px] h-[78px] mx-auto bg-[#e8e8e8] border border-[#d0d0d0] flex items-center justify-center text-gray-400 text-3xl mb-2">
+                  <i className="fa-solid fa-user"></i>
+                </div>
+                <div className="space-y-0.5 leading-relaxed">
+                  <div>수험자 성명: 게스트</div>
+                  <div>성별: 미정</div>
+                  <div>시험 과목: 과목1</div>
+                  <div>시험 차종: C1</div>
+                  <div>신청 유형: 초회 신청</div>
+                </div>
+              </div>
+              <div className="border border-[#c9c9c9] p-2">
+                <div className="font-bold text-gray-800">남은 시간</div>
+                <div className="text-[#e60012] text-xl font-bold mt-0.5">{formatTime(remaining)}</div>
+              </div>
+            </aside>
+
+            {/* 가운데: 문제 (회색 네모칸) */}
+            <div className="border border-[#c9c9c9] flex flex-col min-h-0">
+              <div className="flex-none px-4 py-2 border-b border-[#d5d5d5] font-bold text-[14px] text-gray-800">시험 문제</div>
+              <div ref={panelRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+                <h2 className="text-[19px] font-bold text-gray-900 leading-relaxed">
+                  {index + 1}. {q.q}
+                </h2>
+                {/* 실전처럼 보기 글자는 읽기 전용 */}
+                <div className="mt-4 space-y-3.5 text-[16px] text-gray-800">
+                  {optionsOf(q).map((text, i) => (
+                    <div key={i}>
+                      {LETTERS[i]}、{text}
+                    </div>
+                  ))}
+                </div>
+                {/* 실전처럼 '선택한 답'과 같은 줄에 답 고르기 버튼 (오른쪽에서 약간 왼쪽) */}
+                <div className="mt-5 flex items-center justify-between gap-4">
+                  <div className="text-[15px] text-gray-800">
+                    선택한 답: <b className="text-[#e60012]">{session.answers[index] !== undefined ? LETTERS[session.answers[index]] : ''}</b>
+                  </div>
+                  <div className="flex items-center gap-2 mr-8">
+                    <span className="text-[13px] text-gray-600 mr-1">답 고르기:</span>
+                    {optionsOf(q).map((text, i) => (
+                      <button
+                        key={i}
+                        onClick={() => select(i)}
+                        title={`${LETTERS[i]}. ${text}`}
+                        className={`w-[38px] h-[38px] border text-[15px] ${
+                          session.answers[index] === i
+                            ? 'bg-[#19b39b] border-[#19b39b] text-white'
+                            : 'bg-[#f0f0f0] border-[#bfbfbf] text-gray-700 hover:border-[#19b39b]'
+                        }`}
+                      >
+                        {LETTERS[i]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* 안내 정보 네모칸(높이는 버튼과 동일), 오른쪽 끝에 일시정지·이전·다음·제출 */}
+                <div className="mt-3 flex items-end justify-between gap-4">
+                  <div className="border border-[#c9c9c9] bg-[#fcfcfc] h-[30px] px-2 flex items-center text-[12px] text-gray-600">
+                    {q.t === 'j' ? '안내 정보: 맞으면 A, 틀리면 B를 고르세요!' : '안내 정보: 올바른 답을 고르세요!'}
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <button onClick={togglePause} className={EXAM_BUTTON}>
+                      일시정지
+                    </button>
+                    <button onClick={() => setIndex(index - 1)} disabled={index === 0} className={EXAM_BUTTON}>
+                      이전
+                    </button>
+                    <button onClick={() => setIndex(index + 1)} disabled={index === total - 1} className={EXAM_BUTTON}>
+                      다음
+                    </button>
+                    <button onClick={submit} className={EXAM_BUTTON}>
+                      제출
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 오른쪽: 답안지 (번호 표까지만 네모칸, 아래로 길게 내려오지 않음) */}
+            <aside className="border border-[#c9c9c9] self-start">
+              <div className="px-2 py-2 border-b border-[#d5d5d5] font-bold text-[15px] text-gray-800 text-center">답안지 정보</div>
+              <div className="p-3 grid grid-cols-10 gap-[5px]">
+                {session.questions.map((item, i) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setIndex(i)}
+                    className={`aspect-square text-[13px] leading-none border ${
+                      i === index
+                        ? 'bg-[#19b39b] border-[#19b39b] text-white font-bold'
+                        : session.answers[i] !== undefined
+                          ? 'bg-[#bcd8f5] border-[#8fb8e0] text-gray-700'
+                          : 'bg-white border-[#d0d0d0] text-gray-600'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            {/* 시험 그림 정보: 오른쪽 끝(답안지 아래)까지 이어지는 테두리, 그림이 없어도 빈 칸은 항상 보임 */}
+            <div className="col-span-3 min-h-0">
+              <div className="border border-[#c9c9c9] p-2 h-full">
+                <div className="text-[13px] text-gray-500 mb-1.5">시험 그림 정보</div>
+                {q.img && (
+                  <div className="flex flex-wrap justify-center gap-2 pb-1">
+                    {q.img.map((name) => (
+                      <img
+                        key={name}
+                        src={imageUrl(name)}
+                        alt="문제 그림"
+                        loading="lazy"
+                        style={imageStyle(name, q.img!.length, true)}
+                        onClick={() => setZoom(true)}
+                        className="max-w-full h-auto border border-[#d5d5d5] bg-white object-contain cursor-zoom-in"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 하단 바 */}
+        <div className="flex-none border-t border-[#e0e0e0] py-1.5 text-center text-[11px] text-gray-400">
+          운전면허 모의고사 시뮬레이션 · 과목1 C1 · 실전 시험 화면 재현
+        </div>
+      </div>
+
+      {/* 제출 확인 창 (실전 '考试确认窗口' 재현) */}
+      {confirmOpen && (
+        <div className="fixed inset-0 z-30 bg-black/35 flex items-center justify-center p-4">
+          <div className="w-[400px] shadow-xl">
+            <div className="bg-[#0f5f6e] py-2 text-center text-[#ff3b30] font-bold text-[15px] tracking-widest">시험 확인 창</div>
+            <div className="bg-[#a5e6b2] px-5 py-4 text-[13px] leading-relaxed text-gray-900">
+              <div className="font-bold mb-1.5">조작 안내:</div>
+              <div>1: [제출 확인]을 누르면 성적이 제출되고 시험이 끝납니다!</div>
+              <div>2: [계속 시험]을 누르면 창이 닫히고 계속 시험을 봅니다!</div>
+              <div>
+                3: 아직 답하지 않은 문제가 <b className="text-[#e60012] text-base">{unanswered}</b>개 있습니다.
+              </div>
+              <div className="pl-4">자세한 것은 오른쪽 답안지 정보를 확인하세요.</div>
+            </div>
+            <div className="bg-[#b4b4e6] px-5 py-3 flex justify-center gap-8">
+              <button onClick={() => onSubmit(session)} className="px-5 py-1.5 bg-white border border-[#8a8a8a] text-[13px] text-gray-800 hover:bg-gray-100">
+                제출 확인
+              </button>
+              <button onClick={() => setConfirmOpen(false)} className="px-5 py-1.5 bg-white border border-[#8a8a8a] text-[13px] text-gray-800 hover:bg-gray-100">
+                계속 시험
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 그림 확대 */}
+      {zoom && q.img && (
+        <div className="fixed inset-0 z-40 bg-black/70 flex flex-col items-center justify-center p-4 gap-3" onClick={() => setZoom(false)}>
+          <div className="flex flex-col items-center gap-3 overflow-y-auto max-h-full py-2" onClick={(e) => e.stopPropagation()}>
+            {q.img.map((name) => (
+              <img key={name} src={imageUrl(name)} alt="문제 그림 확대" className="max-w-full max-h-[80vh] w-auto bg-white object-contain" />
+            ))}
+          </div>
           <button
-            onClick={onExit}
-            className="flex-1 sm:flex-none whitespace-nowrap px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-600 bg-white hover:border-[#e74c3c] hover:text-[#e74c3c]"
+            type="button"
+            aria-label="닫기"
+            onClick={() => setZoom(false)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 text-gray-700 text-xl hover:bg-white"
           >
-            그만두기
+            <i className="fa-solid fa-xmark"></i>
           </button>
         </div>
-      </div>
+      )}
 
-      <div className="flex-1 min-h-0 flex relative">
-        <div className="flex-1 min-w-0 flex flex-col">
-          <div ref={panelRef} className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-5 sm:py-6">
-            <div className="max-w-[1100px] mx-auto">
-              <QuestionCard
-                q={q}
-                label={`${index + 1}.`}
-                selected={session.answers[index] === undefined ? [] : [session.answers[index]]}
-                reveal={false}
-                onSelect={select}
-                exam
-              />
-            </div>
+      {/* 일시정지: 실전처럼 문제를 가리고 시간을 멈춤 */}
+      {pausedAt !== null && (
+        <div className="absolute inset-0 z-20 bg-white flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <i className="fa-solid fa-pause text-4xl text-[#2b5cb4]"></i>
+          <div className="text-lg text-gray-800">일시정지 중입니다</div>
+          <div className="text-sm text-gray-500">
+            남은 시간 <span className="font-mono text-[#e60012]">{formatTime(remaining)}</span>
           </div>
-          <div className="flex-none border-t border-gray-200 px-4 sm:px-8 py-2.5">
-            <div className="max-w-[1100px] mx-auto flex items-center gap-3">
-              <span className="hidden md:inline text-sm text-gray-400 mr-auto">
-                {TYPE_HINT[q.t]} <span className="ml-2">키보드: ← → 이동, 1~{optionsOf(q).length} 답 고르기</span>
-              </span>
-              <button
-                onClick={() => setIndex(index - 1)}
-                disabled={index === 0}
-                className="flex-1 md:flex-none px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                이전 문제
-              </button>
-              <button
-                onClick={() => setIndex(index + 1)}
-                disabled={index === total - 1}
-                className="flex-1 md:flex-none px-6 py-2.5 rounded text-white bg-[#37a7f0] hover:bg-[#2a8bc9] disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                다음 문제
-              </button>
-            </div>
-          </div>
+          <button onClick={togglePause} className="px-6 py-2.5 text-white bg-[#2b5cb4] hover:bg-[#234c96]">
+            시험 계속하기
+          </button>
         </div>
-
-        <aside className="hidden lg:block w-[340px] shrink-0 overflow-y-auto p-5 bg-gray-50 border-l border-gray-200">{sheet}</aside>
-
-        {showSheet && (
-          <div className="lg:hidden absolute inset-0 z-10 bg-black/30" onClick={() => setShowSheet(false)}>
-            <div className="absolute inset-x-0 top-0 max-h-full overflow-y-auto p-4 bg-white shadow-lg" onClick={(e) => e.stopPropagation()}>
-              {sheet}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

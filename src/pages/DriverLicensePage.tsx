@@ -54,6 +54,202 @@ function RecordSyncNotice({ onLoginClick }: { onLoginClick?: () => void }) {
   );
 }
 
+type FaqBlock = { heading?: string; points: string[] };
+type FaqItem = { anchor: string; question: string; icon: string; color: string; answer: FaqBlock[] };
+
+// FAQ 순서·항목: 홈 오른쪽 목록과 같은 5개 절차 + 자주 묻는 보충 질문
+const FAQ_ITEMS: FaqItem[] = [
+  {
+    anchor: 'faq-p1',
+    question: '필기 시험(과목1) 절차',
+    icon: 'fa-clipboard-list',
+    color: '#3498db',
+    answer: [
+      {
+        heading: '예약',
+        points: [
+          '스마트폰에 交管12123 앱을 설치하고 등록·로그인합니다.',
+          '[业务中心] → [驾驶证业务] → [考试预约]에서 과목1을 선택하고, 가까운 시험장과 시간을 고릅니다.',
+        ],
+      },
+      {
+        heading: '시험 당일',
+        points: [
+          '신분증 원본을 지참하고 시험장에 도착합니다(일부 지역은 임시 신분증 가능).',
+          '시험 전 휴대폰 등 전자기기는 소지할 수 없습니다.',
+        ],
+      },
+      {
+        heading: '시험 내용',
+        points: ['컴퓨터로 응시하며 총 100문항, 1문항당 1점입니다.', '90점 이상이면 합격이고 시험 시간은 보통 45분입니다.'],
+      },
+      {
+        heading: '불합격 시',
+        points: ['첫 시험에서 불합격하면 해당 시험장에서 즉시 한 번의 보충 응시 기회가 주어집니다.'],
+      },
+    ],
+  },
+  {
+    anchor: 'faq-p2',
+    question: '지역 시험장 방문 접수',
+    icon: 'fa-building',
+    color: '#e67e22',
+    answer: [
+      {
+        heading: '원스톱 접수',
+        points: [
+          '많은 지역에서 원스톱 서비스를 시행하고 있습니다. 신분증을 지참하고 차량관리소, 지정 병원 또는 일부 운전학원 서비스 창구를 방문하면 됩니다.',
+          '반드시 운전학원에 등록할 필요는 없고, 창구에서 직접 접수하고 정보를 입력할 수 있습니다.',
+        ],
+      },
+    ],
+  },
+  {
+    anchor: 'faq-p3',
+    question: '신체 검사',
+    icon: 'fa-heart-pulse',
+    color: '#27ae60',
+    answer: [
+      {
+        heading: '검사 항목',
+        points: [
+          '키(소형차는 엄격하지 않음), 시력(나안 또는 교정 시력 4.9 이상), 색각(적록색맹 불가), 청력, 사지 및 목 운동 기능',
+        ],
+      },
+      {
+        heading: '주의',
+        points: [
+          '일반 건강검진으로 대체할 수 없으며, 운전자 전용 신체검사를 받아야 합니다.',
+          '交管12123 앱의 [线下网点]에서 가까운 지정 병원이나 자동 신체검사 기기를 찾을 수 있습니다.',
+        ],
+      },
+      {
+        heading: '유효기간',
+        points: ['신체 조건 증명서는 발급일로부터 6개월 동안 유효합니다.'],
+      },
+    ],
+  },
+  {
+    anchor: 'faq-p4',
+    question: '이론시험 응시',
+    icon: 'fa-laptop',
+    color: '#9b59b6',
+    answer: [
+      {
+        heading: '응시',
+        points: [
+          '이론시험(과목1)은 위 필기 시험 절차와 같습니다. 100문항·45분, 90점 이상이면 합격입니다.',
+          '예약은 交管12123 앱의 [考试预约]에서 하고, 시험 당일에는 신분증 원본을 지참합니다.',
+        ],
+      },
+      {
+        heading: '합격 후',
+        points: [
+          '합격 후 1일 이내에 차량관리소에서 전자 "학습 운전 증명서"를 발급합니다.',
+          '유효기간은 3년이며, 이 기간 안에 나머지 과목을 완료해야 합니다.',
+        ],
+      },
+    ],
+  },
+  {
+    anchor: 'faq-p5',
+    question: '면허증 발급',
+    icon: 'fa-id-card',
+    color: '#e74c3c',
+    answer: [
+      {
+        heading: '발급 조건',
+        points: [
+          '과목1 이론 + 과목2 폐쇄장소 + 과목3 도로주행·과목4 안전문명운전 시험에 모두 합격해야 합니다.',
+          '교통안전 문명 운전 교육(약 30분)을 수강하고 선서식을 거칩니다.',
+        ],
+      },
+      {
+        heading: '수령',
+        points: ['차량관리소에서 현장에서 바로 면허증을 제작·발급하며, 많은 지역에서 당일 수령이 가능합니다.'],
+      },
+      {
+        heading: '참고',
+        points: [
+          '한국인은 유효한 여권과 체류 허가(일반적으로 3개월 이상)를 소지해야 합니다.',
+          '구체적인 신청 자료는 현지 차량관리소의 최신 요구사항을 기준으로 하세요.',
+        ],
+      },
+    ],
+  },
+  {
+    anchor: 'faq-extra1',
+    question: '한국 운전면허를 중국 면허로 교환할 수 있나요?',
+    icon: 'fa-exchange-alt',
+    color: '#9b59b6',
+    answer: [
+      {
+        points: [
+          '유효한 한국 운전면허증의 중국어 번역본, 여권·거류증, 신체검사서를 내고 과목1(이론시험)만 합격하면 중국 면허로 바꿀 수 있습니다. 장내기능·도로주행 시험은 면제됩니다.',
+          '번역·공증 요건은 도시마다 달라 관할 차량관리소에 먼저 확인하세요.',
+        ],
+      },
+    ],
+  },
+  {
+    anchor: 'faq-extra2',
+    question: '운전면허 취득에 드는 비용은 얼마인가요?',
+    icon: 'fa-won-sign',
+    color: '#16a085',
+    answer: [
+      {
+        points: [
+          '지역과 학원에 따라 다르지만 일반적으로 3,000~5,000위안 정도입니다.',
+          '등록비·교육비·시험 응시료가 포함되며, 재시험 응시료는 별도로 부과될 수 있습니다.',
+        ],
+      },
+    ],
+  },
+  {
+    anchor: 'faq-extra3',
+    question: '이론 공부는 얼마나 해야 하나요?',
+    icon: 'fa-book-open',
+    color: '#2980b9',
+    answer: [
+      {
+        points: [
+          '개인차가 있지만 평균적으로 1~2주 집중 공부하면 충분합니다.',
+          '순서 연습·주제별 연습·모의고사로 준비하고, 매일 1~2시간씩 꾸준히 하는 것을 권장합니다.',
+        ],
+      },
+    ],
+  },
+  {
+    anchor: 'faq-extra5',
+    question: '불합격하면 재응시는 어떻게 되나요?',
+    icon: 'fa-rotate-left',
+    color: '#e67e22',
+    answer: [
+      {
+        points: [
+          '예약 한 번당 불합격하면 그 자리에서 1번 더 응시할 수 있습니다(补考).',
+          '과목2·과목3은 다시 예약하려면 10일이 지나야 하고, 학습 운전 증명서 유효기간(3년) 안에 각각 5번까지 예약할 수 있습니다.',
+          '5번 모두 불합격하면 이미 합격한 다른 과목 성적도 무효가 됩니다.',
+        ],
+      },
+    ],
+  },
+  {
+    anchor: 'faq-extra4',
+    question: '외국인도 중국에서 운전면허를 취득할 수 있나요?',
+    icon: 'fa-passport',
+    color: '#e74c3c',
+    answer: [
+      {
+        points: [
+          '네, 가능합니다. 유효한 비자와 거류증을 소지한 외국인은 신체검사와 서류 제출 후 각 과목 시험을 통과하면 면허를 취득할 수 있습니다.',
+          '일부 도시에서는 한국어 시험도 제공됩니다.',
+        ],
+      },
+    ],
+  },
+];
+
 export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePageProps) {
   const [selectedCity, setSelectedCity] = useState('대련');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -71,6 +267,12 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
     '베이징', '상하이', '칭다오', '대련', '텐진', 
     '선양', '옌타이', '광저우', '심천', '우한', '웨이하이'
   ];
+
+  // 홈 오른쪽 FAQ 목록에서 눌러 해당 항목으로 바로 이동
+  const openFaq = (anchor?: string) => {
+    setCurrentView('faq');
+    if (anchor) window.setTimeout(() => document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+  };
 
   return (
     <div className="min-h-screen bg-white pb-20" style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>
@@ -772,40 +974,28 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               {/* 교통 표지판 리스트 */}
               <div className="flex justify-between items-center mb-4">
                 <span className="text-base text-gray-900">FAQ</span>
-                <a href="#" className="text-xs text-gray-500 hover:text-blue-500">더보기</a>
+                <button onClick={() => openFaq()} className="text-xs text-gray-500 hover:text-blue-500">더보기</button>
               </div>
 
               <ul>
-                <li className="flex items-center py-3 border-b border-dashed border-gray-200 cursor-pointer group">
-                  <div className="w-8 h-8 rounded-full flex justify-center items-center text-white text-sm mr-3" style={{ backgroundColor: '#3498db' }}>
-                    <i className="fa-solid fa-clipboard-list"></i>
-                  </div>
-                  <span className="text-sm text-gray-700 group-hover:text-blue-500 transition-colors">필기 시험 절차</span>
-                </li>
-                <li className="flex items-center py-3 border-b border-dashed border-gray-200 cursor-pointer group">
-                  <div className="w-8 h-8 rounded-full flex justify-center items-center text-white text-sm mr-3" style={{ backgroundColor: '#e67e22' }}>
-                    <i className="fa-solid fa-building"></i>
-                  </div>
-                  <span className="text-sm text-gray-700 group-hover:text-blue-500 transition-colors">지역 시험장 방문 접수</span>
-                </li>
-                <li className="flex items-center py-3 border-b border-dashed border-gray-200 cursor-pointer group">
-                  <div className="w-8 h-8 rounded-full flex justify-center items-center text-white text-sm mr-3" style={{ backgroundColor: '#27ae60' }}>
-                    <i className="fa-solid fa-heart-pulse"></i>
-                  </div>
-                  <span className="text-sm text-gray-700 group-hover:text-blue-500 transition-colors">신체 검사</span>
-                </li>
-                <li className="flex items-center py-3 border-b border-dashed border-gray-200 cursor-pointer group">
-                  <div className="w-8 h-8 rounded-full flex justify-center items-center text-white text-sm mr-3" style={{ backgroundColor: '#9b59b6' }}>
-                    <i className="fa-solid fa-laptop"></i>
-                  </div>
-                  <span className="text-sm text-gray-700 group-hover:text-blue-500 transition-colors">이론시험 응시</span>
-                </li>
-                <li className="flex items-center py-3 cursor-pointer group">
-                  <div className="w-8 h-8 rounded-full flex justify-center items-center text-white text-sm mr-3" style={{ backgroundColor: '#e74c3c' }}>
-                    <i className="fa-solid fa-id-card"></i>
-                  </div>
-                  <span className="text-sm text-gray-700 group-hover:text-blue-500 transition-colors">면허증 발급</span>
-                </li>
+                {[
+                  { anchor: 'faq-p1', label: '필기 시험 절차', icon: 'fa-clipboard-list', color: '#3498db' },
+                  { anchor: 'faq-p2', label: '지역 시험장 방문 접수', icon: 'fa-building', color: '#e67e22' },
+                  { anchor: 'faq-p3', label: '신체 검사', icon: 'fa-heart-pulse', color: '#27ae60' },
+                  { anchor: 'faq-p4', label: '이론시험 응시', icon: 'fa-laptop', color: '#9b59b6' },
+                  { anchor: 'faq-p5', label: '면허증 발급', icon: 'fa-id-card', color: '#e74c3c' },
+                ].map((item, i, all) => (
+                  <li
+                    key={item.anchor}
+                    onClick={() => openFaq(item.anchor)}
+                    className={`flex items-center py-3 cursor-pointer group ${i < all.length - 1 ? 'border-b border-dashed border-gray-200' : ''}`}
+                  >
+                    <div className="w-8 h-8 rounded-full flex justify-center items-center text-white text-sm mr-3" style={{ backgroundColor: item.color }}>
+                      <i className={`fa-solid ${item.icon}`}></i>
+                    </div>
+                    <span className="text-sm text-gray-700 group-hover:text-blue-500 transition-colors">{item.label}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
@@ -860,69 +1050,26 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
 
           {/* FAQ 아이템들 */}
           <div className="space-y-4">
-            {[
-              {
-                question: '중국 운전면허 시험은 어떻게 진행되나요?',
-                answer: '중국 운전면허 시험은 크게 4단계로 나뉩니다. 과목1(이론시험), 과목2(장내기능시험), 과목3(도로주행시험), 과목4(안전문명운전 이론시험)으로 구성되어 있습니다. 각 과목을 순차적으로 통과해야 면허증을 발급받을 수 있습니다.',
-                icon: 'fa-clipboard-question',
-                color: '#3498db'
-              },
-              {
-                question: '필기시험(과목1) 합격 기준은 무엇인가요?',
-                answer: '필기시험은 총 100문제가 출제되며, 90점 이상이면 합격입니다. 시험 시간은 45분이며 컴퓨터로 봅니다. 한 번 예약하면 불합격해도 그 자리에서 1번 더 볼 수 있고, 그래도 떨어지면 다시 예약하면 됩니다.',
-                icon: 'fa-graduation-cap',
-                color: '#27ae60'
-              },
-              {
-                question: '외국인도 중국에서 운전면허를 취득할 수 있나요?',
-                answer: '네, 가능합니다. 유효한 비자와 거류증을 소지한 외국인은 중국에서 운전면허를 취득할 수 있습니다. 신체검사, 서류 제출 후 각 과목 시험을 통과하면 됩니다. 일부 도시에서는 한국어 시험도 제공됩니다.',
-                icon: 'fa-passport',
-                color: '#e74c3c'
-              },
-              {
-                question: '한국 운전면허를 중국 면허로 교환할 수 있나요?',
-                answer: '네, 가능합니다. 유효한 한국 운전면허증의 중국어 번역본, 여권·거류증, 신체검사서를 내고 과목1(이론시험)만 합격하면 중국 면허로 바꿀 수 있습니다. 장내기능·도로주행 시험은 면제됩니다. 번역·공증 요건은 도시마다 달라 관할 차량관리소에 먼저 확인하세요.',
-                icon: 'fa-exchange-alt',
-                color: '#9b59b6'
-              },
-              {
-                question: '시험 예약은 어떻게 하나요?',
-                answer: '시험 예약은 각 지역 교통관리국 홈페이지나 앱을 통해 가능합니다. 운전학원을 통해 등록한 경우 학원에서 예약을 대행해주기도 합니다. 시험일 최소 3일 전에는 예약을 완료해야 합니다.',
-                icon: 'fa-calendar-check',
-                color: '#f39c12'
-              },
-              {
-                question: '시험에 불합격하면 어떻게 되나요?',
-                answer: '한 번 예약할 때마다 불합격하면 1번 더 볼 수 있습니다(补考). 과목2·과목3은 다시 예약하려면 10일이 지나야 하고, 운전 학습 증명 유효기간(3년) 안에 각각 5번까지 예약할 수 있습니다. 5번 모두 불합격하면 이미 합격한 다른 과목 성적도 무효가 됩니다.',
-                icon: 'fa-rotate-left',
-                color: '#e67e22'
-              },
-              {
-                question: '운전면허 취득에 드는 비용은 얼마인가요?',
-                answer: '지역과 학원에 따라 다르지만, 일반적으로 3,000~5,000위안 정도입니다. 이 비용에는 등록비, 교육비, 시험 응시료가 포함됩니다. 재시험 응시료는 별도로 부과될 수 있습니다.',
-                icon: 'fa-won-sign',
-                color: '#16a085'
-              },
-              {
-                question: '이론 공부는 얼마나 해야 하나요?',
-                answer: '개인차가 있지만, 평균적으로 1~2주 정도 집중 공부하면 충분합니다. 본 사이트의 순서 연습, 주제별 연습, 모의고사 기능을 활용하면 효율적으로 준비할 수 있습니다. 매일 1~2시간씩 꾸준히 공부하는 것을 권장합니다.',
-                icon: 'fa-book-open',
-                color: '#2980b9'
-              }
-            ].map((faq, index) => (
-              <details key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden group">
+            {FAQ_ITEMS.map((faq) => (
+              <details key={faq.anchor} id={faq.anchor} open={faq.anchor.startsWith('faq-p')} className="bg-white border border-gray-200 rounded-lg overflow-hidden group scroll-mt-24">
                 <summary className="flex items-center gap-4 p-5 cursor-pointer hover:bg-gray-50 transition-colors">
-                  <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: faq.color }}
-                  >
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: faq.color }}>
                     <i className={`fa-solid ${faq.icon} text-white text-xl`}></i>
                   </div>
                   <span className="flex-1 font-medium text-gray-800">{faq.question}</span>
                   <i className="fa-solid fa-chevron-down text-gray-400 transition-transform group-open:rotate-180"></i>
                 </summary>
                 <div className="px-5 pb-5 pl-20 text-gray-600 leading-relaxed bg-gray-50">
-                  {faq.answer}
+                  {faq.answer.map((block, blockIndex) => (
+                    <div key={blockIndex} className={blockIndex > 0 ? 'mt-3' : ''}>
+                      {block.heading && <div className="font-medium text-gray-800 mb-1">{block.heading}</div>}
+                      <ul className="list-disc pl-5 space-y-1 text-[15px]">
+                        {block.points.map((point) => (
+                          <li key={point}>{point}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
               </details>
             ))}
