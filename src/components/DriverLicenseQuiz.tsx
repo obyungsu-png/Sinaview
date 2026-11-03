@@ -1987,17 +1987,17 @@ function ExamRunner({
             <div className="col-span-3 min-h-0">
               <div className="border border-[#c9c9c9] p-2 h-full">
                 <div className="text-[13px] text-gray-500 mb-1.5">시험 그림 정보</div>
-                {/* 그림이 없어도 그림 있을 때(높이 34vh)와 같은 크기의 빈 칸 유지 */}
-                <div className="flex flex-wrap justify-center items-center gap-2 pb-1 min-h-[34vh]">
+                {/* 그림 크기 통일: 1개면 36vh, 여러 개(표지판·계기판 등)면 각각 24vh */}
+                <div className="flex flex-wrap justify-center items-center gap-2 pb-1 min-h-[36vh]">
                   {q.img?.map((name) => (
                     <img
                       key={name}
                       src={imageUrl(name)}
                       alt="문제 그림"
                       loading="lazy"
-                      style={imageStyle(name, q.img!.length, true)}
+                      style={{ height: q.img!.length > 1 ? '24vh' : '36vh', width: 'auto' }}
                       onClick={() => setZoom(true)}
-                      className="max-w-full h-auto border border-[#d5d5d5] bg-white object-contain cursor-zoom-in"
+                      className="max-w-full border border-[#d5d5d5] bg-white object-contain cursor-zoom-in"
                     />
                   ))}
                 </div>
