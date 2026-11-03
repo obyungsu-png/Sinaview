@@ -12,6 +12,7 @@ import {
   readSequentialStats,
 } from '../components/DriverLicenseQuiz';
 import { RETENTION_DAYS, startDriverLicenseSync, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
+import { EXAM_GUIDE } from '../data/driverLicenseGuide';
 
 interface DriverLicensePageProps {
   onBack: () => void;
@@ -815,6 +816,42 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
           <div className="py-4 text-sm text-gray-500 border-b mb-6">
             현재 위치: 홈 &gt; FAQ
           </div>
+
+          {EXAM_GUIDE.length > 0 && (
+            <section className="mb-12">
+              <h2 className="text-2xl sm:text-3xl mb-2">시험 안내</h2>
+              <p className="text-gray-600 mb-5">필기(과목1) 시험 당일 절차와 실기(과목2·3)·과목4 요령을 한눈에 정리했어요.</p>
+              <div className="space-y-3">
+                {EXAM_GUIDE.map((section, i) => (
+                  <details key={section.title} open={i === 0} className="bg-white border border-gray-200 rounded-lg overflow-hidden group">
+                    <summary className="flex items-center gap-3 p-4 sm:p-5 cursor-pointer hover:bg-gray-50">
+                      <span className="shrink-0 w-8 h-8 rounded-full bg-[#37a7f0] text-white text-sm font-bold flex items-center justify-center">{i + 1}</span>
+                      <span className="flex-1 font-medium text-gray-800 text-[15px] sm:text-base">{section.title}</span>
+                      <i className="fa-solid fa-chevron-down text-gray-400 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div className="px-4 sm:px-6 pb-5 bg-gray-50/60">
+                      {section.intro && <p className="pt-3 text-[15px] text-gray-600 leading-relaxed">{section.intro}</p>}
+                      <div className="grid md:grid-cols-2 gap-4 mt-3">
+                        {section.groups.map((group) => (
+                          <div key={group.title} className="p-4 bg-white border border-gray-200 rounded-lg">
+                            <h3 className="font-medium text-gray-800 mb-2">{group.title}</h3>
+                            <ul className="flex flex-col gap-1.5 text-[15px] text-gray-700 leading-relaxed">
+                              {group.points.map((point) => (
+                                <li key={point} className="flex gap-2">
+                                  <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
+                                  <span>{point}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+          )}
           
           <div className="mb-8">
             <h2 className="text-3xl mb-2">자주 묻는 질문</h2>
@@ -832,7 +869,7 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               },
               {
                 question: '필기시험(과목1) 합격 기준은 무엇인가요?',
-                answer: '필기시험은 총 100문제가 출제되며, 90점 이상을 획득해야 합격입니다. 시험 시간은 45분이며, 컴퓨터로 진행됩니다. 불합격 시 10일 후 재응시가 가능합니다.',
+                answer: '필기시험은 총 100문제가 출제되며, 90점 이상이면 합격입니다. 시험 시간은 45분이며 컴퓨터로 봅니다. 한 번 예약하면 불합격해도 그 자리에서 1번 더 볼 수 있고, 그래도 떨어지면 다시 예약하면 됩니다.',
                 icon: 'fa-graduation-cap',
                 color: '#27ae60'
               },
@@ -844,7 +881,7 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               },
               {
                 question: '한국 운전면허를 중국 면허로 교환할 수 있나요?',
-                answer: '네, 가능합니다. 한국 운전면허증을 소지한 경우, 중국 대사관에서 공증을 받은 후 과목1(이론시험)만 통과하면 중국 운전면허로 교환할 수 있습니다. 장내기능 및 도로주행 시험은 면제됩니다.',
+                answer: '네, 가능합니다. 유효한 한국 운전면허증의 중국어 번역본, 여권·거류증, 신체검사서를 내고 과목1(이론시험)만 합격하면 중국 면허로 바꿀 수 있습니다. 장내기능·도로주행 시험은 면제됩니다. 번역·공증 요건은 도시마다 달라 관할 차량관리소에 먼저 확인하세요.',
                 icon: 'fa-exchange-alt',
                 color: '#9b59b6'
               },
@@ -856,7 +893,7 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               },
               {
                 question: '시험에 불합격하면 어떻게 되나요?',
-                answer: '불합격 시 10일 후 재응시가 가능합니다. 과목2와 과목3는 각각 5회까지 응시 기회가 주어지며, 5회 모두 불합격 시 처음부터 다시 시작해야 합니다. 과목1과 과목4는 응시 횟수 제한이 없습니다.',
+                answer: '한 번 예약할 때마다 불합격하면 1번 더 볼 수 있습니다(补考). 과목2·과목3은 다시 예약하려면 10일이 지나야 하고, 운전 학습 증명 유효기간(3년) 안에 각각 5번까지 예약할 수 있습니다. 5번 모두 불합격하면 이미 합격한 다른 과목 성적도 무효가 됩니다.',
                 icon: 'fa-rotate-left',
                 color: '#e67e22'
               },
