@@ -1904,30 +1904,30 @@ function ExamRunner({
             <div className="border border-[#c9c9c9] flex flex-col min-h-0">
               <div className="flex-none px-4 py-2 border-b border-[#d5d5d5] font-bold text-[14px] text-gray-800">시험 문제</div>
               <div ref={panelRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
-                <h2 className="text-[19px] font-bold text-gray-900 leading-relaxed">
+                <h2 className="text-[21px] font-bold text-gray-900 leading-relaxed">
                   {index + 1}. {q.q}
                 </h2>
                 {/* 실전처럼 보기 글자는 읽기 전용 */}
-                <div className="mt-4 space-y-3.5 text-[16px] text-gray-800">
+                <div className="mt-5 space-y-4 text-[17px] text-gray-800">
                   {optionsOf(q).map((text, i) => (
                     <div key={i}>
                       {LETTERS[i]}、{text}
                     </div>
                   ))}
                 </div>
-                {/* 실전처럼 '선택한 답'과 같은 줄에 답 고르기 버튼 (오른쪽에서 약간 왼쪽) */}
-                <div className="mt-5 flex items-center justify-between gap-4">
-                  <div className="text-[15px] text-gray-800">
+                {/* 실전처럼 '선택한 답'과 같은 줄에 답 고르기 버튼 (오른쪽에서 약간 왼쪽), 아래 여백을 둠 */}
+                <div className="mt-12 flex items-center justify-between gap-4">
+                  <div className="text-[16px] text-gray-800">
                     선택한 답: <b className="text-[#e60012]">{session.answers[index] !== undefined ? LETTERS[session.answers[index]] : ''}</b>
                   </div>
                   <div className="flex items-center gap-2 mr-8">
-                    <span className="text-[13px] text-gray-600 mr-1">답 고르기:</span>
+                    <span className="text-[14px] text-gray-600 mr-1">답 고르기:</span>
                     {optionsOf(q).map((text, i) => (
                       <button
                         key={i}
                         onClick={() => select(i)}
                         title={`${LETTERS[i]}. ${text}`}
-                        className={`w-[38px] h-[38px] border text-[15px] ${
+                        className={`w-[44px] h-[44px] border text-[16px] ${
                           session.answers[index] === i
                             ? 'bg-[#19b39b] border-[#19b39b] text-white'
                             : 'bg-[#f0f0f0] border-[#bfbfbf] text-gray-700 hover:border-[#19b39b]'
@@ -1987,21 +1987,20 @@ function ExamRunner({
             <div className="col-span-3 min-h-0">
               <div className="border border-[#c9c9c9] p-2 h-full">
                 <div className="text-[13px] text-gray-500 mb-1.5">시험 그림 정보</div>
-                {q.img && (
-                  <div className="flex flex-wrap justify-center gap-2 pb-1">
-                    {q.img.map((name) => (
-                      <img
-                        key={name}
-                        src={imageUrl(name)}
-                        alt="문제 그림"
-                        loading="lazy"
-                        style={imageStyle(name, q.img!.length, true)}
-                        onClick={() => setZoom(true)}
-                        className="max-w-full h-auto border border-[#d5d5d5] bg-white object-contain cursor-zoom-in"
-                      />
-                    ))}
-                  </div>
-                )}
+                {/* 그림이 없어도 그림 있을 때(높이 34vh)와 같은 크기의 빈 칸 유지 */}
+                <div className="flex flex-wrap justify-center items-center gap-2 pb-1 min-h-[34vh]">
+                  {q.img?.map((name) => (
+                    <img
+                      key={name}
+                      src={imageUrl(name)}
+                      alt="문제 그림"
+                      loading="lazy"
+                      style={imageStyle(name, q.img!.length, true)}
+                      onClick={() => setZoom(true)}
+                      className="max-w-full h-auto border border-[#d5d5d5] bg-white object-contain cursor-zoom-in"
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
