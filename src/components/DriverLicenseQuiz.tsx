@@ -1212,11 +1212,13 @@ function FastCards({ onBack }: { onBack: () => void }) {
   const done = new Set(getProgress<{ done: number[] }>(FAST_CARDS_PROGRESS)?.done ?? []);
   const topics = ['전체', ...Array.from(new Set(FAST_CARDS.map((card) => card.topic)))];
   const [topic, setTopic] = useState('전체');
+  const [, rerender] = useState(0);
   const toggle = (i: number) => {
     const next = new Set(done);
     if (next.has(i)) next.delete(i);
     else next.add(i);
     saveProgress(FAST_CARDS_PROGRESS, { done: Array.from(next).sort((a, b) => a - b) });
+    rerender((n) => n + 1);
   };
   const cards = FAST_CARDS.map((card, i) => ({ card, i })).filter(({ card }) => topic === '전체' || card.topic === topic);
 
