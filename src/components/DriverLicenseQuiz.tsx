@@ -1843,7 +1843,7 @@ function ExamRunner({
   // 실전 시험 화면과 같은 틀: 왼쪽 수험자 정보, 가운데 문제, 오른쪽 답안지 (화면이 넓어지면 세 열이 같이 넓어짐)
   return (
     <div ref={rootRef} className="fixed inset-0 z-[1000] bg-white overflow-auto" role="dialog" aria-modal="true" aria-label="모의고사 시험 화면">
-      <div className="md:min-w-[1024px] min-h-full flex flex-col">
+      <div className="md:min-w-[1024px] h-screen flex flex-col" style={{ height: '100dvh' }}>
         {/* 상단 바 (이전 스타일): 시험 이름·남은 시간·전체 화면·제출·그만두기 */}
         <div className="flex-none flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
           <span className="font-medium text-gray-800">{session.title ?? (session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`)}</span>
@@ -1854,11 +1854,14 @@ function ExamRunner({
             <i className="fa-regular fa-clock mr-1.5"></i>
             {formatTime(remaining)}
           </span>
+          <button onClick={onExit} className="md:hidden w-9 h-9 rounded-full flex items-center justify-center text-[#2a8bc9]" aria-label="되돌아가기">
+            <i className="fa-solid fa-arrow-left text-lg"></i>
+          </button>
           <div className="flex items-center gap-2 ml-auto">
             {typeof document !== 'undefined' && !!document.fullscreenEnabled && (
               <button
                 onClick={toggleFullscreen}
-                className="px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-600 bg-white hover:border-[#37a7f0] hover:text-[#2a8bc9]"
+                className="hidden md:inline-flex items-center px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-600 bg-white hover:border-[#37a7f0] hover:text-[#2a8bc9]"
               >
                 <i className={`fa-solid ${fullscreen ? 'fa-compress' : 'fa-expand'} mr-1`}></i>
                 {fullscreen ? '전체 화면 끝' : '전체 화면'}
@@ -1866,7 +1869,7 @@ function ExamRunner({
             )}
             <button
               onClick={onExit}
-              className="px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-600 bg-white hover:border-[#e74c3c] hover:text-[#e74c3c]"
+              className="hidden md:inline-flex items-center px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-600 bg-white hover:border-[#e74c3c] hover:text-[#e74c3c]"
             >
               그만두기
             </button>
@@ -2012,7 +2015,6 @@ function ExamRunner({
           <div className="flex-none px-3 py-2 border-b border-[#d5d5d5] bg-[#f7fbfe] flex items-center justify-between gap-2 text-[12px] text-gray-600">
             <span>제 {index + 1}문제 / 전체 {total}문제</span>
             <span>남은 문제 <b className="text-[#e60012]">{unanswered}</b>개</span>
-            <span className="font-mono text-[#e60012] font-bold text-[14px]">{formatTime(remaining)}</span>
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
             <h2 className="text-[18px] font-bold text-gray-900 leading-relaxed">
@@ -2061,16 +2063,13 @@ function ExamRunner({
                 ))}
               </div>
             </div>
-            <div className="mt-4 border border-[#c9c9c9] bg-[#fcfcfc] h-[36px] px-2 flex items-center text-[12px] text-gray-600">
-              {q.t === 'j' ? '안내 정보: 맞으면 A, 틀리면 B를 고르세요!' : '안내 정보: 올바른 답을 고르세요!'}
-            </div>
           </div>
           <div className="flex-none border-t border-[#e0e0e0] bg-white">
-            <div className="px-3 py-2 flex items-center gap-2">
-              <button onClick={togglePause} className={EXAM_BUTTON}>일시정지</button>
-              <button onClick={() => setIndex(index - 1)} disabled={index === 0} className={EXAM_BUTTON}>이전</button>
-              <button onClick={() => setIndex(index + 1)} disabled={index === total - 1} className={EXAM_BUTTON}>다음</button>
-              <button onClick={submit} className={EXAM_BUTTON}>제출</button>
+            <div className="px-2 py-2 flex items-center gap-1.5">
+              <button onClick={togglePause} className="flex-1 min-w-0 px-1 py-2 border border-[#bfbfbf] bg-[#f0f0f0] text-[12px] text-[#333] active:bg-[#e6e6e6]">일시정지</button>
+              <button onClick={() => setIndex(index - 1)} disabled={index === 0} className="flex-1 min-w-0 px-1 py-2 border border-[#bfbfbf] bg-[#f0f0f0] text-[12px] text-[#333] disabled:text-[#aaa] disabled:bg-[#f7f7f7]">이전</button>
+              <button onClick={() => setIndex(index + 1)} disabled={index === total - 1} className="flex-1 min-w-0 px-1 py-2 border border-[#bfbfbf] bg-[#f0f0f0] text-[12px] text-[#333] disabled:text-[#aaa] disabled:bg-[#f7f7f7]">다음</button>
+              <button onClick={submit} className="flex-1 min-w-0 px-1 py-2 border border-[#bfbfbf] bg-[#f0f0f0] text-[12px] text-[#333] active:bg-[#e6e6e6]">제출</button>
             </div>
             <button onClick={() => setSheetOpen(true)} className="w-full px-3 py-2.5 border-t border-[#e0e0e0] text-[14px] font-medium text-gray-700 bg-[#f7fbfe]">
               <i className="fa-solid fa-table-cells mr-1.5"></i>답안지 정보 (답함 {answeredCount}/{total})
