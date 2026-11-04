@@ -52,6 +52,41 @@ const WeChatLoginPage = lazy(() => import('../pages/WeChatLoginPage').then(m => 
 const RealEstatePage = lazy(() => import('../pages/RealEstatePage').then(m => ({ default: m.RealEstatePage })));
 const HSKPage = lazy(() => import('../pages/HSKPage').then(m => ({ default: m.HSKPage })));
 
+// 페이지별 하위 URL 매핑 (해시 라우팅: 예) https://사이트/#/driver-license)
+// 정적 호스팅에서도 서버 재작성 없이 동작하도록 해시(#) 기반으로 유지합니다.
+const PAGE_PATH: Record<string, string> = {
+  main: '/',
+  news: '/news',
+  yellowpages: '/yellow-pages',
+  visadocument: '/visa-documents',
+  education: '/education',
+  auto: '/auto',
+  blog: '/blog',
+  usedmarket: '/used-market',
+  securities: '/securities',
+  lsm: '/lsm',
+  csm: '/csm',
+  driverlicense: '/driver-license',
+  login: '/login',
+  wechatlogin: '/wechat-login',
+  realestate: '/real-estate',
+  hsk: '/hsk',
+  chinalife: '/community',
+};
+const PATH_PAGE: Record<string, string> = Object.fromEntries(
+  Object.entries(PAGE_PATH).map(([page, path]) => [path, page])
+);
+const readHashPage = (): string => {
+  if (typeof window === 'undefined') return 'main';
+  const path = window.location.hash.replace(/^#/, '') || '/';
+  return PATH_PAGE[path] ?? 'main';
+};
+const writeHash = (page: string) => {
+  if (typeof window === 'undefined') return;
+  const path = PAGE_PATH[page] ?? '/';
+  if (window.location.hash !== '#' + path) window.location.hash = path;
+};
+
 // Progressive rendering hook
 function useDeferredSections(totalSections: number) {
   const [visibleCount, setVisibleCount] = useState(2);
@@ -82,7 +117,7 @@ export function Portal() {
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; username?: string; region?: string; city?: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showCalendar, setShowCalendar] = useState(true);
-  const [currentPage, setCurrentPage] = useState('main');
+  const [currentPage, setCurrentPage] = useState<string>(() => readHashPage());
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [isNStudyHubOpen, setIsNStudyHubOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -93,6 +128,17 @@ export function Portal() {
   const [communityCategory, setCommunityCategory] = useState<string | null>(null);
   // 모바일 하단 바: 홈 화면 안에서 지금 보이는 탭(home/service/my)
   const [mobileHomeTab, setMobileHomeTab] = useState('home');
+
+  // URL 해시 ↔ 현재 페이지 동기화 (페이지별 하위 URL 유지 + 뒤로/앞으로 가기 지원)
+  useEffect(() => {
+    writeHash(currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    const onHashChange = () => setCurrentPage(readHashPage());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   useEffect(() => {
     // Set page title
