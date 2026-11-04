@@ -1,7 +1,7 @@
 import { ArrowLeft } from 'lucide-react@0.487.0';
 import { Button } from '../components/ui/button';
 import { useEffect, useState } from 'react';
-import { DriverLicenseCommunity } from '../components/DriverLicenseCommunity';
+
 import {
   ChapterPracticePage,
   FastCoursePage,
@@ -253,7 +253,7 @@ const FAQ_ITEMS: FaqItem[] = [
 export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePageProps) {
   const [selectedCity, setSelectedCity] = useState('대련');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'fast' | 'mock' | 'wrong' | 'community' | 'app123'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'fast' | 'mock' | 'wrong' | 'app123'>('home');
   const [introOpen, setIntroOpen] = useState(false);
   useDriverLicenseRecords();
   useEffect(() => {
@@ -375,12 +375,6 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'faq' ? 'bg-blue-600' : ''}`}
             >
               FAQ
-            </li>
-            <li 
-              onClick={() => setCurrentView('community')}
-              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'community' ? 'bg-blue-600' : ''}`}
-            >
-              커뮤니티
             </li>
             <li 
               onClick={() => setCurrentView('wrong')}
@@ -758,7 +752,6 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
                 </div>
 
                 <div className="hero-btn-group">
-                  <a className="hero-btn hero-btn-primary">소프트웨어 다운로드</a>
                   <a className="hero-btn hero-btn-outline">위챗 미니 프로그램</a>
                 </div>
               </div>
@@ -1341,9 +1334,6 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
             </ul>
           </div>
         </div>
-      ) : currentView === 'community' ? (
-        // 커뮤니티 페이지
-        <DriverLicenseCommunity />
       ) : currentView === 'sequential' ? (
         // 순서 연습 페이지
         <SequentialPracticePage onBack={() => setCurrentView('practice')} />

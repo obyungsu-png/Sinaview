@@ -1757,6 +1757,7 @@ function ExamRunner({
   const [now, setNow] = useState(Date.now());
   const [pausedAt, setPausedAt] = useState<number | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [zoom, setZoom] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const latest = useRef(session);
@@ -1842,7 +1843,7 @@ function ExamRunner({
   // 실전 시험 화면과 같은 틀: 왼쪽 수험자 정보, 가운데 문제, 오른쪽 답안지 (화면이 넓어지면 세 열이 같이 넓어짐)
   return (
     <div ref={rootRef} className="fixed inset-0 z-[1000] bg-white overflow-auto" role="dialog" aria-modal="true" aria-label="모의고사 시험 화면">
-      <div className="min-w-[1024px] min-h-full flex flex-col">
+      <div className="md:min-w-[1024px] min-h-full flex flex-col">
         {/* 상단 바 (이전 스타일): 시험 이름·남은 시간·전체 화면·제출·그만두기 */}
         <div className="flex-none flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
           <span className="font-medium text-gray-800">{session.title ?? (session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`)}</span>
@@ -1872,8 +1873,8 @@ function ExamRunner({
           </div>
         </div>
 
-        {/* 실전처럼 전체를 감싸는 외곽선 안에 왼쪽·가운데·오른쪽 네모칸 배치 */}
-        <div className="flex-1 min-h-0 p-2.5">
+        {/* 실전처럼 전체를 감싸는 외곽선 안에 왼쪽·가운데·오른쪽 네모칸 배치 (데스크톱 전용) */}
+        <div className="hidden md:block flex-1 min-h-0 p-2.5">
           <div className="h-full border border-[#c9c9c9] p-2 grid grid-cols-[minmax(150px,1.2fr)_minmax(0,6fr)_minmax(290px,2.2fr)] grid-rows-[minmax(0,auto)_minmax(0,1fr)] gap-2.5">
             {/* 왼쪽: 수험자 정보 (구역별로 네모칸) */}
             <aside className="flex flex-col gap-2 min-h-0 text-[13px] text-gray-700">
@@ -2006,6 +2007,77 @@ function ExamRunner({
           </div>
         </div>
 
+        {/* 모바일: 단일 열 (문제 → 그림 → 보기 → 답 고르기), 하단 탭으로 답안지 팝업 */}
+        <div className="md:hidden flex-1 min-h-0 flex flex-col">
+          <div className="flex-none px-3 py-2 border-b border-[#d5d5d5] bg-[#f7fbfe] flex items-center justify-between gap-2 text-[12px] text-gray-600">
+            <span>제 {index + 1}문제 / 전체 {total}문제</span>
+            <span>남은 문제 <b className="text-[#e60012]">{unanswered}</b>개</span>
+            <span className="font-mono text-[#e60012] font-bold text-[14px]">{formatTime(remaining)}</span>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
+            <h2 className="text-[18px] font-bold text-gray-900 leading-relaxed">
+              {index + 1}. {q.q}
+            </h2>
+            {q.img && (
+              <div className="my-3 flex flex-wrap justify-center gap-2">
+                {q.img.map((name) => (
+                  <img
+                    key={name}
+                    src={imageUrl(name)}
+                    alt="문제 그림"
+                    loading="lazy"
+                    style={{ height: q.img!.length > 1 ? '150px' : '200px', width: 'auto' }}
+                    onClick={() => setZoom(true)}
+                    className="max-w-full border border-[#d5d5d5] bg-white object-contain"
+                  />
+                ))}
+              </div>
+            )}
+            <div className="mt-3 space-y-3 text-[16px] text-gray-800">
+              {optionsOf(q).map((text, i) => (
+                <div key={i}>
+                  {LETTERS[i]}、{text}
+                </div>
+              ))}
+            </div>
+            <div className="mt-6">
+              <div className="text-[15px] text-gray-800 mb-2">
+                선택한 답: <b className="text-[#e60012]">{session.answers[index] !== undefined ? LETTERS[session.answers[index]] : ''}</b>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[13px] text-gray-600 mr-1">답 고르기:</span>
+                {optionsOf(q).map((text, i) => (
+                  <button
+                    key={i}
+                    onClick={() => select(i)}
+                    className={`w-[46px] h-[46px] border text-[16px] ${
+                      session.answers[index] === i
+                        ? 'bg-[#19b39b] border-[#19b39b] text-white'
+                        : 'bg-[#f0f0f0] border-[#bfbfbf] text-gray-700'
+                    }`}
+                  >
+                    {LETTERS[i]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 border border-[#c9c9c9] bg-[#fcfcfc] h-[36px] px-2 flex items-center text-[12px] text-gray-600">
+              {q.t === 'j' ? '안내 정보: 맞으면 A, 틀리면 B를 고르세요!' : '안내 정보: 올바른 답을 고르세요!'}
+            </div>
+          </div>
+          <div className="flex-none border-t border-[#e0e0e0] bg-white">
+            <div className="px-3 py-2 flex items-center gap-2">
+              <button onClick={togglePause} className={EXAM_BUTTON}>일시정지</button>
+              <button onClick={() => setIndex(index - 1)} disabled={index === 0} className={EXAM_BUTTON}>이전</button>
+              <button onClick={() => setIndex(index + 1)} disabled={index === total - 1} className={EXAM_BUTTON}>다음</button>
+              <button onClick={submit} className={EXAM_BUTTON}>제출</button>
+            </div>
+            <button onClick={() => setSheetOpen(true)} className="w-full px-3 py-2.5 border-t border-[#e0e0e0] text-[14px] font-medium text-gray-700 bg-[#f7fbfe]">
+              <i className="fa-solid fa-table-cells mr-1.5"></i>답안지 정보 (답함 {answeredCount}/{total})
+            </button>
+          </div>
+        </div>
+
         {/* 하단 바 */}
         <div className="flex-none border-t border-[#e0e0e0] py-1.5 text-center text-[11px] text-gray-400">
           운전면허 모의고사 시뮬레이션 · 과목1 C1 · 실전 시험 화면 재현
@@ -2033,6 +2105,35 @@ function ExamRunner({
               <button onClick={() => setConfirmOpen(false)} className="px-5 py-1.5 bg-white border border-[#8a8a8a] text-[13px] text-gray-800 hover:bg-gray-100">
                 계속 시험
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 모바일 답안지 팝업 */}
+      {sheetOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/35 flex items-end justify-center" onClick={() => setSheetOpen(false)}>
+          <div className="w-full bg-white rounded-t-2xl shadow-2xl p-4 dl-sheet-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-bold text-gray-800">답안지 정보</div>
+              <button onClick={() => setSheetOpen(false)} aria-label="닫기" className="w-8 h-8 rounded-full bg-gray-100 text-gray-600"><i className="fa-solid fa-xmark"></i></button>
+            </div>
+            <div className="grid grid-cols-10 gap-[5px]">
+              {session.questions.map((item, i) => (
+                <button
+                  key={item.id}
+                  onClick={() => { setIndex(i); setSheetOpen(false); }}
+                  className={`aspect-square text-[13px] leading-none border ${
+                    i === index
+                      ? 'bg-[#19b39b] border-[#19b39b] text-white font-bold'
+                      : session.answers[i] !== undefined
+                        ? 'bg-[#bcd8f5] border-[#8fb8e0] text-gray-700'
+                        : 'bg-white border-[#d0d0d0] text-gray-600'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
             </div>
           </div>
         </div>
