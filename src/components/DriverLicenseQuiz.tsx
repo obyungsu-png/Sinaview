@@ -426,7 +426,7 @@ export function PracticeQuiz({
   const [progress, setProgress] = useState<Progress>(() =>
     storageKey ? getProgress<Progress>(storageKey) ?? { index: 0, answers: {} } : { index: 0, answers: {} },
   );
-  const [autoNext, setAutoNext] = useState(() => readStore('dl-auto-next', true));
+  const [autoNext, setAutoNext] = useState(() => readStore('dl-auto-next', false));
   const [showExplanation, setShowExplanation] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const [favorites, setFavorites] = useState<number[]>(getFavorites);
