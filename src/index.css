@@ -15,3 +15,14 @@
 .dl-sheet-up {
   animation: dl-sheet-up 0.22s ease-out;
 }
+/* 연습 풀이 화면의 문제 그림(1개): 문제·보기와 함께 스크롤 없이 한 화면에 들어오도록 남은 화면 높이에 맞춤
+   --ar: 그림의 가로/세로 비율, --mw: 최대 가로 (원본의 2.2배 또는 640px) */
+.dl-qimg {
+  width: min(var(--mw), calc(var(--ar) * max(110px, min(26vh, 100dvh - 490px))));
+}
+@media (min-width: 1024px) {
+  /* 넓은 화면은 보기(왼쪽)와 그림(오른쪽)이 나란히 있어 더 크게 */
+  .dl-qimg {
+    width: min(var(--mw), calc(var(--ar) * min(42vh, 26vw)));
+  }
+}
