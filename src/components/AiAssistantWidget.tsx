@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { serverUrl } from '../utils/supabase/client';
 import { getAiContext, onAiAsk, onAiContextChange, type AiContext } from '../utils/aiAssistant';
+import AiTutorRobot, { useDraggableFab } from './AiTutorRobot.single';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -19,6 +20,88 @@ const suggestedQuestions = [
   '중국에서 병원 가는 방법 알려주세요',
   '상하이/베이징 날씨는 어떤가요?',
 ];
+
+// 페이지별 기본 질문 (운전면허는 전용 화면이 있어 기본값 유지)
+const pageSuggestedQuestions: Record<string, string[]> = {
+  visadocument: [
+    '거류증 연장은 어떻게 신청하나요?',
+    '비자 종류(Z·X·F)는 어떻게 다른가요?',
+    '대사관 공증·인증 절차를 알려주세요',
+    '출입국 관리국 예약은 어떻게 하나요?',
+  ],
+  education: [
+    '중국 국제학교 입학 조건이 궁금해요',
+    '학비와 등록금은 대략 얼마인가요?',
+    '중국 대학 진학 준비는 어떻게 하나요?',
+    '어학원과 과외는 어떻게 선택하나요?',
+  ],
+  yellowpages: [
+    '한인 업체를 어떻게 찾나요?',
+    '업체 등록은 어떻게 하나요?',
+    '병원·식당 추천을 받고 싶어요',
+    '한국어 가능한 업체만 보고 싶어요',
+  ],
+  auto: [
+    '중국에서 차량 구매 절차를 알려주세요',
+    '차량 보험은 어떻게 가입하나요?',
+    '중국 운전면허 전환 방법이 궁금해요',
+    '차량 등록·번호판 발급은 어떻게 하나요?',
+  ],
+  news: [
+    '최신 중국 생활 관련 소식을 알려주세요',
+    '환율·물가 동향이 궁금해요',
+    '비자·출입국 정책 변경이 있나요?',
+    '중국 날씨와 미세먼지 정보를 알려주세요',
+  ],
+  usedmarket: [
+    '중고 거래 시 사기 예방법이 궁금해요',
+    '중고 물품 가격은 어떻게 정하나요?',
+    '거래 수수료·결제 방법을 알려주세요',
+    '안전하게 직거래하는 방법이 궁금해요',
+  ],
+  securities: [
+    '중국 증권 계좌는 어떻게 개설하나요?',
+    'A주 투자 시 주의점은 무엇인가요?',
+    '위안화 환전·송금 방법을 알려주세요',
+    '증권 거래 수수료는 얼마인가요?',
+  ],
+  realestate: [
+    '중국에서 집 구하는 방법이 궁금해요',
+    '임대 계약 시 확인할 사항은 무엇인가요?',
+    '보증금·중개 수수료는 어떻게 되나요?',
+    '집 계약 갱신·퇴거 절차를 알려주세요',
+  ],
+  chinalife: [
+    '게시판에 글은 어떻게 작성하나요?',
+    '인기 글과 최신 글을 보고 싶어요',
+    '카테고리는 어떻게 나뉘나요?',
+    '궁금한 점을 게시판에 물어보려면?',
+  ],
+  lsm: [
+    '학습센터는 어떤 서비스를 제공하나요?',
+    '과정 신청 방법을 알려주세요',
+    '수업 비용과 일정이 궁금해요',
+    '상담은 어떻게 받을 수 있나요?',
+  ],
+  csm: [
+    'CSM은 무슨 서비스인가요?',
+    'CSM 이용 방법을 알려주세요',
+    '비용과 혜택이 궁금해요',
+    '상담·문의는 어떻게 하나요?',
+  ],
+  blog: [
+    '최신 블로그 글을 보고 싶어요',
+    '주제별 글은 어떻게 찾나요?',
+    '구독·알림 설정 방법이 궁금해요',
+    '글 작성은 어떻게 하나요?',
+  ],
+  hsk: [
+    'HSK 시험 일정이 궁금해요',
+    'HSK 등급별 수준을 알려주세요',
+    'HSK 신청 방법과 비용은?',
+    'HSK 준비는 어떻게 해야 하나요?',
+  ],
+};
 
 // 인라인 마크다운(**bold**, *italic*, `code`)을 JSX로 변환
 function renderInline(text: string): (string | ReactElement)[] {
@@ -97,7 +180,9 @@ function renderMarkdown(content: string): ReactElement {
   return <>{elements}</>;
 }
 
-export function AiAssistantWidget() {
+export function AiAssistantWidget({ hideFab = false, page = 'main' }: { hideFab?: boolean; page?: string } = {}) {
+  const fab = useDraggableFab<HTMLDivElement>();
+  const questions = pageSuggestedQuestions[page] ?? suggestedQuestions;
   const [isOpen, setIsOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -265,7 +350,7 @@ export function AiAssistantWidget() {
           position: fixed;
           inset: 0;
           background: rgba(15, 23, 42, 0.35);
-          z-index: 60;
+          z-index: 1001;
           animation: aiFadeIn 0.2s ease;
         }
         .ai-panel {
@@ -276,7 +361,7 @@ export function AiAssistantWidget() {
           width: 420px;
           max-width: 100vw;
           background: #fff;
-          z-index: 61;
+          z-index: 1002;
           box-shadow: -8px 0 30px rgba(0,0,0,0.15);
           display: flex;
           flex-direction: column;
@@ -334,17 +419,26 @@ export function AiAssistantWidget() {
       `}</style>
 
       {/* AI 도움 버튼 (이모티콘) */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="ai-fab fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50"
-        aria-label="AI에게 물어보세요"
-        title="AI에게 물어보세요"
-      >
-        <span className="ai-fab-eyes">
-          <span></span>
-          <span></span>
-        </span>
-      </button>
+      {!hideFab && (
+        <div
+          ref={fab.boxRef}
+          style={fab.style}
+          className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50 touch-none"
+        >
+          <button
+            {...fab.handlers}
+            onClick={() => {
+              if (fab.consumeDrag()) return;
+              setIsOpen(true);
+            }}
+            className={`aibot-btn ${fab.dragging ? 'aibot-dragging' : ''}`}
+            aria-label="AI에게 물어보세요"
+            title="AI에게 물어보세요"
+          >
+            <AiTutorRobot size={62} />
+          </button>
+        </div>
+      )}
 
       {/* AI 패널 (슬라이드인) */}
       {isOpen && (
@@ -353,12 +447,7 @@ export function AiAssistantWidget() {
           <div className="ai-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b">
               <div className="flex items-center gap-2">
-                <span className="ai-fab" style={{ width: 36, height: 36 }}>
-                  <span className="ai-fab-eyes">
-                    <span style={{ width: 3, height: 3 }}></span>
-                    <span style={{ width: 3, height: 3 }}></span>
-                  </span>
-                </span>
+                <AiTutorRobot size={36} still />
                 <span className="font-bold text-gray-800">AI에게 물어보세요</span>
               </div>
               <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-700 transition-colors">
@@ -377,7 +466,7 @@ export function AiAssistantWidget() {
                 </p>
                 {contextButton && <div className="mb-4">{contextButton}</div>}
                 <div className="bg-gray-50 rounded-2xl px-4">
-                  {suggestedQuestions.map((q, idx) => (
+                  {questions.map((q, idx) => (
                     <button
                       key={idx}
                       className="ai-panel-suggestion"

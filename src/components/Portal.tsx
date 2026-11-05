@@ -291,7 +291,7 @@ export function Portal() {
       <div className="h-screen flex flex-col">
         <Suspense fallback={<LoadingSpinner />}>
           <CSMPage onBack={() => setIsNStudyHubOpen(false)} />
-          <AiAssistantWidget />
+          <AiAssistantWidget page="csm" />
         </Suspense>
       </div>
     );
@@ -321,8 +321,7 @@ export function Portal() {
     return (
       <Suspense fallback={<LoadingSpinner />}>
         {pageMap[currentPage]}
-        {/* 운전보감은 문제 해설이 이미 포함되어 있어 AI 도우미를 표시하지 않음 */}
-        {currentPage !== 'driverlicense' && <AiAssistantWidget />}
+        <AiAssistantWidget hideFab={currentPage === 'driverlicense'} page={currentPage} />
         {bottomNav}
         {authModals}
       </Suspense>

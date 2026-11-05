@@ -14,6 +14,7 @@ import {
   setProgress as saveProgress,
   useDriverLicenseRecords,
 } from '../utils/driverLicenseRecords';
+import { askAi, setAiContext } from '../utils/aiAssistant';
 
 // 과목1 문제 데이터 (원본: 2026年科目一新规2309题, 한국어 번역본)
 // 과목1 공식 문제 유형은 판단형(判断题)과 단일 선택형(单选题) 두 가지뿐
@@ -233,7 +234,7 @@ function QuestionCard({
 }) {
   const [zoom, setZoom] = useState(false);
   const images = q.img && (
-    <div className={compact ? 'flex flex-wrap gap-2 justify-center' : 'flex flex-wrap gap-3 mb-6'}>
+    <div className={compact ? 'flex flex-wrap gap-2 justify-center lg:max-w-[760px] lg:mb-4' : 'flex flex-wrap gap-3 mb-6'}>
       {q.img.map((name) => (
         <img
           key={name}
@@ -249,7 +250,7 @@ function QuestionCard({
   );
 
   const options = (
-    <div className={compact ? (q.t === 'j' ? 'grid grid-cols-2 gap-2 sm:gap-3' : 'flex flex-col gap-2 sm:gap-2.5') : 'flex flex-col gap-3'}>
+    <div className={`${compact ? 'flex flex-col gap-2 sm:gap-2.5' : 'flex flex-col gap-3'} lg:max-w-[760px]`}>
       {optionsOf(q).map((text, i) => {
         const isSelected = selected.includes(i);
         const isAnswer = i === q.a;
@@ -328,21 +329,8 @@ function QuestionCard({
         </h2>
         {headerRight}
       </div>
-      {compact ? (
-        q.img ? (
-          <div className="flex flex-col gap-3 lg:flex-row-reverse lg:items-start lg:gap-6">
-            <div className="lg:w-[46%] shrink-0">{images}</div>
-            <div className="flex-1 min-w-0">{options}</div>
-          </div>
-        ) : (
-          options
-        )
-      ) : (
-        <>
-          {images}
-          {options}
-        </>
-      )}
+      {images}
+      {options}
       {zoom && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex flex-col items-center justify-center p-4 gap-3" onClick={() => setZoom(false)}>
           <div className="flex flex-col items-center gap-3 overflow-y-auto max-h-full py-2" onClick={(e) => e.stopPropagation()}>
@@ -364,6 +352,24 @@ function QuestionCard({
   );
 }
 
+// AI 도우미에게 보낼 해설 요청 (공식 정답을 전제로 정답·오답 이유를 짧게)
+function explainPrompt(q: DLQuestion, selected?: number) {
+  const options = optionsOf(q);
+  return [
+    '[중국 운전면허 과목1(필기) 문제 해설 요청]',
+    `문제: ${q.q}`,
+    '보기:',
+    ...options.map((text, i) => `${LETTERS[i]}. ${text}`),
+    `공식 정답: ${answerText(q)}`,
+    selected !== undefined && selected !== q.a ? `내가 고른 답: ${LETTERS[selected]}. ${options[selected]}` : '',
+    q.img ? '(그림이 있는 문제입니다. 그림은 볼 수 없으니 문제 글과 보기로 설명해 주세요.)' : '',
+    '',
+    '공식 정답이 맞다는 전제로, 정답인 이유와 다른 보기(특히 내가 고른 답)가 틀린 이유를 중국 도로교통안전법 기준으로 한국어 3~5줄 이내로 간단히 설명해 주세요. 관련 숫자(벌점·속도·거리·기간 등)가 있으면 꼭 넣어 주세요.',
+  ]
+    .filter((line, i, all) => line !== '' || (i > 0 && all[i - 1] !== ''))
+    .join('\n');
+}
+
 function ExplanationBox({ q, selected, compact = false }: { q: DLQuestion; selected?: number; compact?: boolean }) {
   const correct = selected === undefined ? null : selected === q.a;
   return (
@@ -380,6 +386,18 @@ function ExplanationBox({ q, selected, compact = false }: { q: DLQuestion; selec
         </p>
       )}
       {fastTip(q) && <p className="mt-1.5 text-[15px] text-[#b9560e] leading-relaxed">⚡ {fastTip(q)}</p>}
+      <button
+        type="button"
+        onClick={() =>
+          askAi({
+            label: correct === false ? `${LETTERS[selected!]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답 이유를 자세히 설명해 줘',
+            prompt: explainPrompt(q, selected),
+          })
+        }
+        className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#bfe2fa] bg-white text-sm text-[#2a8bc9] hover:bg-[#eef7fe]"
+      >
+        <span aria-hidden>🤖</span> AI에게 더 자세히 묻기
+      </button>
     </div>
   );
 }
@@ -423,6 +441,17 @@ export function PracticeQuiz({
   const answered = progress.answers[q.id];
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  // AI 도우미 버튼을 누르면 지금 보는 문제를 바로 설명받을 수 있게
+  useEffect(() => {
+    const selected = answered?.[0];
+    setAiContext({
+      title: `${title} ${index + 1}번 문제`,
+      label: selected !== undefined && selected !== q.a ? `${LETTERS[selected]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답·오답 이유를 설명해 줘',
+      prompt: explainPrompt(q, selected),
+    });
+  }, [q, index, title, answered]);
+  useEffect(() => () => setAiContext(null), []);
 
   // 풀이 화면이 열려 있는 동안 뒤 페이지가 스크롤되지 않게
   useEffect(() => {
@@ -527,28 +556,26 @@ export function PracticeQuiz({
   // 한 화면 풀이: 위(뒤로·현재 위치·답안지·즐겨찾기) / 가운데(문제·그림·보기·해설) / 아래 고정(이전·해설·다음)
   return (
     <div className="fixed inset-0 z-[1000] bg-white flex flex-col" style={{ height: '100dvh' }} role="dialog" aria-modal="true" aria-label={title}>
-      <div className="flex-none flex items-center gap-1.5 sm:gap-2 px-1.5 sm:px-5 py-1.5 border-b border-gray-200 bg-[#f7fbfe]">
+      {/* 모바일: 예전 상단 바 (뒤로·현재 위치·답안지·즐겨찾기) */}
+      <div className="lg:hidden flex-none flex items-center gap-1.5 px-1.5 py-1.5 border-b border-gray-200 bg-[#f7fbfe]">
         <button
           onClick={onBack}
           aria-label={backLabel}
           title={backLabel}
-          className="shrink-0 h-10 px-2.5 rounded-lg flex items-center gap-1.5 text-[#2a8bc9] hover:bg-white"
+          className="shrink-0 h-10 px-2.5 rounded-lg flex items-center text-[#2a8bc9] hover:bg-white"
         >
           <i className="fa-solid fa-arrow-left text-lg"></i>
-          <span className="hidden lg:inline text-sm">{backLabel}</span>
         </button>
         <div className="flex-1 min-w-0 leading-tight">
-          <div className="truncate text-[11px] sm:text-xs text-gray-400">현재위치: {breadcrumb}</div>
-          <div className="truncate text-[14px] sm:text-[15px] font-medium text-gray-800">{title}</div>
+          <div className="truncate text-[11px] text-gray-400">현재위치: {breadcrumb}</div>
+          <div className="truncate text-[14px] font-medium text-gray-800">{title}</div>
         </div>
         <button
           onClick={() => setShowSheet(true)}
           aria-label="답안지 보기"
-          title="답안지 보기"
-          className="shrink-0 h-9 px-2.5 rounded-lg border border-gray-300 bg-white flex items-center gap-1.5 text-[13px] sm:text-sm text-gray-700 hover:border-[#37a7f0] active:bg-gray-100"
+          className="shrink-0 h-9 px-2.5 rounded-lg border border-gray-300 bg-white flex items-center gap-1.5 text-[13px] text-gray-700 hover:border-[#37a7f0] active:bg-gray-100"
         >
           <i className="fa-solid fa-table-cells text-[#37a7f0]"></i>
-          <span className="hidden sm:inline">답안지</span>
           <span className="tabular-nums">
             {index + 1}/{questions.length}
           </span>
@@ -557,19 +584,59 @@ export function PracticeQuiz({
           onClick={toggleFavorite}
           aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
           aria-pressed={isFavorite}
-          title="즐겨찾기"
           className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg hover:bg-white ${isFavorite ? 'text-[#f1b10f]' : 'text-gray-400 hover:text-[#f1b10f]'}`}
         >
           <i className={`fa-${isFavorite ? 'solid' : 'regular'} fa-star`}></i>
         </button>
       </div>
-      <div className="flex-none h-1 bg-gray-100">
+      <div className="lg:hidden flex-none h-1 bg-gray-100">
         <div className="h-full bg-[#37a7f0] transition-all" style={{ width: `${((stats.correct + stats.wrong) / questions.length) * 100}%` }}></div>
       </div>
 
-      <div ref={panelRef} className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-3.5 sm:py-5 [@media(max-height:700px)]:py-2.5">
+      <div ref={panelRef} className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-3.5 sm:py-5 lg:pt-6 [@media(max-height:700px)]:py-2.5">
         <div className="max-w-[1100px] mx-auto">
-          <QuestionCard q={q} label={`${index + 1}.`} selected={answered ?? []} reveal={!!answered} onSelect={answered ? undefined : handleSelect} compact />
+          {/* 노트북: 페이지형 헤더 (뒤로·현재 위치·진행률·답안지) */}
+          <div className="hidden lg:block">
+            <BackButton onClick={onBack} label={backLabel} />
+
+            <div className="text-sm text-gray-400 mb-6">
+              현재위치: {breadcrumb}
+              <span className="mx-1">&gt;</span>
+              <strong className="text-gray-700">{title}</strong>
+            </div>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-[#37a7f0] transition-all" style={{ width: `${((stats.correct + stats.wrong) / questions.length) * 100}%` }}></div>
+              </div>
+              <button
+                onClick={() => setShowSheet(true)}
+                aria-label="답안지 보기"
+                className="shrink-0 flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#37a7f0]"
+              >
+                <i className="fa-solid fa-table-cells"></i>답안지 {index + 1}/{questions.length}
+              </button>
+            </div>
+          </div>
+
+          <QuestionCard
+            q={q}
+            label={`${index + 1}.`}
+            selected={answered ?? []}
+            reveal={!!answered}
+            onSelect={answered ? undefined : handleSelect}
+            compact
+            headerRight={
+              <button
+                onClick={toggleFavorite}
+                className={`hidden lg:flex shrink-0 items-center gap-1 px-2.5 py-1 rounded border text-xs transition-colors ${
+                  isFavorite ? 'bg-[#fff3cd] border-[#ffc107] text-[#856404]' : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <i className={`fa-${isFavorite ? 'solid' : 'regular'} fa-star`}></i> 즐겨찾기
+              </button>
+            }
+          />
           {explanationOpen && (
             <div ref={explanationRef} className="scroll-mb-3">
               <ExplanationBox q={q} selected={answered?.[0]} compact />
@@ -1734,12 +1801,21 @@ export function MockExamPage({ onBack }: { onBack: () => void }) {
     <div className="max-w-[1200px] mx-auto px-4 py-8">
       <BackButton onClick={onBack} label="필기시험으로 돌아가기" />
 
-      <header className="text-center mb-8">
+      <header className="text-center mb-4">
         <h1 className="text-2xl font-bold text-[#2c3e50] mb-2">소형차 필기시험(과목1) 모의고사</h1>
         <p className="text-sm text-gray-500">
           실제 시험과 같은 방식으로 100문제를 풀어 보세요. 회차마다 주제별 연습의 모든 단계에서 골고루 출제됩니다.
         </p>
       </header>
+
+      <div className="text-center mb-6">
+        <button
+          onClick={() => start(null)}
+          className="w-full sm:w-auto px-6 py-3 rounded-lg text-white bg-[#37a7f0] hover:bg-[#2a8bc9]"
+        >
+          <i className="fa-solid fa-shuffle mr-2"></i>랜덤 모의고사 시작
+        </button>
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         {[
@@ -1756,17 +1832,10 @@ export function MockExamPage({ onBack }: { onBack: () => void }) {
           </div>
         ))}
       </div>
-      <p className="text-xs text-gray-400 mb-10 leading-relaxed">
+      <p className="hidden sm:block text-xs text-gray-400 mb-10 leading-relaxed">
         과목1은 판단형과 단일 선택형 두 가지 유형만 출제됩니다. 2026년 개편 내용에 맞춰 그림(상황 그림·계기판), 교통 표지·노면
         표시, 신호등·교통경찰 수신호 문제를 합쳐 회차마다 55문제를 넣었고, 신에너지차·스마트 보조 주행 문제도 회차마다 포함됩니다.
       </p>
-
-      <button
-        onClick={() => start(null)}
-        className="w-full sm:w-auto mb-8 px-6 py-3 rounded-lg text-white bg-[#37a7f0] hover:bg-[#2a8bc9]"
-      >
-        <i className="fa-solid fa-shuffle mr-2"></i>랜덤 모의고사 시작 (전체 문제에서 무작위 출제)
-      </button>
 
       <h2 className="text-lg font-medium text-gray-800 mb-4">회차별 모의고사 ({sets.length}회분)</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">

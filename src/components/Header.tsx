@@ -105,12 +105,29 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
     }
   };
 
-  // 모바일이면 탭 전환, 데스크탑이면 스크롤
+  // 상단 서비스 탭 → 페이지별 하위 URL 로 이동 (모바일은 탭 전환)
+  const tabPages: Record<string, string> = {
+    visa: 'visadocument',
+    education: 'education',
+    yellow: 'yellowpages',
+    auto: 'auto',
+    news: 'news',
+    market: 'usedmarket',
+    securities: 'securities',
+    realestate: 'realestate',
+  };
+
   const navTab = (tabId: string, sectionId: string, mobileId: string) => {
-    const isMobile = window.innerWidth < 1024;
+    // 모바일 탭 UI(5칸 2줄)는 sm 미만에서만 보이므로, 그 기준으로 구분
+    const isMobile = window.innerWidth < 640;
     if (isMobile && onMobileTabSelect) {
       onMobileTabSelect(tabId);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const page = tabPages[tabId];
+    if (onNavigate && page) {
+      onNavigate(page);
     } else {
       scrollToSection(sectionId, mobileId);
     }
