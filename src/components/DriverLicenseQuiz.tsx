@@ -1845,19 +1845,21 @@ function ExamRunner({
     <div ref={rootRef} className="fixed inset-0 z-[1000] bg-white overflow-auto" role="dialog" aria-modal="true" aria-label="모의고사 시험 화면">
       <div className="md:min-w-[1024px] h-screen flex flex-col" style={{ height: '100dvh' }}>
         {/* 상단 바 (이전 스타일): 시험 이름·남은 시간·전체 화면·제출·그만두기 */}
-        <div className="flex-none flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
-          <span className="font-medium text-gray-800">{session.title ?? (session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`)}</span>
-          <span className="text-sm text-gray-500">
-            {answeredCount}/{total} 답함
+        {/* 한 줄 고정: 좁은 화면에서는 시험 이름이 말줄임으로 줄어들고, ← 버튼은 항상 남은 시간 오른쪽에 */}
+        <div className="flex-none flex flex-nowrap items-center gap-x-2 sm:gap-x-3 px-3 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
+          <span className="min-w-0 truncate font-medium text-gray-800">{session.title ?? (session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`)}</span>
+          <span className="shrink-0 whitespace-nowrap text-sm text-gray-500">
+            {answeredCount}/{total}
+            <span className="hidden sm:inline"> 답함</span>
           </span>
-          <span className={`font-mono text-lg px-3 py-1 rounded ${remaining <= 300 ? 'bg-red-50 text-[#e74c3c]' : 'bg-white text-gray-800'}`}>
+          <span className={`shrink-0 whitespace-nowrap font-mono text-base sm:text-lg px-2 sm:px-3 py-1 rounded ${remaining <= 300 ? 'bg-red-50 text-[#e74c3c]' : 'bg-white text-gray-800'}`}>
             <i className="fa-regular fa-clock mr-1.5"></i>
             {formatTime(remaining)}
           </span>
-          <button onClick={onExit} className="md:hidden w-9 h-9 rounded-full flex items-center justify-center text-[#2a8bc9]" aria-label="되돌아가기">
+          <button onClick={onExit} className="md:hidden shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-[#2a8bc9]" aria-label="되돌아가기">
             <i className="fa-solid fa-arrow-left text-lg"></i>
           </button>
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="shrink-0 flex items-center gap-2 ml-auto">
             {typeof document !== 'undefined' && !!document.fullscreenEnabled && (
               <button
                 onClick={toggleFullscreen}
