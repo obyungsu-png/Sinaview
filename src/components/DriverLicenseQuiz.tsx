@@ -2037,41 +2037,61 @@ function ExamRunner({
                 ))}
               </div>
             )}
-            <div className="mt-3 space-y-3 text-[16px] text-gray-800">
-              {optionsOf(q).map((text, i) => (
-                <div key={i}>
-                  {LETTERS[i]}、{text}
-                </div>
-              ))}
-            </div>
-            <div className="mt-6">
-              <div className="text-[15px] text-gray-800 mb-2">
-                선택한 답: <b className="text-[#e60012]">{session.answers[index] !== undefined ? LETTERS[session.answers[index]] : ''}</b>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[13px] text-gray-600 mr-1">답 고르기:</span>
-                {optionsOf(q).map((text, i) => (
+            {/* 보기를 직접 눌러 답 고르기: 고른 보기는 초록색으로 표시 */}
+            <div className="mt-4 flex flex-col gap-2.5" role="radiogroup" aria-label="답 고르기">
+              {optionsOf(q).map((text, i) => {
+                const chosen = session.answers[index] === i;
+                return (
                   <button
                     key={i}
+                    type="button"
+                    role="radio"
+                    aria-checked={chosen}
                     onClick={() => select(i)}
-                    className={`w-[46px] h-[46px] border text-[16px] ${
-                      session.answers[index] === i
-                        ? 'bg-[#19b39b] border-[#19b39b] text-white'
-                        : 'bg-[#f0f0f0] border-[#bfbfbf] text-gray-700'
+                    className={`w-full min-h-[54px] flex items-center gap-3 px-3.5 py-3 rounded-xl border-2 text-left text-[16px] leading-snug transition-colors ${
+                      chosen ? 'bg-[#e8f8f4] border-[#19b39b] text-gray-900' : 'bg-white border-[#d5d5d5] text-gray-800 active:bg-gray-50'
                     }`}
                   >
-                    {LETTERS[i]}
+                    <span
+                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[15px] font-bold ${
+                        chosen ? 'bg-[#19b39b] text-white' : 'bg-[#f0f0f0] text-gray-600'
+                      }`}
+                    >
+                      {chosen ? <i className="fa-solid fa-check"></i> : LETTERS[i]}
+                    </span>
+                    <span className="flex-1">{text}</span>
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
           <div className="flex-none border-t border-[#e0e0e0] bg-white">
-            <div className="px-2 py-2 flex items-center gap-1.5">
-              <button onClick={togglePause} className="flex-1 min-w-0 px-1 py-2 border border-[#bfbfbf] bg-[#f0f0f0] text-[12px] text-[#333] active:bg-[#e6e6e6]">일시정지</button>
-              <button onClick={() => setIndex(index - 1)} disabled={index === 0} className="flex-1 min-w-0 px-1 py-2 border border-[#bfbfbf] bg-[#f0f0f0] text-[12px] text-[#333] disabled:text-[#aaa] disabled:bg-[#f7f7f7]">이전</button>
-              <button onClick={() => setIndex(index + 1)} disabled={index === total - 1} className="flex-1 min-w-0 px-1 py-2 border border-[#bfbfbf] bg-[#f0f0f0] text-[12px] text-[#333] disabled:text-[#aaa] disabled:bg-[#f7f7f7]">다음</button>
-              <button onClick={submit} className="flex-1 min-w-0 px-1 py-2 border border-[#bfbfbf] bg-[#f0f0f0] text-[12px] text-[#333] active:bg-[#e6e6e6]">제출</button>
+            <div className="px-3 py-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+              <button
+                onClick={() => setIndex(index - 1)}
+                disabled={index === 0}
+                className="justify-self-start w-full max-w-[140px] h-12 rounded-xl border border-[#bfbfbf] bg-white text-[15px] font-medium text-[#333] active:bg-[#f0f0f0] disabled:text-[#bbb] disabled:border-[#e0e0e0]"
+              >
+                <i className="fa-solid fa-chevron-left mr-1.5"></i>이전
+              </button>
+              <button onClick={togglePause} className="h-12 px-4 rounded-xl border border-[#bfbfbf] bg-[#f0f0f0] text-[14px] text-[#333] active:bg-[#e4e4e4]">
+                <i className="fa-solid fa-pause mr-1.5"></i>일시정지
+              </button>
+              {index < total - 1 ? (
+                <button
+                  onClick={() => setIndex(index + 1)}
+                  className="justify-self-end w-full max-w-[140px] h-12 rounded-xl bg-[#37a7f0] text-[15px] font-medium text-white active:bg-[#2a8bc9]"
+                >
+                  다음<i className="fa-solid fa-chevron-right ml-1.5"></i>
+                </button>
+              ) : (
+                <button
+                  onClick={submit}
+                  className="justify-self-end w-full max-w-[140px] h-12 rounded-xl bg-[#19b39b] text-[15px] font-medium text-white active:bg-[#14917e]"
+                >
+                  제출하기
+                </button>
+              )}
             </div>
             <button onClick={() => setSheetOpen(true)} className="w-full px-3 py-2.5 border-t border-[#e0e0e0] text-[14px] font-medium text-gray-700 bg-[#f7fbfe]">
               <i className="fa-solid fa-table-cells mr-1.5"></i>답안지 정보 (답함 {answeredCount}/{total})
@@ -2136,6 +2156,15 @@ function ExamRunner({
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => {
+                setSheetOpen(false);
+                submit();
+              }}
+              className="w-full mt-4 h-12 rounded-xl bg-[#19b39b] text-white text-[15px] font-medium active:bg-[#14917e]"
+            >
+              답안 제출 ({answeredCount}/{total})
+            </button>
           </div>
         </div>
       )}
