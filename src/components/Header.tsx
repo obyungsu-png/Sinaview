@@ -110,7 +110,6 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
     visa: 'visadocument',
     education: 'education',
     yellow: 'yellowpages',
-    auto: 'auto',
     news: 'news',
     market: 'usedmarket',
     securities: 'securities',
