@@ -95,27 +95,23 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
   const scrollToSection = (sectionId: string, mobileId?: string) => {
     const isMobile = window.innerWidth < 1024;
     const targetId = isMobile && mobileId ? mobileId : sectionId;
-    const element = document.getElementById(targetId);
-    
-    if (element) {
-      element.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
+    // 홈 섹션은 점진적으로 렌더링되므로, 요소가 나올 때까지 잠시 재시도
+    const tryScroll = (attempt = 0) => {
+      const element = document.getElementById(targetId) ?? document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      } else if (attempt < 10) {
+        window.setTimeout(() => tryScroll(attempt + 1), 200);
+      }
+    };
+    tryScroll();
   };
 
-  // 상단 서비스 탭 → 페이지별 하위 URL 로 이동 (모바일은 탭 전환)
-  const tabPages: Record<string, string> = {
-    visa: 'visadocument',
-    education: 'education',
-    yellow: 'yellowpages',
-    news: 'news',
-    market: 'usedmarket',
-    securities: 'securities',
-    realestate: 'realestate',
-  };
-
+  // 상단 서비스 탭 → 홈의 해당 섹션으로 스크롤 (모바일은 홈 탭 전환)
+  // 각 전용 페이지는 섹션 위젯의 "더보기" 버튼으로 이동
   const navTab = (tabId: string, sectionId: string, mobileId: string) => {
     // 모바일 탭 UI(5칸 2줄)는 sm 미만에서만 보이므로, 그 기준으로 구분
     const isMobile = window.innerWidth < 640;
@@ -124,12 +120,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    const page = tabPages[tabId];
-    if (onNavigate && page) {
-      onNavigate(page);
-    } else {
-      scrollToSection(sectionId, mobileId);
-    }
+    scrollToSection(sectionId, mobileId);
   };
 
   const handleSuggestionClick = (item: typeof searchableItems[0]) => {

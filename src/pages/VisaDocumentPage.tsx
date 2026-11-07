@@ -497,37 +497,6 @@ export function VisaDocumentPage({ onBack, selectedArticle, currentUser, isAdmin
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Quick Services — 카테고리 연동 */}
-        <div className="mb-6">
-          <h2 className="text-base font-semibold mb-4">빠른 서비스</h2>
-          <div className="flex gap-4 overflow-x-auto pb-2" style={{scrollbarWidth:'none'}}>
-            {currentQuickServices.map(item => (
-              <button
-                key={item.service}
-                onClick={() => handleQuickService(item.service)}
-                className="flex flex-col items-center gap-2 shrink-0 group"
-              >
-                <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 bg-white group-hover:border-teal-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-all">
-                  {item.icon}
-                </div>
-                <p className="text-xs text-gray-700 whitespace-nowrap">{item.label}</p>
-              </button>
-            ))}
-            {/* 전체 카테고리일 때만 더보기/접기 버튼 */}
-            {isAll && (
-              <button
-                onClick={() => setShowMoreServices(v => !v)}
-                className="flex flex-col items-center gap-2 shrink-0 group"
-              >
-                <div className="w-14 h-14 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 bg-white group-hover:border-teal-300 group-hover:text-teal-500 transition-all text-lg">
-                  {showMoreServices ? '↑' : '···'}
-                </div>
-                <p className="text-xs text-gray-400 whitespace-nowrap">{showMoreServices ? '접기' : '더보기'}</p>
-              </button>
-            )}
-          </div>
-        </div>
-
         {/* Category Filters */}
         <div className="mb-6">
           <div className="flex items-center space-x-2 mb-4">

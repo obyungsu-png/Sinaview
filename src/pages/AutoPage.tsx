@@ -352,28 +352,6 @@ export function AutoPage({ onBack, currentUser, isAdmin }: AutoPageProps) {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Quick Services — 원형 아이콘 */}
-        <div className="mb-6">
-          <h2 className="text-base font-semibold mb-4">빠른 서비스</h2>
-          <div className="flex gap-4 overflow-x-auto pb-2" style={{scrollbarWidth:'none'}}>
-            {[
-              { icon: <Car className="w-5 h-5" />, label: '신차 검색' },
-              { icon: <Zap className="w-5 h-5" />, label: '전기차 정보' },
-              { icon: <Star className="w-5 h-5" />, label: '중고차 시세' },
-              { icon: <TrendingUp className="w-5 h-5" />, label: '시승 예약' },
-              { icon: <Filter className="w-5 h-5" />, label: '정비 서비스' },
-              { icon: <Search className="w-5 h-5" />, label: '면허 안내' },
-              { icon: <Car className="w-5 h-5" />, label: '자동차 상담' },
-            ].map(item => (
-              <button key={item.label} className="flex flex-col items-center gap-2 shrink-0 group">
-                <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 bg-white group-hover:border-teal-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-all">
-                  {item.icon}
-                </div>
-                <p className="text-xs text-gray-700 whitespace-nowrap">{item.label}</p>
-              </button>
-            ))}
-          </div>
-        </div>
         {/* Category Filters */}
         <div className="mb-6">
           <div className="flex items-center space-x-2 mb-3">
