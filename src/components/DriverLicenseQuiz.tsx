@@ -213,6 +213,38 @@ function BackButton({ onClick, label }: { onClick: () => void; label: string }) 
   );
 }
 
+// 모든 확대 팝업에서 같은 크기의 큰 박스로 표시 (원본 해상도가 작아도 강제로 확대)
+const LIGHTBOX_IMG_STYLE: CSSProperties = {
+  width: 'min(92vw, 900px)',
+  height: 'min(70vh, 600px)',
+  objectFit: 'contain',
+};
+
+// 작은 그림 클릭 → 화면 가득 확대해 보는 라이트박스 (배경 클릭·닫기 버튼으로 종료)
+function ImageLightbox({ src, caption, onClose }: { src: string; caption?: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/80 flex flex-col items-center justify-center p-4 gap-3" onClick={onClose}>
+      <div className="flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <img
+          src={imageUrl(src)}
+          alt={caption || '그림 확대'}
+          style={LIGHTBOX_IMG_STYLE}
+          className="rounded bg-white"
+        />
+        {caption && <p className="text-sm text-white text-center leading-snug max-w-[90vw]">{caption}</p>}
+      </div>
+      <button
+        type="button"
+        aria-label="닫기"
+        onClick={onClose}
+        className="px-4 py-1.5 rounded-full bg-white/90 text-gray-800 text-sm hover:bg-white transition-colors"
+      >
+        닫기 ✕
+      </button>
+    </div>
+  );
+}
+
 // 문제 한 개 (연습·오답 노트·결과 화면 공통)
 // compact: 연습 풀이 화면용 - 문제·그림·보기가 한 화면에 들어가도록 작게, 넓은 화면에서는 보기(왼쪽)와 그림(오른쪽)을 나란히
 function QuestionCard({
@@ -335,7 +367,7 @@ function QuestionCard({
         <div className="fixed inset-0 z-[60] bg-black/70 flex flex-col items-center justify-center p-4 gap-3" onClick={() => setZoom(false)}>
           <div className="flex flex-col items-center gap-3 overflow-y-auto max-h-full py-2" onClick={(e) => e.stopPropagation()}>
             {q.img!.map((name) => (
-              <img key={name} src={imageUrl(name)} alt="문제 그림 확대" className="max-w-full max-h-[80vh] w-auto rounded bg-white object-contain" />
+              <img key={name} src={imageUrl(name)} alt="문제 그림 확대" style={LIGHTBOX_IMG_STYLE} className="rounded bg-white" />
             ))}
           </div>
           <button
@@ -959,6 +991,8 @@ function StageIntro({
   const stageCheckPrefix = `stage:${group.key}:`;
   const checked = info?.sections ? checkedCount(stageCheckPrefix) : 0;
   const [, bumpChecks] = useState(0);
+  // 소주제 기출 그림 클릭 확대
+  const [zoomPic, setZoomPic] = useState<{ src: string; caption?: string } | null>(null);
 
   const startButtons = (className: string) => (
     <div className={`flex flex-wrap gap-2 sm:gap-3 ${className}`}>
@@ -985,6 +1019,7 @@ function StageIntro({
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
       <BackButton onClick={onBack} label="주제별 연습으로 돌아가기" />
+      {zoomPic && <ImageLightbox src={zoomPic.src} caption={zoomPic.caption} onClose={() => setZoomPic(null)} />}
       <div className="text-sm text-gray-400 mb-6">
         현재위치: {STAGE_BREADCRUMB}
         <span className="mx-1">&gt;</span>
@@ -1073,7 +1108,8 @@ function StageIntro({
                                         src={imageUrl(pic.img)}
                                         alt={pic.caption}
                                         loading="lazy"
-                                        className="w-full h-28 sm:h-32 object-contain rounded border border-gray-200 bg-white"
+                                        onClick={() => setZoomPic({ src: pic.img, caption: pic.caption })}
+                                        className="w-full h-32 sm:h-40 object-contain rounded border border-gray-200 bg-white cursor-zoom-in hover:border-[#37a7f0] transition-colors"
                                       />
                                       <figcaption className="mt-1 text-[11px] sm:text-xs leading-snug text-gray-600">{pic.caption}</figcaption>
                                     </figure>
@@ -1367,6 +1403,8 @@ function FastCards({ onBack }: { onBack: () => void }) {
   const topics = ['전체', ...Array.from(new Set(FAST_CARDS.map((card) => card.topic)))];
   const [topic, setTopic] = useState('전체');
   const [, rerender] = useState(0);
+  // 카드 그림 클릭 확대
+  const [zoomPic, setZoomPic] = useState<{ src: string; caption?: string } | null>(null);
   const toggle = (i: number) => {
     const next = new Set(done);
     if (next.has(i)) next.delete(i);
@@ -1379,6 +1417,7 @@ function FastCards({ onBack }: { onBack: () => void }) {
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
       <BackButton onClick={onBack} label="속성 과정으로 돌아가기" />
+      {zoomPic && <ImageLightbox src={zoomPic.src} caption={zoomPic.caption} onClose={() => setZoomPic(null)} />}
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">① 암기 구결·요령</h1>
       <p className="text-sm text-gray-500 mb-5">
         자주 나오는 숫자·규칙을 먼저 외우세요. 외운 카드는 "외웠어요"를 눌러 표시해 두면 진도가 저장돼요. ({done.size}/{FAST_CARDS.length}장 외움 · 체크 {checkedCount('card:')}/{FAST_CARDS.length}장)
@@ -1419,8 +1458,14 @@ function FastCards({ onBack }: { onBack: () => void }) {
               {card.images && (
                 <div className="mt-3 flex flex-wrap gap-3">
                   {card.images.map((pic) => (
-                    <figure key={pic.src} className="w-[110px] sm:w-[130px] text-center">
-                      <img src={imageUrl(pic.src)} alt={pic.caption || card.title} loading="lazy" className="w-full h-auto rounded border border-gray-200 bg-white" />
+                    <figure key={pic.src} className="w-[130px] sm:w-[160px] text-center">
+                      <img
+                        src={imageUrl(pic.src)}
+                        alt={pic.caption || card.title}
+                        loading="lazy"
+                        onClick={() => setZoomPic({ src: pic.src, caption: pic.caption || card.title })}
+                        className="w-full h-auto rounded border border-gray-200 bg-white cursor-zoom-in hover:border-[#37a7f0] transition-colors"
+                      />
                       {pic.caption && <figcaption className="mt-1 text-xs text-gray-600 leading-snug">{pic.caption}</figcaption>}
                     </figure>
                   ))}
@@ -2297,7 +2342,7 @@ function ExamRunner({
         <div className="fixed inset-0 z-40 bg-black/70 flex flex-col items-center justify-center p-4 gap-3" onClick={() => setZoom(false)}>
           <div className="flex flex-col items-center gap-3 overflow-y-auto max-h-full py-2" onClick={(e) => e.stopPropagation()}>
             {q.img.map((name) => (
-              <img key={name} src={imageUrl(name)} alt="문제 그림 확대" className="max-w-full max-h-[80vh] w-auto bg-white object-contain" />
+              <img key={name} src={imageUrl(name)} alt="문제 그림 확대" style={LIGHTBOX_IMG_STYLE} className="bg-white" />
             ))}
           </div>
           <button
