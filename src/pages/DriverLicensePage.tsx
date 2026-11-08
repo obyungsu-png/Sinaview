@@ -13,6 +13,7 @@ import {
 } from '../components/DriverLicenseQuiz';
 import { RETENTION_DAYS, startDriverLicenseSync, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
 import { EXAM_GUIDE } from '../data/driverLicenseGuide';
+import { FullScorePage } from '../components/DriverLicenseFullScore';
 
 interface DriverLicensePageProps {
   onBack: () => void;
@@ -253,7 +254,7 @@ const FAQ_ITEMS: FaqItem[] = [
 export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePageProps) {
   const [selectedCity, setSelectedCity] = useState('대련');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'fast' | 'mock' | 'wrong' | 'app123'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'fast' | 'mock' | 'wrong' | 'app123' | 'fullscore'>('home');
   const [introOpen, setIntroOpen] = useState(false);
   useDriverLicenseRecords();
   useEffect(() => {
@@ -363,6 +364,12 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'practice' ? 'bg-blue-600' : ''}`}
             >
               필기시험
+            </li>
+            <li
+              onClick={() => setCurrentView('fullscore')}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'fullscore' ? 'bg-blue-600' : ''}`}
+            >
+              만점 교육
             </li>
             <li 
               onClick={() => setCurrentView('lecture')}
@@ -1349,6 +1356,9 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
       ) : currentView === 'wrong' ? (
         // 틀린 문제 모아 보기
         <WrongNotesPage onBack={() => setCurrentView('practice')} />
+      ) : currentView === 'fullscore' ? (
+        // 만점 교육: 벌점 12점 교육 시험 (중국어로만 출제) - 안내·주제별 연습·실전 모의고사·속성 과정
+        <FullScorePage onBack={() => setCurrentView('home')} />
       ) : (
         // 동영상 강의 페이지
         <div className="max-w-[1200px] mx-auto px-4 py-8">

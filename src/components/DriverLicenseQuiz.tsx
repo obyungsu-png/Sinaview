@@ -28,12 +28,14 @@ export type DLQuestion = {
   a: number;
   e?: string;
   img?: string[];
+  // 만점 교육(중국어로만 시험): q·o 가 중국어 원문일 때 한국어 번역
+  ko?: { q: string; o?: string[] };
 };
 export type DLKind = 'txt' | 'pic' | 'sign' | 'sig';
 export type DLChapter = { id: number; title: string };
 // 속성 과정(정선 500문제): 문제 id(책 순서), 문제별 요령, 시험 전날 100문제
 type DLFast = { ids: number[]; tips: Record<string, string>; exam?: number[] };
-type DLData = { chapters: DLChapter[]; questions: DLQuestion[]; imgSize?: Record<string, [number, number]>; fast?: DLFast };
+export type DLData = { chapters: DLChapter[]; questions: DLQuestion[]; imgSize?: Record<string, [number, number]>; fast?: DLFast };
 
 let dataCache: DLData | null = null;
 let dataPromise: Promise<DLData> | null = null;
@@ -99,7 +101,10 @@ export const KIND_LABEL: Record<DLKind, string> = {
 const KIND_SHORT: Record<DLKind, string> = { txt: '글', pic: '그림', sign: '표지', sig: '신호·수신호' };
 export const kindOf = (q: DLQuestion): DLKind => q.k ?? 'txt';
 
-const optionsOf = (q: DLQuestion) => (q.t === 'j' ? JUDGE_OPTIONS : q.o ?? []);
+const JUDGE_ZH = ['正确', '错误'];
+const optionsOf = (q: DLQuestion) => (q.t === 'j' ? (q.ko ? JUDGE_ZH : JUDGE_OPTIONS) : q.o ?? []);
+// 중국어 문제의 보기 한국어 번역 (판단형은 맞음/틀림)
+const koOptionsOf = (q: DLQuestion) => (q.ko ? (q.t === 'j' ? JUDGE_OPTIONS : q.ko.o ?? []) : []);
 const isCorrect = (q: DLQuestion, selected: number[] | undefined) => selected?.length === 1 && selected[0] === q.a;
 const answerText = (q: DLQuestion) => `${LETTERS[q.a]}. ${optionsOf(q)[q.a]}`;
 const imageUrl = (name: string) => `${import.meta.env.BASE_URL}driver-license/img/${name}`;
@@ -167,7 +172,7 @@ function mulberry32(seed: number) {
   };
 }
 
-function shuffle<T>(items: T[], seed = Math.floor(Math.random() * 2 ** 32)): T[] {
+export function shuffle<T>(items: T[], seed = Math.floor(Math.random() * 2 ** 32)): T[] {
   const result = items.slice();
   const random = mulberry32(seed);
   for (let i = result.length - 1; i > 0; i--) {
@@ -182,7 +187,7 @@ function formatTime(totalSeconds: number) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function LoadingState({ failed, onBack }: { failed: boolean; onBack: () => void }) {
+export function LoadingState({ failed, onBack }: { failed: boolean; onBack: () => void }) {
   return (
     <div className="max-w-[1000px] mx-auto px-5 py-20 text-center text-gray-500">
       {failed ? (
@@ -201,7 +206,7 @@ function LoadingState({ failed, onBack }: { failed: boolean; onBack: () => void 
   );
 }
 
-function BackButton({ onClick, label }: { onClick: () => void; label: string }) {
+export function BackButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
     <button
       onClick={onClick}
@@ -255,6 +260,7 @@ function QuestionCard({
   onSelect,
   headerRight,
   compact = false,
+  translate,
 }: {
   q: DLQuestion;
   label: string;
@@ -263,8 +269,11 @@ function QuestionCard({
   onSelect?: (index: number) => void;
   headerRight?: ReactNode;
   compact?: boolean;
+  translate?: boolean; // 중국어 문제의 한국어 번역 보이기 (기본: 풀이 화면은 숨김, 결과·오답 화면은 보임)
 }) {
   const [zoom, setZoom] = useState(false);
+  const showKo = !!q.ko && (translate ?? !compact);
+  const koOptions = showKo ? koOptionsOf(q) : [];
   const images = q.img && (
     <div className={compact ? 'flex flex-wrap gap-2 justify-center lg:max-w-[760px] lg:mb-4' : 'flex flex-wrap gap-3 mb-6'}>
       {q.img.map((name) => (
@@ -311,7 +320,10 @@ function QuestionCard({
               }`}
             >
               <span className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[14px] font-bold ${badgeTone}`}>{badge}</span>
-              <span className="flex-1">{text}</span>
+              <span className="flex-1">
+                {text}
+                {koOptions[i] && <span className="block mt-0.5 text-[13px] sm:text-sm text-gray-500">{koOptions[i]}</span>}
+              </span>
             </button>
           );
         }
@@ -340,6 +352,7 @@ function QuestionCard({
             <span className="shrink-0 w-7 flex justify-center">{mark}</span>
             <span>
               {LETTERS[i]}. {text}
+              {koOptions[i] && <span className="block text-sm text-gray-500">{koOptions[i]}</span>}
             </span>
           </button>
         );
@@ -352,12 +365,13 @@ function QuestionCard({
       <div className={`flex justify-between items-start gap-4 ${compact ? 'mb-3' : 'mb-5'}`}>
         <h2 className={`${compact ? 'text-[17px] sm:text-xl leading-snug sm:leading-relaxed' : 'text-lg sm:text-[22px] leading-relaxed'} text-gray-900 font-normal`}>
           {label}{' '}
-          {isFast(q) && (
+          {isFast(q) && !q.ko && (
             <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded bg-[#fff4e0] text-[#d35400] text-xs font-medium" title="속성 과정 핵심 500문제">
               ⚡속성
             </span>
           )}
           {q.q}
+          {showKo && <span className="block mt-1 text-[14px] sm:text-[15px] text-gray-500 leading-snug">{q.ko!.q}</span>}
         </h2>
         {headerRight}
       </div>
@@ -390,6 +404,7 @@ function explainPrompt(q: DLQuestion, selected?: number) {
   return [
     '[중국 운전면허 과목1(필기) 문제 해설 요청]',
     `문제: ${q.q}`,
+    q.ko ? `(한국어 번역: ${q.ko.q})` : '',
     '보기:',
     ...options.map((text, i) => `${LETTERS[i]}. ${text}`),
     `공식 정답: ${answerText(q)}`,
@@ -409,7 +424,10 @@ function ExplanationBox({ q, selected, compact = false }: { q: DLQuestion; selec
       <h4 className="text-base font-medium text-gray-800 mb-1.5">
         {correct === true && <span className="mr-2 text-green-600">⭕ 정답이에요!</span>}
         {correct === false && <span className="mr-2 text-[#e74c3c]">❌ 틀렸어요.</span>}
-        <span className={correct === null ? '' : 'text-gray-600 font-normal'}>정답 {answerText(q)}</span>
+        <span className={correct === null ? '' : 'text-gray-600 font-normal'}>
+          정답 {answerText(q)}
+          {q.ko && <span className="text-gray-500 font-normal"> ({koOptionsOf(q)[q.a]})</span>}
+        </span>
       </h4>
       {q.e && (
         <p className="text-[15px] text-gray-700 leading-relaxed">
@@ -434,7 +452,7 @@ function ExplanationBox({ q, selected, compact = false }: { q: DLQuestion; selec
   );
 }
 
-type Progress = { index: number; answers: Record<number, number[]>; total?: number; correct?: number; wrong?: number };
+export type Progress = { index: number; answers: Record<number, number[]>; total?: number; correct?: number; wrong?: number };
 
 // 연습 문제 풀이 (순서 연습, 주제별 연습, 즐겨찾기 공통)
 export function PracticeQuiz({
@@ -459,6 +477,13 @@ export function PracticeQuiz({
     storageKey ? getProgress<Progress>(storageKey) ?? { index: 0, answers: {} } : { index: 0, answers: {} },
   );
   const [autoNext, setAutoNext] = useState(() => readStore('dl-auto-next', false));
+  // 만점 교육(중국어 문제): 한국어 번역 보이기
+  const hasKo = useMemo(() => questions.some((item) => item.ko), [questions]);
+  const [showKo, setShowKo] = useState(() => readStore('dl-fs-ko', false));
+  const toggleKo = () => {
+    setShowKo(!showKo);
+    writeStore('dl-fs-ko', !showKo);
+  };
   const [showExplanation, setShowExplanation] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const [favorites, setFavorites] = useState<number[]>(getFavorites);
@@ -602,6 +627,18 @@ export function PracticeQuiz({
           <div className="truncate text-[11px] text-gray-400">현재위치: {breadcrumb}</div>
           <div className="truncate text-[14px] font-medium text-gray-800">{title}</div>
         </div>
+        {hasKo && (
+          <button
+            onClick={toggleKo}
+            aria-pressed={showKo}
+            aria-label="한국어 번역 보기"
+            className={`shrink-0 h-9 px-2.5 rounded-lg border text-[13px] font-medium ${
+              showKo ? 'bg-[#37a7f0] border-[#37a7f0] text-white' : 'bg-white border-gray-300 text-gray-700 active:bg-gray-100'
+            }`}
+          >
+            번역
+          </button>
+        )}
         <button
           onClick={() => setShowSheet(true)}
           aria-label="답안지 보기"
@@ -658,15 +695,29 @@ export function PracticeQuiz({
             reveal={!!answered}
             onSelect={answered ? undefined : handleSelect}
             compact
+            translate={showKo}
             headerRight={
-              <button
-                onClick={toggleFavorite}
-                className={`hidden lg:flex shrink-0 items-center gap-1 px-2.5 py-1 rounded border text-xs transition-colors ${
-                  isFavorite ? 'bg-[#fff3cd] border-[#ffc107] text-[#856404]' : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <i className={`fa-${isFavorite ? 'solid' : 'regular'} fa-star`}></i> 즐겨찾기
-              </button>
+              <div className="hidden lg:flex shrink-0 items-center gap-2">
+                {hasKo && (
+                  <button
+                    onClick={toggleKo}
+                    aria-pressed={showKo}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded border text-xs transition-colors ${
+                      showKo ? 'bg-[#37a7f0] border-[#37a7f0] text-white' : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <i className="fa-solid fa-language"></i> 한국어 번역
+                  </button>
+                )}
+                <button
+                  onClick={toggleFavorite}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded border text-xs transition-colors ${
+                    isFavorite ? 'bg-[#fff3cd] border-[#ffc107] text-[#856404]' : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <i className={`fa-${isFavorite ? 'solid' : 'regular'} fa-star`}></i> 즐겨찾기
+                </button>
+              </div>
             }
           />
           {explanationOpen && (
@@ -855,7 +906,7 @@ export function SequentialPracticePage({ onBack }: { onBack: () => void }) {
 }
 
 // 틀린 문제만 모아 보기 → 다시 풀기 (다시 맞히면 목록에서 빠짐)
-function WrongNotes({
+export function WrongNotes({
   pool,
   title,
   breadcrumb,
@@ -1679,8 +1730,8 @@ export function FastCoursePage({ onBack }: { onBack: () => void }) {
 
 const EXAM_TOTAL = 100;
 const EXAM_JUDGE = 40; // 판단형 40 + 단일 선택형 60
-const EXAM_SECONDS = 45 * 60;
-const PASS_SCORE = 90;
+export const EXAM_SECONDS = 45 * 60;
+export const PASS_SCORE = 90;
 // 실전 시험 화면의 회색 버튼 (일시정지·이전·다음·제출 모두 같은 색)
 const EXAM_BUTTON =
   'min-w-[90px] px-4 py-[5px] border border-[#bfbfbf] bg-[#f0f0f0] text-[13px] text-[#333] hover:bg-[#e6e6e6] disabled:text-[#aaa] disabled:bg-[#f7f7f7] disabled:cursor-not-allowed';
@@ -1688,7 +1739,7 @@ const EXAM_BUTTON =
 const EXAM_MIX: Record<DLKind, number> = { txt: 45, pic: 35, sign: 10, sig: 10 };
 const KINDS: DLKind[] = ['txt', 'pic', 'sign', 'sig'];
 
-type MockResult = { best: number; last: number; attempts: number; date: string };
+export type MockResult = { best: number; last: number; attempts: number; date: string };
 
 // 같은 문제(문구·보기·그림이 모두 같은 중복 문항)는 한 번만 사용
 function uniquePool(questions: DLQuestion[]) {
@@ -1773,8 +1824,8 @@ function buildRandomExam(questions: DLQuestion[]) {
   return assembleExam(examDraws(questions, seed), 0, seed);
 }
 
-type ExamSession = { no: number | null; title?: string; questions: DLQuestion[]; answers: Record<number, number>; startedAt: number };
-type ExamOutcome = ExamSession & { score: number; seconds: number };
+export type ExamSession = { no: number | null; title?: string; questions: DLQuestion[]; answers: Record<number, number>; startedAt: number };
+export type ExamOutcome = ExamSession & { score: number; seconds: number };
 
 export function MockExamPage({ onBack }: { onBack: () => void }) {
   const { data, failed } = useDriverLicenseData();
@@ -1910,7 +1961,7 @@ export function MockExamPage({ onBack }: { onBack: () => void }) {
   );
 }
 
-function ExamRunner({
+export function ExamRunner({
   session,
   onChange,
   onSubmit,
@@ -2373,18 +2424,20 @@ function ExamRunner({
   );
 }
 
-function ExamResult({
+export function ExamResult({
   outcome,
   chapters,
   onRetry,
   onList,
   listLabel = '모의고사 목록',
+  groups,
 }: {
   outcome: ExamOutcome;
   chapters: DLChapter[];
   onRetry: () => void;
   onList: () => void;
   listLabel?: string;
+  groups?: { title: string; rows: { key: string; label: string; ids: Set<number> }[] }; // 단계별 대신 보여 줄 묶음 (만점 교육: 주제별)
 }) {
   const passed = outcome.score >= PASS_SCORE;
   const tally = (key: string, label: string, match: (q: DLQuestion) => boolean) => {
@@ -2392,9 +2445,11 @@ function ExamResult({
     return { key, label, total: items.length, correct: items.filter(({ q, i }) => outcome.answers[i] === q.a).length };
   };
   const byKind = KINDS.map((kind) => tally(kind, KIND_LABEL[kind], (q) => kindOf(q) === kind)).filter((row) => row.total > 0);
-  const byChapter = chapters
-    .map((chapter) => tally(String(chapter.id), `제${chapter.id}장 ${chapter.title}`, (q) => q.c === chapter.id))
-    .filter((row) => row.total > 0);
+  const byChapter = groups
+    ? groups.rows.map((row) => tally(row.key, row.label, (q) => row.ids.has(q.id))).filter((row) => row.total > 0)
+    : chapters
+        .map((chapter) => tally(String(chapter.id), `제${chapter.id}장 ${chapter.title}`, (q) => q.c === chapter.id))
+        .filter((row) => row.total > 0);
   const wrong = outcome.questions
     .map((q, i) => ({ q, i, selected: outcome.answers[i] }))
     .filter(({ q, selected }) => selected !== q.a);
@@ -2422,7 +2477,7 @@ function ExamResult({
 
       {[
         { title: '문제 형태별 결과', rows: byKind },
-        { title: '단계별 결과', rows: byChapter },
+        { title: groups?.title ?? '단계별 결과', rows: byChapter },
       ].map((section) => (
         <div key={section.title}>
           <h3 className="text-lg font-medium text-gray-800 mb-3">{section.title}</h3>
