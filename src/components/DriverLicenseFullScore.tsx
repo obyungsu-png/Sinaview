@@ -1,7 +1,7 @@
 // 만점 교육 (满分学习考试): 1년(벌점 주기)에 벌점 12점이 되면 받는 교육·시험
 // - 형식은 과목1과 같지만(100문제·45분·90점) 시험은 중국어로만 보고, 법규·처벌·사고·안전 문명·응급처치 비중이 큼
 // - 틀은 필기시험과 같음: 주제별 연습 · 모의고사(회차별) · ⚡속성 과정(핵심 정리 카드 → 전체 문제 → 시험 전날 100문제)
-// - 문제·카드는 중국어 원문 + 보기 단계 스위치(① 한국어 ② 한·중 ③ 실전=중국어만)
+// - 문제·카드는 중국어 원문 + 보기 단계(1단계 한국어 / 2단계 중국어+한국어 / 실전=중국어만), 문제마다 速记口诀·핵심 요약·단어 공부
 // - 데이터: data/driverLicenseManjeom.json (만점 문제은행 정리본, scratchpad 빌드 스크립트로 생성)
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -14,11 +14,14 @@ import {
   LoadingState,
   PASS_SCORE,
   PracticeQuiz,
+  WordList,
+  WordStudyHost,
   WrongNotes,
   registerImageSizes,
   shuffle,
   speakZh,
   useMjLevel,
+  useMjWords,
   type DLQuestion,
   type ExamOutcome,
   type ExamSession,
@@ -30,7 +33,7 @@ import { ContentCheck, checkedCount, scrollToId } from './DriverLicenseContentCh
 import type { CheckQuestion } from '../data/driverLicenseCheckQuestions';
 import { getMockResults, getProgress, getWrongMap, recordAnswers, setMockResult, setProgress, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
 
-type MjTopic = { c: number; key: string; title: string; zh: string; desc: string; count: number };
+type MjTopic = { c: number; key: string; title: string; zh: string; desc: string; count: number; cards: number[] };
 type MjLine = [string, string, string]; // 중국어, 병음, 한국어
 type MjCard = { topic: string; title: string; zh: string; new: boolean; lines: MjLine[]; memo: MjLine; check: number[]; images?: { src: string; caption?: string }[] };
 type MjData = { topics: MjTopic[]; questions: DLQuestion[]; cards: MjCard[]; exam: number[]; imgSize: Record<string, [number, number]> };
@@ -101,11 +104,12 @@ function buildSets(data: MjData) {
 type View =
   | { mode: 'home' }
   | { mode: 'topics' }
+  | { mode: 'topic'; c: number }
   | { mode: 'mock' }
   | { mode: 'fast' }
   | { mode: 'cards' }
-  | { mode: 'quiz'; title: string; questions: DLQuestion[]; storageKey?: string; pool: DLQuestion[]; from: 'topics' | 'fast'; key: number }
-  | { mode: 'wrong'; title: string; pool: DLQuestion[]; from: 'topics' | 'fast' };
+  | { mode: 'quiz'; title: string; questions: DLQuestion[]; storageKey?: string; pool: DLQuestion[]; from: 'topics' | 'fast'; key: number; back?: View }
+  | { mode: 'wrong'; title: string; pool: DLQuestion[]; from: 'topics' | 'fast'; back?: View };
 
 const btn = {
   primary: 'px-4 py-2 rounded-lg text-[15px] text-white bg-[#37a7f0] hover:bg-[#2a8bc9]',
@@ -114,6 +118,16 @@ const btn = {
 };
 
 export function FullScorePage({ onBack }: { onBack: () => void }) {
+  return (
+    <>
+      <FullScoreInner onBack={onBack} />
+      {/* 해설·AI 창의 '단어 공부해요' 로 열리는 단어 정리 */}
+      <WordStudyHost />
+    </>
+  );
+}
+
+function FullScoreInner({ onBack }: { onBack: () => void }) {
   const { data, failed } = useMjData();
   const [view, setView] = useState<View>({ mode: 'home' });
   const [session, setSession] = useState<(ExamSession & { resultKey: string; back: View }) | null>(null);
@@ -197,9 +211,9 @@ export function FullScorePage({ onBack }: { onBack: () => void }) {
         title={view.title}
         breadcrumb={view.from === 'fast' ? `${BREADCRUMB} > 속성 과정` : `${BREADCRUMB} > 주제별 연습`}
         storageKey={view.storageKey}
-        onBack={() => go({ mode: view.from })}
+        onBack={() => go(view.back ?? { mode: view.from })}
         backLabel={view.from === 'fast' ? '속성 과정으로 돌아가기' : '주제별 연습으로 돌아가기'}
-        onReviewWrong={() => go({ mode: 'wrong', title: view.title, pool: view.pool, from: view.from })}
+        onReviewWrong={() => go({ mode: 'wrong', title: view.title, pool: view.pool, from: view.from, back: view.back })}
       />
     );
   }
@@ -209,12 +223,16 @@ export function FullScorePage({ onBack }: { onBack: () => void }) {
         pool={view.pool}
         title={view.title}
         breadcrumb={BREADCRUMB}
-        onBack={() => go({ mode: view.from })}
+        onBack={() => go(view.back ?? { mode: view.from })}
         backLabel={view.from === 'fast' ? '속성 과정으로 돌아가기' : '주제별 연습으로 돌아가기'}
       />
     );
   }
   if (view.mode === 'topics') return <TopicsPage data={data} onBack={() => go({ mode: 'home' })} onStart={go} />;
+  if (view.mode === 'topic') {
+    const topic = data.topics.find((t) => t.c === view.c);
+    if (topic) return <TopicIntro data={data} topic={topic} onBack={() => go({ mode: 'topics' })} onStart={go} />;
+  }
   if (view.mode === 'mock') {
     return (
       <MockPage
@@ -292,8 +310,8 @@ function GuideHome({ data, onGo }: { data: MjData; onGo: (view: View) => void })
         </div>
         <p className="text-sm sm:text-[15px] text-gray-700 leading-relaxed">
           1년(벌점 주기) 안에 벌점이 12점이 되면 면허증을 압수당하고, 7일 동안 만점 교육을 받은 뒤 이 시험에 합격해야 면허증을 돌려받습니다. 외국인도 이 시험은{' '}
-          <b>중국어로만</b> 볼 수 있어서, 여기 있는 만점 문제은행 {data.questions.length}문제는 모두 중국어 원문으로 나옵니다. <b>보기 단계</b>(① 한국어 → ② 한·중
-          → ③ 실전)로 한국어 도움을 줄여 가며 익히세요. 모의고사는 실제 시험처럼 중국어로만 나옵니다.
+          <b>중국어로만</b> 볼 수 있어서, 여기 있는 만점 문제은행 {data.questions.length}문제는 모두 중국어 원문으로 나옵니다. <b>보기 단계</b>(1단계 한국어 → 2단계
+          중국어 → 실전)로 한국어 도움을 줄여 가며 익히세요. 모의고사는 실제 시험처럼 중국어로만 나옵니다.
         </p>
       </div>
 
@@ -397,8 +415,8 @@ function TopicsPage({ data, onBack, onStart }: { data: MjData; onBack: () => voi
       <BackButton onClick={onBack} label="만점 교육으로 돌아가기" />
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">주제별 연습</h1>
       <p className="text-sm sm:text-[15px] text-gray-500 mb-5 leading-relaxed">
-        만점 문제은행 {data.questions.length}문제를 주제별로 나눴어요. 풀이 화면의 <b>보기 단계</b>(① 한국어 → ② 한·중 → ③ 실전=중국어만)로 한국어 도움을
-        줄여 갈 수 있어요. <span className="text-[#d35400]">★ 중점</span> 주제가 만점 교육 시험에 특히 많이 나옵니다.
+        만점 문제은행 {data.questions.length}문제를 주제별로 나눴어요. 주제를 고르면 <b>핵심 내용</b>(중국어·병음·한국어)을 먼저 보고 문제를 풀어요.
+        풀이 화면 위의 <b>보기 단계</b>(1단계 한국어 → 2단계 중국어 → 실전)로 한국어 도움을 줄여 가세요. <span className="text-[#d35400]">★ 중점</span> 주제가 만점 교육 시험에 특히 많이 나옵니다.
       </p>
       <div className="flex flex-col gap-3">
         {data.topics.map((topic) => {
@@ -425,20 +443,9 @@ function TopicsPage({ data, onBack, onStart }: { data: MjData; onBack: () => voi
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button
-                  className={btn.primary}
-                  onClick={() => onStart({ mode: 'quiz', title: `${topic.title} (순서대로)`, questions, storageKey: key, pool: questions, from: 'topics', key: Date.now() })}
-                >
-                  {solved > 0 && solved < total ? `이어서 풀기 (${solved}/${total})` : '순서대로 풀기'}
+                <button className={btn.primary} onClick={() => onStart({ mode: 'topic', c: topic.c })}>
+                  핵심 내용 보고 {solved > 0 && solved < total ? `이어서 풀기 (${solved}/${total})` : '풀기'}
                 </button>
-                <button className={btn.plain} onClick={() => onStart({ mode: 'quiz', title: `${topic.title} (랜덤)`, questions: shuffle(questions), pool: questions, from: 'topics', key: Date.now() })}>
-                  랜덤으로 풀기
-                </button>
-                {wrongCount > 0 && (
-                  <button className={btn.danger} onClick={() => onStart({ mode: 'wrong', title: topic.title, pool: questions, from: 'topics' })}>
-                    틀린 문제만 ({wrongCount})
-                  </button>
-                )}
               </div>
             </div>
           );
@@ -534,7 +541,7 @@ function FastHome({ data, onBack, onGo, onExam }: { data: MjData; onBack: () => 
       no: 2,
       title: `만점 문제은행 ${total}문제`,
       when: '그다음',
-      desc: '주제 순서대로 전체 문제를 풀어요. 처음에는 ① 한국어(핵심 중국어 단어 표시)로 뜻을 익히고, ② 한·중 → ③ 실전(중국어만)으로 바꿔 보세요.',
+      desc: '주제 순서대로 전체 문제를 풀어요. 처음에는 1단계(한국어 + 작은 중국어 핵심 단어)로 뜻을 익히고, 2단계(중국어) → 실전(중국어만)으로 바꿔 보세요.',
       progress: pct(solved, total),
       status: `${solved}/${total}문제 풀이${wrongCount ? ` · 틀린 문제 ${wrongCount}개` : ''}`,
       actions: [
@@ -643,6 +650,137 @@ function LineView({ line, level, open, onOpen }: { line: MjLine; level: MjLevel;
   );
 }
 
+/** 카드 아래 '📖 단어' — 누르면 그 카드에 나온 중국어 단어를 한자·병음·뜻으로 모두 */
+function CardWords({ index }: { index: number }) {
+  const [open, setOpen] = useState(false);
+  const words = useMjWords(open);
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className={`text-sm px-3 py-1.5 rounded-full border ${open ? 'bg-[#fff4d6] border-[#f5d58a] text-[#b9560e] font-medium' : 'border-[#f5d58a] text-[#b9560e] bg-white hover:bg-[#fff8e6]'}`}
+      >
+        📖 단어 {open ? '접기' : `정리${words ? ` (${words.c[index]?.length ?? 0})` : ''}`}
+      </button>
+      {open && (
+        <div className="mt-2 p-3 rounded-lg bg-white border border-gray-200">
+          {words ? <WordList words={words.c[index] ?? []} dict={words.d} /> : <p className="py-4 text-center text-sm text-gray-400">단어를 불러오는 중…</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 주제별 연습: 핵심 내용(중국어·병음·한국어)을 먼저 보고 → 이어서 풀기 */
+function TopicIntro({ data, topic, onBack, onStart }: { data: MjData; topic: MjTopic; onBack: () => void; onStart: (view: View) => void }) {
+  const key = `mj-t${topic.c}`;
+  const questions = data.questions.filter((q) => q.c === topic.c);
+  const solved = solvedOf(key);
+  const total = questions.length;
+  const wrongCount = questions.filter((q) => q.id in getWrongMap()).length;
+  const [zoomPic, setZoomPic] = useState<{ src: string; caption?: string } | null>(null);
+  const back: View = { mode: 'topic', c: topic.c };
+  const buttons = (
+    <div className="flex flex-wrap gap-2">
+      <button
+        className={btn.primary}
+        onClick={() => onStart({ mode: 'quiz', title: `${topic.title} (순서대로)`, questions, storageKey: key, pool: questions, from: 'topics', key: Date.now(), back })}
+      >
+        <i className="fa-solid fa-play mr-2"></i>
+        {solved > 0 && solved < total ? `이어서 풀기 (${solved}/${total})` : '순서대로 풀기'}
+      </button>
+      <button className={btn.plain} onClick={() => onStart({ mode: 'quiz', title: `${topic.title} (랜덤)`, questions: shuffle(questions), pool: questions, from: 'topics', key: Date.now(), back })}>
+        <i className="fa-solid fa-shuffle mr-2"></i>랜덤으로 풀기
+      </button>
+      {wrongCount > 0 && (
+        <button className={btn.danger} onClick={() => onStart({ mode: 'wrong', title: topic.title, pool: questions, from: 'topics', back })}>
+          틀린 문제만 ({wrongCount})
+        </button>
+      )}
+    </div>
+  );
+  return (
+    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
+      <BackButton onClick={onBack} label="주제별 연습으로 돌아가기" />
+      {zoomPic && <ImageLightbox src={zoomPic.src} caption={zoomPic.caption} onClose={() => setZoomPic(null)} />}
+      <div className="flex flex-wrap items-baseline gap-x-2 mb-1">
+        {FOCUS_TOPICS.has(topic.key) && <span className="text-xs text-[#d35400] font-medium">★ 중점</span>}
+        <h1 className="text-2xl font-bold text-[#2c3e50]">{topic.title}</h1>
+        <span lang="zh-CN" className="text-gray-500">
+          {topic.zh}
+        </span>
+      </div>
+      <p className="text-sm sm:text-[15px] text-gray-500 mb-4">
+        {topic.desc} · {total}문제 · {solved}/{total} 풀이
+      </p>
+      {buttons}
+      <h2 className="mt-7 mb-1 text-lg font-bold text-gray-800">핵심 내용</h2>
+      <p className="mb-3 text-sm text-gray-500">시험에 나오는 중국어 표현 그대로 정리했어요. 먼저 읽고 외운 뒤 문제를 풀어 보세요.</p>
+      <div className="flex flex-col gap-3">
+        {topic.cards.map((i) => {
+          const card = data.cards[i];
+          return (
+            <section key={i} className={`p-4 sm:p-5 rounded-xl border ${card.new ? 'border-[#f7d9a8] bg-[#fffaf0]' : 'border-gray-200 bg-white'}`}>
+              <div className="flex items-start gap-2 mb-2">
+                {card.new && <span className="shrink-0 px-2 py-0.5 rounded bg-[#d35400] text-white text-xs font-medium">만점 신규</span>}
+                <h3 className="flex-1 font-bold text-gray-800">
+                  {card.title}{' '}
+                  <span lang="zh-CN" className="text-sm font-normal text-gray-500">
+                    {card.zh}
+                  </span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => speakZh(card.lines.map((l) => l[0]).join('。'))}
+                  aria-label="중국어로 듣기"
+                  className="shrink-0 w-8 h-8 rounded-full bg-[#eef7fe] text-[#2a8bc9] text-sm flex items-center justify-center hover:bg-[#d9edfb]"
+                >
+                  <i className="fa-solid fa-volume-high"></i>
+                </button>
+              </div>
+              <ul className="flex flex-col gap-2.5">
+                {card.lines.map((line, j) => (
+                  <li key={j} className="flex gap-2">
+                    <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
+                    <LineView line={line} level={2} open onOpen={() => undefined} />
+                  </li>
+                ))}
+              </ul>
+              {card.images && (
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {card.images.map((pic) => (
+                    <figure key={pic.src} className="w-[120px] sm:w-[150px] text-center">
+                      <img
+                        src={`${import.meta.env.BASE_URL}driver-license/img/${pic.src}`}
+                        alt={pic.caption || card.title}
+                        loading="lazy"
+                        onClick={() => setZoomPic({ src: pic.src, caption: pic.caption || card.title })}
+                        className="w-full h-auto rounded border border-gray-200 bg-white cursor-zoom-in"
+                      />
+                      {pic.caption && <figcaption className="mt-1 text-xs text-gray-600 leading-snug">{pic.caption}</figcaption>}
+                    </figure>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 px-3 py-2 bg-[#fff8e1] rounded text-sm text-gray-800 flex gap-1.5">
+                <span>⚡</span>
+                <LineView line={card.memo} level={2} open onOpen={() => undefined} />
+              </div>
+              <CardWords index={i} />
+            </section>
+          );
+        })}
+      </div>
+      <div className="mt-6 p-4 rounded-xl bg-[#eef7fe] border border-[#bfe2fa]">
+        <p className="mb-3 text-[15px] text-gray-700">핵심 내용을 읽었으면 문제를 풀어 보세요.</p>
+        {buttons}
+      </div>
+    </div>
+  );
+}
+
 function MjCards({ data, byId, onBack }: { data: MjData; byId: Map<number, DLQuestion>; onBack: () => void }) {
   useDriverLicenseRecords();
   const [level, setLevel] = useMjLevel();
@@ -671,7 +809,7 @@ function MjCards({ data, byId, onBack }: { data: MjData; byId: Map<number, DLQue
       {zoomPic && <ImageLightbox src={zoomPic.src} caption={zoomPic.caption} onClose={() => setZoomPic(null)} />}
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">① 핵심 정리 카드</h1>
       <p className="text-sm text-gray-500 mb-4">
-        시험에 나오는 중국어 표현으로 정리했어요. 처음에는 ① 한국어로 뜻을 익히고, ② 한·중(중국어+병음+한국어) → ③ 실전(중국어만, 누르면 뜻)으로 바꿔 보세요. ({done.size}/
+        시험에 나오는 중국어 표현으로 정리했어요. 처음에는 1단계(한국어)로 뜻을 익히고, 2단계(중국어+병음+한국어) → 실전(중국어만, 누르면 뜻)으로 바꿔 보세요. 카드마다 <b>📖 단어</b>를 누르면 단어 정리가 나와요. ({done.size}/
         {data.cards.length}장 외움 · 체크 {checkedCount('mj:')}/{data.cards.length}장)
       </p>
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -750,6 +888,7 @@ function MjCards({ data, byId, onBack }: { data: MjData; byId: Map<number, DLQue
               >
                 {isDone ? '✓ 외웠어요' : '외웠어요'}
               </button>
+              <CardWords index={i} />
               <ContentCheck
                 key={`${i}-${level}`}
                 itemKey={`mj:${i}`}

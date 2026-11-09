@@ -265,14 +265,22 @@ export function AiAssistantWidget({ hideFab = false, page = 'main' }: { hideFab?
     return true;
   };
 
+  // 화면이 따로 준 버튼(예: 단어 공부해요)이 있으면 AI 질문 대신 그 버튼 — 누르면 AI 창을 닫고 그 화면을 연다
+  const runContext = () => {
+    if (!context) return;
+    if (context.action) {
+      setIsOpen(false);
+      context.action.run();
+    } else void sendMessage(context.label, context.prompt);
+  };
   const contextButton = context && (
     <button
-      onClick={() => void sendMessage(context.label, context.prompt)}
-      disabled={isAiLoading}
+      onClick={runContext}
+      disabled={isAiLoading && !context.action}
       className="w-full text-left rounded-2xl border border-[#bfe2fa] bg-[#eef7fe] px-4 py-3 hover:bg-[#e2f1fd] disabled:opacity-60 transition-colors"
     >
       <span className="block text-xs text-[#2a8bc9] mb-0.5">지금 보는 화면 · {context.title}</span>
-      <span className="block text-sm font-medium text-gray-800">💡 {context.label}</span>
+      <span className="block text-sm font-medium text-gray-800">{context.action ? context.action.label : `💡 ${context.label}`}</span>
     </button>
   );
 
@@ -517,11 +525,11 @@ export function AiAssistantWidget({ hideFab = false, page = 'main' }: { hideFab?
             <div className="p-3 border-t bg-white shrink-0">
               {context && chatMessages.length > 0 && (
                 <button
-                  onClick={() => void sendMessage(context.label, context.prompt)}
-                  disabled={isAiLoading}
+                  onClick={runContext}
+                  disabled={isAiLoading && !context.action}
                   className="mb-2 max-w-full truncate px-3 py-1.5 rounded-full border border-[#bfe2fa] bg-[#eef7fe] text-xs text-[#2a8bc9] disabled:opacity-60"
                 >
-                  💡 {context.label}
+                  {context.action ? context.action.label : `💡 ${context.label}`}
                 </button>
               )}
               <form
