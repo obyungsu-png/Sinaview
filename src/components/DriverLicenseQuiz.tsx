@@ -620,59 +620,23 @@ export function WordStudyHost() {
   );
 }
 
-// 1단계(한국어 중심): 한국어 문장 속 그 뜻의 말 바로 뒤에 작은 중국어+병음 (못 찾으면 문장 끝에)
-function koreanCore(meaning: string) {
-  const out: string[] = [];
-  meaning
-    .replace(/\([^)]*\)/g, ' ')
-    .split(/[·,/]/)
-    .map((part) => part.replace(/^~/, '').replace(/(하다|되다|다)$/, '').trim())
-    .forEach((part) => {
-      // '교통 위반 행위' → 그대로, 띄어쓰기 없이(교통위반행위), 앞부분만(교통 위반)
-      const tokens = part.split(/\s+/);
-      for (let n = tokens.length; n >= 1; n--) {
-        const head = tokens.slice(0, n).join(' ');
-        out.push(head, head.replace(/\s+/g, ''));
-      }
-    });
-  return out.filter((part, i) => part.length >= 2 && out.indexOf(part) === i);
-}
-function annotateKorean(text: string, words: string[], dict: MjWords['d']): ReactNode {
-  const marks: { at: number; w: string }[] = [];
-  const rest: string[] = [];
-  for (const w of words) {
-    const entry = dict[w];
-    if (!entry) continue;
-    let at = -1;
-    for (const core of koreanCore(entry[1])) {
-      const i = text.indexOf(core);
-      if (i >= 0) {
-        at = i + core.length;
-        while (at < text.length && !/[\s,.?!·:;()]/.test(text[at])) at++; // 그 어절 끝까지
-        break;
-      }
-    }
-    if (at >= 0 && !marks.some((m) => m.at === at)) marks.push({ at, w });
-    else rest.push(w);
-  }
-  marks.sort((a, b) => a.at - b.at);
-  const tag = (w: string) => (
-    <span key={w} className="mx-0.5 whitespace-nowrap text-[12.5px] sm:text-[13.5px] font-normal">
-      <span lang="zh-CN" className="text-[#b9560e]">
-        {w}
-      </span>
-      <span className="ml-0.5 text-[#c98b2f]">{dict[w][0]}</span>
-    </span>
+// 1단계(한국어 중심): 한국어 문장은 그대로 읽히게 두고, 보기의 핵심 단어는 그 보기 맨 끝에 작은 중국어+병음으로
+function withTailWords(text: string, words: string[], dict: MjWords['d']): ReactNode {
+  const tags = words.filter((w) => dict[w]);
+  if (tags.length === 0) return text;
+  return (
+    <>
+      {text}
+      {tags.map((w) => (
+        <span key={w} className="ml-1.5 whitespace-nowrap text-[12.5px] sm:text-[13.5px] font-normal">
+          <span lang="zh-CN" className="text-[#b9560e]">
+            {w}
+          </span>
+          <span className="ml-0.5 text-[#c98b2f]">{dict[w][0]}</span>
+        </span>
+      ))}
+    </>
   );
-  const out: ReactNode[] = [];
-  let from = 0;
-  for (const m of marks) {
-    out.push(text.slice(from, m.at), tag(m.w));
-    from = m.at;
-  }
-  out.push(text.slice(from));
-  rest.forEach((w) => out.push(' ', tag(w)));
-  return out;
 }
 
 // 만점 문제의 중국어·한국어 (중국어가 본문 + 한국어 번역). 필기시험은 한국어만이라 null
@@ -933,12 +897,19 @@ function QuestionCard({
   const subQ = bi && lv >= 2 ? bi.koQ : null;
   const showSub = lv === 2 || peek;
   const subO = bi && (lv === 2 || (lv === 3 && peek)) ? bi.koO : [];
-  // 만점 단어장: 1단계는 한국어 문장·보기 안에 핵심 단어(작은 중국어+병음), 2단계·실전은 중국어 낱말 팝업
+  // 만점 단어장: 1단계는 문제 아래 핵심 단어 한 줄 + 보기 끝에 작은 중국어+병음, 2단계는 중국어 낱말 팝업
   const mjw = useMjWords(!!q.ko);
   const inline = q.ko && lv === 1 && mjw ? mjw.k[q.id] : null;
   const toks = q.ko && mjw ? mjw.t[q.id] : undefined;
   const optionMode: ZhMode = onSelect ? 'press' : 'tap'; // 답하기 전 보기는 톡 = 답 고르기, 꾹 = 뜻
-  const words = !bi || !lv || inline ? [] : lv === 1 ? bi.kw.filter(([zh]) => bi.zhQ.includes(zh) || bi.zhO[q.a]?.includes(zh)).slice(0, 3) : bi.kw;
+  const words: [string, string, string][] =
+    !bi || !lv
+      ? []
+      : inline && mjw
+        ? (inline[0] ?? []).filter((w) => mjw.d[w]).map((w) => [w, mjw.d[w][0], mjw.d[w][1]] as [string, string, string]) // 1단계: 문장 아래 한 줄로
+        : lv === 1
+          ? [] // 단어장을 불러오는 동안(처음 한 번)은 비워 둠 — 다른 단어가 보였다 바뀌지 않게
+          : bi.kw;
   const zhLang = bi && lv >= 2 ? 'zh-CN' : undefined; // 중국어 글자를 한 글꼴(중국어)로 그리게
   const images = q.img && (
     <div className={compact ? 'flex flex-wrap gap-2 justify-center lg:max-w-[760px] lg:mb-4' : 'flex flex-wrap gap-3 mb-6'}>
@@ -994,7 +965,7 @@ function QuestionCard({
                 {lv >= 2 ? (
                   <ZhText tokens={toks?.[i + 1]} dict={mjw?.d} mode={optionMode} fallback={<span lang={zhLang}>{text}</span>} />
                 ) : (
-                  <span lang={zhLang}>{inline && mjw ? annotateKorean(text, inline[i + 1] ?? [], mjw.d) : text}</span>
+                  <span lang={zhLang}>{inline && mjw ? withTailWords(text, inline[i + 1] ?? [], mjw.d) : text}</span>
                 )}
                 {subO[i] && <span className="ml-1.5 text-[14px] sm:text-[15px] text-gray-500">{subO[i]}</span>}
               </span>
@@ -1055,8 +1026,6 @@ function QuestionCard({
               hl={lv === 2 ? new Set(bi.kw.map((w) => w[0])) : undefined}
               fallback={<span lang="zh-CN">{lv === 2 ? highlightWords(mainQ, bi.kw.map((w) => w[0])) : mainQ}</span>}
             />
-          ) : inline && mjw ? (
-            annotateKorean(mainQ, inline[0] ?? [], mjw.d)
           ) : (
             mainQ
           )}
