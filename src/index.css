@@ -38,3 +38,39 @@
 }
 .dl-swipe-next { animation: dl-swipe-next 0.18s ease-out; }
 .dl-swipe-prev { animation: dl-swipe-prev 0.18s ease-out; }
+
+/* 만점 교육 단어 팝업: 평소 글은 시험지 그대로, 누른(올린) 낱말만 잠깐 표시 */
+@media (hover: none) {
+  .dl-zh {
+    -webkit-touch-callout: none; /* 꾹 눌러도 복사·붙여넣기 메뉴가 안 뜨게 */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+.dl-zh [data-w] {
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dl-zh [data-w]:hover {
+    background-color: #fff1c2;
+  }
+}
+.dl-zh [data-w].dl-wp-on {
+  background-color: #ffe08a;
+}
+.dl-wp-pop {
+  animation: dl-wp-in 0.12s ease-out;
+}
+@keyframes dl-wp-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

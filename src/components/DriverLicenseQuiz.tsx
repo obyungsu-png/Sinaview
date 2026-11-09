@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { STAGE_INFO, type StageInfo } from '../data/driverLicenseStages';
 import { FAST_CARDS } from '../data/driverLicenseFastCards';
 import { bankCheckQuestions, buildSectionGalleries, cardCheckQuestions, sectionCheckQuestions } from '../data/driverLicenseCheckQuestions';
@@ -185,6 +185,7 @@ export function LevelSwitch({ level, onChange, size = 'md' }: { level: MjLevel; 
 
 /** 휴대폰 풀이 화면 위의 작은 단계 선택 (접기·펼치기, 펼침 여부도 기억) */
 const LEVEL_OPEN_KEY = 'dl-level-open';
+/** 만점 교육 풀이 화면의 단계 선택 */
 function LevelBar({ level, onChange }: { level: MjLevel; onChange: (level: MjLevel) => void }) {
   const [open, setOpen] = useState(() => readStore<boolean>(LEVEL_OPEN_KEY, true));
   const toggle = (next: boolean) => {
@@ -259,13 +260,17 @@ function lazyData<T>(load: () => Promise<{ default: unknown }>) {
   return { get, useData };
 }
 
-// 필기시험 문제의 중국어 원문·핵심 단어 (보기 단계 2·3용, 연습 화면을 열 때만 불러옴)
-type ZhEntry = { q: string; o?: string[]; kw?: [string, string, string][] };
-const zhStore = lazyData<Record<string, ZhEntry>>(() => import('../data/driverLicenseZh.json'));
-const useZhData = (enabled: boolean) => !!zhStore.useData(enabled);
-
 // 만점 교육 단어장: d 사전 {단어: [병음, 뜻, 종류(2 핵심·1 일반·0 기능어)]}, q 문제별 모든 단어, k 1단계 핵심 단어 [문제, 보기1, …], c 카드별 단어
-export type MjWords = { d: Record<string, [string, string, number]>; q: Record<string, string[]>; k: Record<string, string[][]>; c: string[][] };
+// t 문제·보기 낱말 [[문제], [보기1], …], kt 速记口诀 낱말(【】 강조 표시 포함), st 핵심 요약 낱말, ct 카드 줄 낱말 [[줄1], …, [암기 한 줄]]
+export type MjWords = {
+  d: Record<string, [string, string, number]>;
+  k: Record<string, string[][]>;
+  c: string[][];
+  t: Record<string, string[][]>;
+  kt: Record<string, string[]>;
+  st: Record<string, string[]>;
+  ct: string[][][];
+};
 const mjWordStore = lazyData<MjWords>(() => import('../data/driverLicenseManjeomWords.json'));
 export const useMjWords = mjWordStore.useData;
 
@@ -283,6 +288,208 @@ export function Marked({ text, mark = 'bg-[#ffe666] text-gray-900 rounded px-0.5
         ),
       )}
     </>
+  );
+}
+
+// ── 단어 팝업: 중국어 글의 낱말을 노트북은 마우스를 올리면, 휴대폰은 톡 치면(보기는 답하기 전엔 꾹 누르면) 뜻이 뜸 ──
+// 평소 글에는 점선·배경 없이 시험지 그대로, 누른 낱말만 잠깐 표시
+type WordEntry = [string, string, number];
+type PopupState = { word: string; entry: WordEntry; el: HTMLElement } | null;
+let popupState: PopupState = null;
+const popupListeners = new Set<() => void>();
+let popupHoverTimer = 0;
+let lastLongPressAt = 0;
+function setPopup(next: PopupState) {
+  if (popupState && popupState.el !== next?.el) popupState.el.classList.remove('dl-wp-on');
+  popupState = next;
+  next?.el.classList.add('dl-wp-on');
+  popupListeners.forEach((listener) => listener());
+}
+export function closeWordPopup() {
+  window.clearTimeout(popupHoverTimer);
+  if (popupState) setPopup(null);
+}
+const canHover = () => window.matchMedia?.('(hover: hover) and (pointer: fine)').matches ?? false;
+
+type ZhMode = 'tap' | 'press'; // tap: 톡 치면 / press: 꾹 눌러야(보기 — 톡은 답 고르기)
+function wordHandlers(word: string, entry: WordEntry, mode: ZhMode) {
+  let timer = 0;
+  let fired = false;
+  let start = { x: 0, y: 0 };
+  return {
+    onMouseEnter: (e: ReactMouseEvent<HTMLElement>) => {
+      if (!canHover()) return;
+      window.clearTimeout(popupHoverTimer);
+      setPopup({ word, entry, el: e.currentTarget });
+    },
+    onMouseLeave: () => {
+      if (!canHover()) return;
+      popupHoverTimer = window.setTimeout(() => setPopup(null), 200);
+    },
+    onClick: (e: ReactMouseEvent<HTMLElement>) => {
+      if (Date.now() - lastLongPressAt < 700) {
+        // 꾹 눌러 뜻을 본 직후의 클릭은 답 고르기로 넘기지 않음
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (canHover() || mode !== 'tap') return; // 노트북 클릭·답 고르기는 원래대로
+      e.stopPropagation();
+      const el = e.currentTarget;
+      setPopup(popupState?.el === el ? null : { word, entry, el });
+    },
+    onTouchStart:
+      mode === 'press'
+        ? (e: ReactTouchEvent<HTMLElement>) => {
+            const el = e.currentTarget;
+            start = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            fired = false;
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => {
+              fired = true;
+              lastLongPressAt = Date.now();
+              navigator.vibrate?.(8);
+              setPopup({ word, entry, el });
+            }, 400);
+          }
+        : undefined,
+    onTouchMove:
+      mode === 'press'
+        ? (e: ReactTouchEvent<HTMLElement>) => {
+            const t = e.touches[0];
+            if (Math.abs(t.clientX - start.x) > 10 || Math.abs(t.clientY - start.y) > 10) window.clearTimeout(timer);
+          }
+        : undefined,
+    onTouchEnd:
+      mode === 'press'
+        ? (e: ReactTouchEvent<HTMLElement>) => {
+            window.clearTimeout(timer);
+            if (fired) e.preventDefault(); // 꾹 누른 뒤 손을 떼도 답이 골라지지 않게
+          }
+        : undefined,
+  };
+}
+
+/** 낱말로 나눈 중국어 글 (사전에 있는 낱말만 팝업). 낱말 데이터가 아직 없으면 fallback */
+export function ZhText({
+  tokens,
+  dict,
+  mode = 'tap',
+  hl,
+  fallback,
+}: {
+  tokens?: string[];
+  dict?: MjWords['d'];
+  mode?: ZhMode;
+  hl?: Set<string>;
+  fallback: ReactNode;
+}) {
+  if (!tokens || !dict) return <>{fallback}</>;
+  let marked = false;
+  return (
+    <span className="dl-zh" lang="zh-CN" onContextMenu={(e) => e.preventDefault()}>
+      {tokens.map((tok, i) => {
+        if (tok === '【' || tok === '】') {
+          marked = tok === '【';
+          return null;
+        }
+        const tone = marked ? 'bg-[#ffe666] text-gray-900' : hl?.has(tok) ? 'text-[#b9560e] bg-[#fff4d6]' : '';
+        const entry = dict[tok];
+        if (!entry)
+          return (
+            <span key={i} className={tone || undefined}>
+              {tok}
+            </span>
+          );
+        return (
+          <span key={i} data-w="" className={tone || undefined} {...wordHandlers(tok, entry, mode)}>
+            {tok}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/** 단어 팝업 (만점 교육 화면에 하나) — 위 공간이 모자라면 아래로, 화면 밖으로 나가지 않게 */
+export function WordPopupHost() {
+  const [, bump] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; arrow: number; below: boolean } | null>(null);
+  useEffect(() => {
+    const listener = () => bump((n) => n + 1);
+    popupListeners.add(listener);
+    return () => {
+      popupListeners.delete(listener);
+      closeWordPopup();
+    };
+  }, []);
+  const st = popupState;
+  useLayoutEffect(() => {
+    if (!st || !ref.current || !st.el.isConnected) {
+      setPos(null);
+      return;
+    }
+    const r = st.el.getBoundingClientRect();
+    const b = ref.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const gap = 9;
+    let below = r.top - b.height - gap < 8;
+    if (below && r.bottom + b.height + gap > vh - 8 && r.top > vh - r.bottom) below = false;
+    const top = below ? r.bottom + gap : r.top - b.height - gap;
+    const left = Math.min(Math.max(8, r.left + r.width / 2 - b.width / 2), vw - b.width - 8);
+    const arrow = Math.min(Math.max(14, r.left + r.width / 2 - left), b.width - 14);
+    setPos({ left, top, arrow, below });
+  }, [st]);
+  // 바깥을 누르거나, 스크롤·화면 크기가 바뀌거나, Esc 면 닫기
+  useEffect(() => {
+    if (!st) return;
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as Element | null;
+      if (ref.current?.contains(target) || target?.closest?.('[data-w]')) return;
+      closeWordPopup();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeWordPopup();
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    window.addEventListener('scroll', closeWordPopup, true);
+    window.addEventListener('resize', closeWordPopup);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown, true);
+      window.removeEventListener('scroll', closeWordPopup, true);
+      window.removeEventListener('resize', closeWordPopup);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [st]);
+  if (!st) return null;
+  const arrowSide = pos?.below ? { top: -6, borderLeftWidth: 1, borderTopWidth: 1 } : { bottom: -6, borderRightWidth: 1, borderBottomWidth: 1 };
+  return (
+    <div
+      ref={ref}
+      role="tooltip"
+      data-noswipe
+      onMouseEnter={() => window.clearTimeout(popupHoverTimer)}
+      onMouseLeave={() => {
+        if (canHover()) popupHoverTimer = window.setTimeout(() => setPopup(null), 200);
+      }}
+      style={{ left: pos?.left ?? 0, top: pos?.top ?? 0, visibility: pos ? 'visible' : 'hidden' }}
+      className="dl-wp-pop fixed z-[1300] w-max max-w-[min(260px,calc(100vw-16px))] rounded-2xl bg-white border border-[#f5d58a] shadow-[0_6px_20px_rgba(0,0,0,0.16)] pl-3 pr-1.5 py-1.5"
+    >
+      <div className="flex items-center gap-1.5">
+        <span lang="zh-CN" className="text-[19px] font-medium text-[#b9560e] leading-tight">
+          {st.word}
+        </span>
+        <span className="text-[13px] text-[#c98b2f]">{st.entry[0]}</span>
+        <button type="button" onClick={() => speakZh(st.word)} aria-label={`${st.word} 읽어 주기`} className="ml-auto w-7 h-7 shrink-0 rounded-full text-[#2a8bc9] hover:bg-[#eef7fe]">
+          <i className="fa-solid fa-volume-high text-[11px]"></i>
+        </button>
+      </div>
+      <div className="pr-1.5 text-[14px] text-gray-800 leading-snug">{st.entry[1]}</div>
+      <span aria-hidden className="absolute w-2.5 h-2.5 rotate-45 bg-white border-[#f5d58a]" style={{ left: (pos?.arrow ?? 0) - 5, ...arrowSide }}></span>
+    </div>
   );
 }
 
@@ -364,7 +571,8 @@ export function WordStudyHost() {
     return () => window.removeEventListener(WORD_STUDY_EVENT, onOpen);
   }, []);
   if (!target) return null;
-  const list = words?.q[target.q.id] ?? [];
+  const toks = words?.t[target.q.id];
+  const list = toks ? Array.from(new Set(toks.flat().filter((tok) => words?.d[tok]))) : [];
   return (
     <div data-noswipe className="fixed inset-0 z-[1200] bg-black/40 flex items-end sm:items-center justify-center" onClick={() => setTarget(null)} role="dialog" aria-modal="true" aria-label="단어 공부">
       <div
@@ -387,8 +595,16 @@ export function WordStudyHost() {
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
           <p lang="zh-CN" className="mb-3 p-3 rounded-lg bg-gray-50 text-[15px] text-gray-800 leading-relaxed">
-            {target.q.q}
-            {target.q.o && <span className="block mt-1 text-[14px] text-gray-600">{target.q.o.map((o, i) => `${LETTERS[i]}. ${o}`).join('　')}</span>}
+            <ZhText tokens={toks?.[0]} dict={words?.d} fallback={target.q.q} />
+            {target.q.o && (
+              <span className="block mt-1 text-[14px] text-gray-600">
+                {target.q.o.map((o, i) => (
+                  <span key={i} className="mr-3 inline-block">
+                    {LETTERS[i]}. <ZhText tokens={toks?.[i + 1]} dict={words?.d} fallback={o} />
+                  </span>
+                ))}
+              </span>
+            )}
           </p>
           {words ? <WordList words={list} dict={words.d} /> : <p className="py-8 text-center text-sm text-gray-400">단어를 불러오는 중…</p>}
         </div>
@@ -452,13 +668,11 @@ function annotateKorean(text: string, words: string[], dict: MjWords['d']): Reac
   return out;
 }
 
-// 한 문제의 중국어·한국어 (만점 문제: 중국어가 본문 + 한국어 번역 / 필기시험: 한국어가 본문 + 불러온 중국어)
+// 만점 문제의 중국어·한국어 (중국어가 본문 + 한국어 번역). 필기시험은 한국어만이라 null
 type Bilingual = { zhQ: string; zhO: string[]; koQ: string; koO: string[]; kw: [string, string, string][] };
 function bilingualOf(q: DLQuestion): Bilingual | null {
-  if (q.ko) return { zhQ: q.q, zhO: q.t === 'j' ? JUDGE_ZH : q.o ?? [], koQ: q.ko.q, koO: q.t === 'j' ? JUDGE_OPTIONS : q.ko.o ?? [], kw: q.kw ?? [] };
-  const z = zhStore.get()?.[q.id];
-  if (!z) return null;
-  return { zhQ: z.q, zhO: q.t === 'j' ? JUDGE_ZH : z.o ?? [], koQ: q.q, koO: q.t === 'j' ? JUDGE_OPTIONS : q.o ?? [], kw: z.kw ?? [] };
+  if (!q.ko) return null;
+  return { zhQ: q.q, zhO: q.t === 'j' ? JUDGE_ZH : q.o ?? [], koQ: q.ko.q, koO: q.t === 'j' ? JUDGE_OPTIONS : q.ko.o ?? [], kw: q.kw ?? [] };
 }
 
 /** 중국어 읽어 주기 (브라우저 음성) */
@@ -701,6 +915,7 @@ function QuestionCard({
   useEffect(() => {
     setPeek(false);
     setOpenWords([]);
+    closeWordPopup();
   }, [q.id]);
   // 보기 단계: ① 한국어(+핵심 단어 3개) ② 한·중(중국어 + 회색 한국어) ③ 실전(중국어만, 누르면 한국어)
   // 결과·오답 화면(compact 아님)은 만점 문제는 한·중, 필기시험은 한국어 그대로
@@ -711,9 +926,11 @@ function QuestionCard({
   const subQ = bi && lv >= 2 ? bi.koQ : null;
   const showSub = lv === 2 || peek;
   const subO = bi && (lv === 2 || (lv === 3 && peek)) ? bi.koO : [];
-  // 만점 1단계: 한국어 문장·보기 안에 핵심 단어를 작은 중국어+병음으로 (단어장을 불러온 뒤)
-  const mjw = useMjWords(!!q.ko && lv === 1);
+  // 만점 단어장: 1단계는 한국어 문장·보기 안에 핵심 단어(작은 중국어+병음), 2단계·실전은 중국어 낱말 팝업
+  const mjw = useMjWords(!!q.ko);
   const inline = q.ko && lv === 1 && mjw ? mjw.k[q.id] : null;
+  const toks = q.ko && mjw ? mjw.t[q.id] : undefined;
+  const optionMode: ZhMode = onSelect ? 'press' : 'tap'; // 답하기 전 보기는 톡 = 답 고르기, 꾹 = 뜻
   const words = !bi || !lv || inline ? [] : lv === 1 ? bi.kw.filter(([zh]) => bi.zhQ.includes(zh) || bi.zhO[q.a]?.includes(zh)).slice(0, 3) : bi.kw;
   const zhLang = bi && lv >= 2 ? 'zh-CN' : undefined; // 중국어 글자를 한 글꼴(중국어)로 그리게
   const images = q.img && (
@@ -756,15 +973,22 @@ function QuestionCard({
             <button
               key={i}
               type="button"
-              disabled={!onSelect}
-              onClick={() => onSelect?.(i)}
+              aria-disabled={!onSelect}
+              onClick={() => {
+                closeWordPopup();
+                onSelect?.(i);
+              }}
               className={`w-full min-h-[50px] [@media(max-height:700px)]:min-h-[44px] flex items-center gap-4 px-1.5 py-2 [@media(max-height:700px)]:py-1 rounded-lg text-left text-[18px] sm:text-[19px] leading-snug transition-colors ${tone} ${
                 onSelect ? 'cursor-pointer active:bg-gray-100 lg:hover:bg-gray-50' : 'cursor-default'
               }`}
             >
               <span className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[15px] font-medium ${badgeTone}`}>{badge}</span>
               <span className="flex-1">
-                <span lang={zhLang}>{inline && mjw ? annotateKorean(text, inline[i + 1] ?? [], mjw.d) : text}</span>
+                {lv >= 2 ? (
+                  <ZhText tokens={toks?.[i + 1]} dict={mjw?.d} mode={optionMode} fallback={<span lang={zhLang}>{text}</span>} />
+                ) : (
+                  <span lang={zhLang}>{inline && mjw ? annotateKorean(text, inline[i + 1] ?? [], mjw.d) : text}</span>
+                )}
                 {subO[i] && <span className="ml-1.5 text-[14px] sm:text-[15px] text-gray-500">{subO[i]}</span>}
               </span>
             </button>
@@ -786,15 +1010,19 @@ function QuestionCard({
           <button
             key={i}
             type="button"
-            disabled={!onSelect}
-            onClick={() => onSelect?.(i)}
+            aria-disabled={!onSelect}
+            onClick={() => {
+              closeWordPopup();
+              onSelect?.(i);
+            }}
             className={`w-full flex items-center gap-3 text-left px-4 border-2 rounded-lg bg-white transition-colors py-3 sm:py-4 text-base sm:text-lg ${tone} ${
               onSelect ? 'cursor-pointer' : 'cursor-default'
             }`}
           >
             <span className="shrink-0 w-7 flex justify-center">{mark}</span>
             <span>
-              {LETTERS[i]}. <span lang={zhLang}>{text}</span>
+              {LETTERS[i]}.{' '}
+              {lv >= 2 ? <ZhText tokens={toks?.[i + 1]} dict={mjw?.d} mode={optionMode} fallback={<span lang={zhLang}>{text}</span>} /> : <span lang={zhLang}>{text}</span>}
               {subO[i] && <span className="block text-sm text-gray-500">{subO[i]}</span>}
             </span>
           </button>
@@ -814,7 +1042,12 @@ function QuestionCard({
             </span>
           )}
           {bi && lv >= 2 ? (
-            <span lang="zh-CN">{highlightWords(mainQ, bi.kw.map((w) => w[0]))}</span>
+            <ZhText
+              tokens={toks?.[0]}
+              dict={mjw?.d}
+              hl={lv === 2 ? new Set(bi.kw.map((w) => w[0])) : undefined}
+              fallback={<span lang="zh-CN">{lv === 2 ? highlightWords(mainQ, bi.kw.map((w) => w[0])) : mainQ}</span>}
+            />
           ) : inline && mjw ? (
             annotateKorean(mainQ, inline[0] ?? [], mjw.d)
           ) : (
@@ -915,6 +1148,7 @@ function ExplanationBox({ q, selected, compact = false, level }: { q: DLQuestion
   const lvl = level ?? (q.ko ? 2 : 1);
   const answerMain = bi ? (lvl === 1 ? bi.koO[q.a] : bi.zhO[q.a]) : optionsOf(q)[q.a];
   const answerSub = bi ? (lvl === 1 ? bi.zhO[q.a] : bi.koO[q.a]) : null;
+  const mjw = useMjWords(!!q.kj);
   return (
     <div className={`${compact ? 'mt-3 px-3.5 py-3 sm:p-4' : 'mt-5 p-4 sm:p-5'} border-l-4 rounded ${correct === false ? 'bg-[#fdf0ef] border-[#e74c3c]' : 'bg-[#e3f2fd] border-[#37a7f0]'}`}>
       {q.kj && (
@@ -927,7 +1161,7 @@ function ExplanationBox({ q, selected, compact = false, level }: { q: DLQuestion
             </button>
           </div>
           <p lang="zh-CN" className="text-[17px] font-medium text-gray-900 leading-snug">
-            <Marked text={q.kj[0]} />
+            <ZhText tokens={mjw?.kt[q.id]} dict={mjw?.d} fallback={<Marked text={q.kj[0]} />} />
           </p>
           <p className="text-[12.5px] text-[#c98b2f] leading-snug">{q.kj[1]}</p>
           <p className="mt-0.5 text-[14px] text-gray-700 leading-snug">
@@ -963,7 +1197,7 @@ function ExplanationBox({ q, selected, compact = false, level }: { q: DLQuestion
         <div className="mt-2 px-3 py-2 rounded-lg bg-white/80 border border-gray-200">
           <div className="mb-0.5 text-xs font-bold text-[#2a8bc9]">📌 핵심 요약</div>
           <p lang="zh-CN" className="text-[15px] text-gray-900 leading-snug">
-            {q.sm[0]}
+            <ZhText tokens={mjw?.st[q.id]} dict={mjw?.d} fallback={q.sm[0]} />
           </p>
           <p className="text-[12.5px] text-[#c98b2f] leading-snug">{q.sm[1]}</p>
           <p className="mt-0.5 text-[14px] text-gray-700 leading-snug">{q.sm[2]}</p>
@@ -1022,9 +1256,8 @@ export function PracticeQuiz({
   );
   const [autoNext, setAutoNext] = useState(() => readStore('dl-auto-next', false));
   // 만점 교육(중국어 문제): 한국어 번역 보이기
-  const isMj = useMemo(() => questions.some((item) => item.ko), [questions]);
-  const zhReady = useZhData(!isMj);
-  const hasKo = isMj || zhReady;
+  // 보기 단계는 만점 교육(중국어 시험)에만 — 필기시험은 한국어만
+  const hasKo = useMemo(() => questions.some((item) => item.ko), [questions]);
   const [level, setLevel] = useMjLevel();
   usePhoneFullscreen();
   const [slide, setSlide] = useState<'next' | 'prev' | null>(null);

@@ -15,7 +15,9 @@ import {
   PASS_SCORE,
   PracticeQuiz,
   WordList,
+  WordPopupHost,
   WordStudyHost,
+  ZhText,
   WrongNotes,
   registerImageSizes,
   shuffle,
@@ -26,6 +28,7 @@ import {
   type ExamOutcome,
   type ExamSession,
   type MjLevel,
+  type MjWords,
   type MockResult,
   type Progress,
 } from './DriverLicenseQuiz';
@@ -121,8 +124,9 @@ export function FullScorePage({ onBack }: { onBack: () => void }) {
   return (
     <>
       <FullScoreInner onBack={onBack} />
-      {/* 해설·AI 창의 '단어 공부해요' 로 열리는 단어 정리 */}
+      {/* 해설·AI 창의 '단어 공부해요' 로 열리는 단어 정리 + 중국어 낱말 팝업 */}
       <WordStudyHost />
+      <WordPopupHost />
     </>
   );
 }
@@ -622,19 +626,38 @@ function checkQuestions(questions: DLQuestion[], key: string, level: MjLevel): C
   });
 }
 
-function LineView({ line, level, open, onOpen }: { line: MjLine; level: MjLevel; open: boolean; onOpen: () => void }) {
+function LineView({
+  line,
+  level,
+  open,
+  onOpen,
+  tokens,
+  dict,
+}: {
+  line: MjLine;
+  level: MjLevel;
+  open: boolean;
+  onOpen: () => void;
+  tokens?: string[];
+  dict?: MjWords['d'];
+}) {
   const [zh, pinyin, ko] = line;
+  const zhText = <ZhText tokens={tokens} dict={dict} fallback={zh} />;
   if (level === 1)
     return (
       <div className="flex-1 min-w-0">
         <div className="text-[15px] sm:text-base text-gray-900 leading-snug">{ko}</div>
-        <div className="text-[13px] text-[#b9560e] leading-snug break-words">{zh}</div>
+        <div lang="zh-CN" className="text-[13px] text-[#b9560e] leading-snug break-words">
+          {zhText}
+        </div>
       </div>
     );
   const showKo = level === 2 || open;
   return (
     <div className="flex-1 min-w-0">
-      <div className="text-[15px] sm:text-base text-gray-900 leading-snug">{zh}</div>
+      <div lang="zh-CN" className="text-[15px] sm:text-base text-gray-900 leading-snug">
+        {zhText}
+      </div>
       {level === 2 && <div className="text-[12px] sm:text-[13px] text-[#c98b2f] leading-snug break-words">{pinyin}</div>}
       {showKo ? (
         <div className="text-[14px] text-gray-600 leading-snug">{ko}</div>
@@ -681,6 +704,7 @@ function TopicIntro({ data, topic, onBack, onStart }: { data: MjData; topic: MjT
   const total = questions.length;
   const wrongCount = questions.filter((q) => q.id in getWrongMap()).length;
   const [zoomPic, setZoomPic] = useState<{ src: string; caption?: string } | null>(null);
+  const words = useMjWords(true);
   const back: View = { mode: 'topic', c: topic.c };
   const buttons = (
     <div className="flex flex-wrap gap-2">
@@ -744,7 +768,7 @@ function TopicIntro({ data, topic, onBack, onStart }: { data: MjData; topic: MjT
                 {card.lines.map((line, j) => (
                   <li key={j} className="flex gap-2">
                     <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
-                    <LineView line={line} level={2} open onOpen={() => undefined} />
+                    <LineView line={line} level={2} open onOpen={() => undefined} tokens={words?.ct[i]?.[j]} dict={words?.d} />
                   </li>
                 ))}
               </ul>
@@ -766,7 +790,7 @@ function TopicIntro({ data, topic, onBack, onStart }: { data: MjData; topic: MjT
               )}
               <div className="mt-3 px-3 py-2 bg-[#fff8e1] rounded text-sm text-gray-800 flex gap-1.5">
                 <span>⚡</span>
-                <LineView line={card.memo} level={2} open onOpen={() => undefined} />
+                <LineView line={card.memo} level={2} open onOpen={() => undefined} tokens={words?.ct[i]?.[card.lines.length]} dict={words?.d} />
               </div>
               <CardWords index={i} />
             </section>
@@ -784,6 +808,7 @@ function TopicIntro({ data, topic, onBack, onStart }: { data: MjData; topic: MjT
 function MjCards({ data, byId, onBack }: { data: MjData; byId: Map<number, DLQuestion>; onBack: () => void }) {
   useDriverLicenseRecords();
   const [level, setLevel] = useMjLevel();
+  const words = useMjWords(true);
   const [topic, setTopic] = useState('전체');
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const [zoomPic, setZoomPic] = useState<{ src: string; caption?: string } | null>(null);
@@ -858,7 +883,7 @@ function MjCards({ data, byId, onBack }: { data: MjData; byId: Map<number, DLQue
                 {card.lines.map((line, j) => (
                   <li key={j} className="flex gap-2">
                     <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
-                    <LineView line={line} level={level} open={opened.has(`${i}:${j}`)} onOpen={() => open(`${i}:${j}`)} />
+                    <LineView line={line} level={level} open={opened.has(`${i}:${j}`)} onOpen={() => open(`${i}:${j}`)} tokens={words?.ct[i]?.[j]} dict={words?.d} />
                   </li>
                 ))}
               </ul>
@@ -880,7 +905,14 @@ function MjCards({ data, byId, onBack }: { data: MjData; byId: Map<number, DLQue
               )}
               <div className="mt-3 px-3 py-2 bg-[#fff8e1] rounded text-sm text-gray-800 flex gap-1.5">
                 <span>⚡</span>
-                <LineView line={card.memo} level={level} open={opened.has(`${i}:memo`)} onOpen={() => open(`${i}:memo`)} />
+                <LineView
+                  line={card.memo}
+                  level={level}
+                  open={opened.has(`${i}:memo`)}
+                  onOpen={() => open(`${i}:memo`)}
+                  tokens={words?.ct[i]?.[card.lines.length]}
+                  dict={words?.d}
+                />
               </div>
               <button
                 onClick={() => toggle(i)}
