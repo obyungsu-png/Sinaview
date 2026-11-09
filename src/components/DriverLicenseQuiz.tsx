@@ -1953,7 +1953,9 @@ export function MockExamPage({ onBack }: { onBack: () => void }) {
   const sets = useMemo(() => (data ? buildExamSets(data.questions) : []), [data]);
   const [results, setResults] = useState<Record<string, MockResult>>(() => getMockResults<MockResult>());
   const { version } = useDriverLicenseRecords();
-  useEffect(() => setResults(getMockResults<MockResult>()), [version]);
+  useEffect(() => {
+    setResults(getMockResults<MockResult>());
+  }, [version]);
   const [session, setSession] = useState<ExamSession | null>(null);
   const [outcome, setOutcome] = useState<ExamOutcome | null>(null);
 

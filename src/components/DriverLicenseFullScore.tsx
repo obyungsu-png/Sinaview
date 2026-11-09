@@ -121,7 +121,10 @@ export function FullScorePage({ onBack }: { onBack: () => void }) {
   useDriverLicenseRecords();
   const sets = useMemo(() => (data ? buildSets(data) : []), [data]);
 
-  useEffect(() => window.scrollTo({ top: 0 }), [view.mode]);
+  // 효과 함수는 아무것도 돌려주지 않게 (돌려준 값을 React가 정리 함수로 부르기 때문)
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [view.mode]);
 
   if (!data) return <LoadingState failed={failed} onBack={onBack} />;
 
@@ -640,7 +643,9 @@ function MjCards({ data, byId, onBack }: { data: MjData; byId: Map<number, DLQue
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const [zoomPic, setZoomPic] = useState<{ src: string; caption?: string } | null>(null);
   const [, rerender] = useState(0);
-  useEffect(() => setOpened(new Set()), [level]);
+  useEffect(() => {
+    setOpened(new Set());
+  }, [level]);
   const done = new Set(getProgress<{ done: number[] }>(CARDS_KEY)?.done ?? []);
   const toggle = (i: number) => {
     const next = new Set(done);
