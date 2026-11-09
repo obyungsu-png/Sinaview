@@ -124,7 +124,7 @@ export function ContentCheck({
             </div>
           ) : (
             <>
-              <p className="text-gray-800 leading-relaxed">
+              <p className="text-gray-800 leading-relaxed whitespace-pre-line">
                 <span className="mr-1.5 px-1.5 py-0.5 rounded bg-[#eef7fe] text-[#2a8bc9] text-xs align-middle">
                   {q.kind === 'judge' ? '판단형' : '선택형'}
                 </span>

@@ -30,6 +30,8 @@ export type DLQuestion = {
   img?: string[];
   // 만점 교육(중국어로만 시험): q·o 가 중국어 원문일 때 한국어 번역
   ko?: { q: string; o?: string[] };
+  kw?: [string, string, string][]; // 핵심 단어 [한자, 병음, 뜻]
+  ez?: string; // 중국어 원문 해설
 };
 export type DLKind = 'txt' | 'pic' | 'sign' | 'sig';
 export type DLChapter = { id: number; title: string };
@@ -117,8 +119,14 @@ const isFast = (q: DLQuestion) => {
 const fastTip = (q: DLQuestion) => dataCache?.fast?.tips[q.id];
 
 // 원본 그림이 작아서(가로 200~400px) 시험지처럼 크게 보여 줌: 상황 그림은 가로 최대 640px, 표지·계기판은 세로 최대 300px
+const extraImgSize: Record<string, [number, number]> = {};
+/** 다른 데이터(만점 교육)의 그림 크기를 등록해 같은 규칙으로 크기를 맞춤 */
+export function registerImageSizes(sizes: Record<string, [number, number]>) {
+  Object.assign(extraImgSize, sizes);
+}
+
 function imageStyle(name: string, count: number, compact = false): CSSProperties | undefined {
-  const size = dataCache?.imgSize?.[name];
+  const size = dataCache?.imgSize?.[name] ?? extraImgSize[name];
   if (!size) return undefined;
   const [w, h] = size;
   const maxWidth = Math.min(w * 2.2, count > 1 ? 300 : 640);
@@ -130,6 +138,77 @@ function imageStyle(name: string, count: number, compact = false): CSSProperties
     return { width: `min(${Math.round(maxWidth)}px, calc(${count > 2 ? 14 : 18}vh * ${(w / h).toFixed(3)}))`, aspectRatio };
   }
   return { width: Math.round(Math.min(maxWidth, ((count > 1 ? 200 : 300) * w) / h)), aspectRatio };
+}
+
+// ── 만점 교육: 보기 단계 (① 전체 번역 ② 단어 힌트 ③ 실전) — 카드·문제 풀이 공통, 한 번 고르면 저장 ──
+export type MjLevel = 1 | 2 | 3;
+const MJ_LEVEL_KEY = 'dl-mj-level';
+const MJ_LEVEL_EVENT = 'dl-mj-level';
+export const MJ_LEVELS: { v: MjLevel; label: string; short: string }[] = [
+  { v: 1, label: '① 전체 번역', short: '번역' },
+  { v: 2, label: '② 단어 힌트', short: '단어' },
+  { v: 3, label: '③ 실전', short: '실전' },
+];
+export function useMjLevel(): [MjLevel, (level: MjLevel) => void] {
+  const [level, setLevel] = useState<MjLevel>(() => readStore<MjLevel>(MJ_LEVEL_KEY, 1));
+  useEffect(() => {
+    const sync = () => setLevel(readStore<MjLevel>(MJ_LEVEL_KEY, 1));
+    window.addEventListener(MJ_LEVEL_EVENT, sync);
+    return () => window.removeEventListener(MJ_LEVEL_EVENT, sync);
+  }, []);
+  const change = (next: MjLevel) => {
+    writeStore(MJ_LEVEL_KEY, next);
+    window.dispatchEvent(new Event(MJ_LEVEL_EVENT));
+  };
+  return [level, change];
+}
+export function LevelSwitch({ level, onChange, size = 'md' }: { level: MjLevel; onChange: (level: MjLevel) => void; size?: 'sm' | 'md' }) {
+  return (
+    <div role="radiogroup" aria-label="보기 단계" className="inline-flex rounded-lg border border-gray-300 bg-white overflow-hidden">
+      {MJ_LEVELS.map((item) => (
+        <button
+          key={item.v}
+          type="button"
+          role="radio"
+          aria-checked={level === item.v}
+          onClick={() => onChange(item.v)}
+          className={`${size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 sm:px-4 py-2 text-[13px] sm:text-sm'} border-l first:border-l-0 border-gray-200 transition-colors ${
+            level === item.v ? 'bg-[#37a7f0] text-white font-medium' : 'text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** 중국어 읽어 주기 (브라우저 음성) */
+export function speakZh(text: string) {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'zh-CN';
+  utter.rate = 0.9;
+  const voice = window.speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith('zh'));
+  if (voice) utter.voice = voice;
+  window.speechSynthesis.speak(utter);
+}
+
+// 문장 속 핵심 단어에 색을 칠함
+function highlightWords(text: string, words: string[]): ReactNode {
+  const list = words.filter(Boolean).sort((a, b) => b.length - a.length);
+  if (!list.length) return text;
+  const re = new RegExp(`(${list.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g');
+  return text.split(re).map((part, i) =>
+    list.includes(part) ? (
+      <span key={i} className="text-[#b9560e] bg-[#fff4d6] rounded px-0.5">
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
 }
 
 let audioContext: AudioContext | null = null;
@@ -226,7 +305,7 @@ const LIGHTBOX_IMG_STYLE: CSSProperties = {
 };
 
 // 작은 그림 클릭 → 화면 가득 확대해 보는 라이트박스 (배경 클릭·닫기 버튼으로 종료)
-function ImageLightbox({ src, caption, onClose }: { src: string; caption?: string; onClose: () => void }) {
+export function ImageLightbox({ src, caption, onClose }: { src: string; caption?: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[60] bg-black/80 flex flex-col items-center justify-center p-4 gap-3" onClick={onClose}>
       <div className="flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -260,7 +339,7 @@ function QuestionCard({
   onSelect,
   headerRight,
   compact = false,
-  translate,
+  level,
 }: {
   q: DLQuestion;
   label: string;
@@ -269,10 +348,18 @@ function QuestionCard({
   onSelect?: (index: number) => void;
   headerRight?: ReactNode;
   compact?: boolean;
-  translate?: boolean; // 중국어 문제의 한국어 번역 보이기 (기본: 풀이 화면은 숨김, 결과·오답 화면은 보임)
+  level?: MjLevel; // 만점 교육(중국어 문제) 보기 단계 — 없으면 ① 전체 번역 (결과·오답 화면)
 }) {
   const [zoom, setZoom] = useState(false);
-  const showKo = !!q.ko && (translate ?? !compact);
+  // 번역을 가린 단계에서 눌러서 잠깐 보기 / 실전 단계에서 누른 핵심 단어
+  const [peek, setPeek] = useState(false);
+  const [openWords, setOpenWords] = useState<string[]>([]);
+  useEffect(() => {
+    setPeek(false);
+    setOpenWords([]);
+  }, [q.id]);
+  const lv: MjLevel = q.ko ? level ?? 1 : 1;
+  const showKo = !!q.ko && (lv === 1 || peek);
   const koOptions = showKo ? koOptionsOf(q) : [];
   const images = q.img && (
     <div className={compact ? 'flex flex-wrap gap-2 justify-center lg:max-w-[760px] lg:mb-4' : 'flex flex-wrap gap-3 mb-6'}>
@@ -322,7 +409,7 @@ function QuestionCard({
               <span className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[14px] font-bold ${badgeTone}`}>{badge}</span>
               <span className="flex-1">
                 {text}
-                {koOptions[i] && <span className="block mt-0.5 text-[13px] sm:text-sm text-gray-500">{koOptions[i]}</span>}
+                {koOptions[i] && <span className="ml-1.5 text-[13px] sm:text-sm text-gray-500">{koOptions[i]}</span>}
               </span>
             </button>
           );
@@ -370,11 +457,54 @@ function QuestionCard({
               ⚡속성
             </span>
           )}
-          {q.q}
-          {showKo && <span className="block mt-1 text-[14px] sm:text-[15px] text-gray-500 leading-snug">{q.ko!.q}</span>}
+          {q.kw ? highlightWords(q.q, q.kw.map((w) => w[0])) : q.q}
+          {q.ko &&
+            (showKo ? (
+              <span className="block mt-1 text-[14px] sm:text-[15px] text-gray-500 leading-snug">{q.ko.q}</span>
+            ) : (
+              <button type="button" onClick={() => setPeek(true)} className="relative block w-full mt-1 text-left" aria-label="번역 보기">
+                <span className="block blur-[5px] select-none text-[14px] sm:text-[15px] text-gray-500 leading-snug" aria-hidden>
+                  {q.ko.q}
+                </span>
+                <span className="absolute inset-0 flex items-center text-[13px] text-[#2a8bc9] font-medium">눌러서 번역 보기</span>
+              </button>
+            ))}
         </h2>
         {headerRight}
       </div>
+      {q.ko && (q.kw?.length ?? 0) > 0 && (
+        <div className={`flex flex-wrap items-center gap-1.5 ${compact ? '-mt-1 mb-3' : 'mb-4'}`}>
+          <button
+            type="button"
+            onClick={() => speakZh(q.q + (q.t === 's' ? '。' + optionsOf(q).map((o, i) => `${LETTERS[i]}，${o}`).join('。') : ''))}
+            aria-label="중국어로 읽어 주기"
+            className="w-7 h-7 rounded-full bg-[#eef7fe] text-[#2a8bc9] text-xs flex items-center justify-center hover:bg-[#d9edfb]"
+          >
+            <i className="fa-solid fa-volume-high"></i>
+          </button>
+          {q.kw!.map(([zh, pinyin, meaning]) => {
+            const open = lv < 3 || openWords.includes(zh);
+            return (
+              <button
+                key={zh}
+                type="button"
+                onClick={() => setOpenWords((list) => (list.includes(zh) ? list.filter((w) => w !== zh) : [...list, zh]))}
+                className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-[#fff8e6] border border-[#f5d58a] text-[11px] sm:text-xs text-gray-700"
+              >
+                <b className="text-[#b9560e] text-[12px] sm:text-[13px]">{zh}</b>
+                {open ? (
+                  <>
+                    <span className="text-[#c98b2f]">{pinyin}</span>
+                    <span className="text-gray-600">{meaning}</span>
+                  </>
+                ) : (
+                  <span className="text-[#c98b2f]">?</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {images}
       {options}
       {zoom && (
@@ -436,6 +566,12 @@ function ExplanationBox({ q, selected, compact = false }: { q: DLQuestion; selec
         </p>
       )}
       {fastTip(q) && <p className="mt-1.5 text-[15px] text-[#b9560e] leading-relaxed">⚡ {fastTip(q)}</p>}
+      {q.ez && (
+        <details className="mt-2">
+          <summary className="text-sm text-[#2a8bc9] cursor-pointer select-none">중국어 원문 해설 보기</summary>
+          <p className="mt-1 text-sm text-gray-600 leading-relaxed">{q.ez}</p>
+        </details>
+      )}
       <button
         type="button"
         onClick={() =>
@@ -479,11 +615,7 @@ export function PracticeQuiz({
   const [autoNext, setAutoNext] = useState(() => readStore('dl-auto-next', false));
   // 만점 교육(중국어 문제): 한국어 번역 보이기
   const hasKo = useMemo(() => questions.some((item) => item.ko), [questions]);
-  const [showKo, setShowKo] = useState(() => readStore('dl-fs-ko', false));
-  const toggleKo = () => {
-    setShowKo(!showKo);
-    writeStore('dl-fs-ko', !showKo);
-  };
+  const [level, setLevel] = useMjLevel();
   const [showExplanation, setShowExplanation] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const [favorites, setFavorites] = useState<number[]>(getFavorites);
@@ -629,14 +761,13 @@ export function PracticeQuiz({
         </div>
         {hasKo && (
           <button
-            onClick={toggleKo}
-            aria-pressed={showKo}
-            aria-label="한국어 번역 보기"
-            className={`shrink-0 h-9 px-2.5 rounded-lg border text-[13px] font-medium ${
-              showKo ? 'bg-[#37a7f0] border-[#37a7f0] text-white' : 'bg-white border-gray-300 text-gray-700 active:bg-gray-100'
+            onClick={() => setLevel(level === 3 ? 1 : ((level + 1) as MjLevel))}
+            aria-label={`보기 단계: ${MJ_LEVELS[level - 1].label} (누르면 다음 단계)`}
+            className={`shrink-0 h-9 px-2 rounded-lg border text-[13px] font-medium ${
+              level === 3 ? 'bg-[#2c3e50] border-[#2c3e50] text-white' : 'bg-[#37a7f0] border-[#37a7f0] text-white'
             }`}
           >
-            번역
+            {level} {MJ_LEVELS[level - 1].short}
           </button>
         )}
         <button
@@ -695,20 +826,10 @@ export function PracticeQuiz({
             reveal={!!answered}
             onSelect={answered ? undefined : handleSelect}
             compact
-            translate={showKo}
+            level={level}
             headerRight={
               <div className="hidden lg:flex shrink-0 items-center gap-2">
-                {hasKo && (
-                  <button
-                    onClick={toggleKo}
-                    aria-pressed={showKo}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded border text-xs transition-colors ${
-                      showKo ? 'bg-[#37a7f0] border-[#37a7f0] text-white' : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <i className="fa-solid fa-language"></i> 한국어 번역
-                  </button>
-                )}
+                {hasKo && <LevelSwitch level={level} onChange={setLevel} size="sm" />}
                 <button
                   onClick={toggleFavorite}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded border text-xs transition-colors ${

@@ -1,113 +1,109 @@
 // 만점 교육 (满分学习考试): 1년(벌점 주기)에 벌점 12점이 되면 받는 교육·시험
-// - 형식은 과목1과 같지만(100문제·45분·90점) 시험은 중국어로만 보고, 법규·처벌·사고 사례·안전 문명·응급처치 비중이 큼
-// - 그래서 이 탭의 문제는 모두 중국어 원문으로 내고, '번역'을 누르면 한국어가 보이게 함
-// - 데이터: data/driverLicenseFullScore.json (문제은행 중국어 원문 + 만점 교육 추가 문제 + 주제 + 핵심 한자 단어)
+// - 형식은 과목1과 같지만(100문제·45분·90점) 시험은 중국어로만 보고, 법규·처벌·사고·안전 문명·응급처치 비중이 큼
+// - 틀은 필기시험과 같음: 주제별 연습 · 모의고사(회차별) · ⚡속성 과정(핵심 정리 카드 → 전체 문제 → 시험 전날 100문제)
+// - 문제·카드는 중국어 원문 + 보기 단계 스위치(① 전체 번역 ② 단어 힌트 ③ 실전)
+// - 데이터: data/driverLicenseManjeom.json (만점 문제은행 정리본, scratchpad 빌드 스크립트로 생성)
 import { useEffect, useMemo, useState } from 'react';
 import {
   BackButton,
   EXAM_SECONDS,
   ExamResult,
   ExamRunner,
+  ImageLightbox,
+  LevelSwitch,
   LoadingState,
   PASS_SCORE,
   PracticeQuiz,
   WrongNotes,
+  registerImageSizes,
   shuffle,
-  useDriverLicenseData,
-  type DLData,
+  speakZh,
+  useMjLevel,
   type DLQuestion,
   type ExamOutcome,
   type ExamSession,
+  type MjLevel,
   type MockResult,
   type Progress,
 } from './DriverLicenseQuiz';
+import { ContentCheck, checkedCount, scrollToId } from './DriverLicenseContentCheck';
+import type { CheckQuestion } from '../data/driverLicenseCheckQuestions';
 import { getMockResults, getProgress, getWrongMap, recordAnswers, setMockResult, setProgress, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
 
-type FSTopicRaw = { key: string; zh: string; ko: string; desc: string; ids: number[] };
-type FSVocab = { g: string; zh: string; py: string; ko: string; n: number; tip?: string };
-type FSRaw = {
-  zh: Record<string, [string] | [string, string[]]>;
-  extra: DLQuestion[];
-  topics: FSTopicRaw[];
-  mix: [string, number][];
-  core: number[];
-  vocab: FSVocab[];
-};
-type FSTopic = FSTopicRaw & { questions: DLQuestion[] };
-type FSData = { questions: DLQuestion[]; topics: FSTopic[]; topicOf: Map<number, string>; mix: [string, number][]; core: DLQuestion[]; vocab: FSVocab[] };
+type MjTopic = { c: number; key: string; title: string; zh: string; desc: string; count: number };
+type MjLine = [string, string, string]; // 중국어, 병음, 한국어
+type MjCard = { topic: string; title: string; zh: string; new: boolean; lines: MjLine[]; memo: MjLine; check: number[]; images?: { src: string; caption?: string }[] };
+type MjData = { topics: MjTopic[]; questions: DLQuestion[]; cards: MjCard[]; exam: number[]; imgSize: Record<string, [number, number]> };
 
-let rawCache: FSRaw | null = null;
-let rawPromise: Promise<FSRaw> | null = null;
-function loadRaw() {
-  if (rawCache) return Promise.resolve(rawCache);
-  if (!rawPromise) {
-    rawPromise = import('../data/driverLicenseFullScore.json')
-      .then((m) => (rawCache = m.default as unknown as FSRaw))
+let cache: MjData | null = null;
+let pending: Promise<MjData> | null = null;
+function loadData() {
+  if (cache) return Promise.resolve(cache);
+  if (!pending) {
+    pending = import('../data/driverLicenseManjeom.json')
+      .then((m) => {
+        cache = m.default as unknown as MjData;
+        registerImageSizes(cache.imgSize);
+        return cache;
+      })
       .catch((err) => {
-        rawPromise = null;
+        pending = null;
         throw err;
       });
   }
-  return rawPromise;
+  return pending;
 }
-
-// 문제은행(한국어)에 중국어 원문을 입히고, 한국어는 번역(ko)으로 옮김
-function buildFullScore(data: DLData, raw: FSRaw): FSData {
-  const questions = data.questions
-    .map((q): DLQuestion => {
-      const z = raw.zh[q.id];
-      if (!z) return q;
-      return { ...q, q: z[0], o: q.t === 's' ? z[1] : undefined, ko: { q: q.q, o: q.o } };
-    })
-    .concat(raw.extra);
-  const byId = new Map(questions.map((q) => [q.id, q]));
-  const pick = (ids: number[]) => ids.map((id) => byId.get(id)).filter((q): q is DLQuestion => !!q);
-  const topics = raw.topics.map((t) => ({ ...t, questions: pick(t.ids) }));
-  const topicOf = new Map<number, string>();
-  for (const t of topics) for (const id of t.ids) topicOf.set(id, t.key);
-  return { questions, topics, topicOf, mix: raw.mix, core: pick(raw.core), vocab: raw.vocab };
-}
-
-function useFullScoreData() {
-  const { data, failed } = useDriverLicenseData();
-  const [raw, setRaw] = useState<FSRaw | null>(rawCache);
-  const [rawFailed, setRawFailed] = useState(false);
+function useMjData() {
+  const [data, setData] = useState<MjData | null>(cache);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
-    if (raw) return;
+    if (data) return;
     let alive = true;
-    loadRaw()
-      .then((r) => alive && setRaw(r))
-      .catch(() => alive && setRawFailed(true));
+    loadData()
+      .then((d) => alive && setData(d))
+      .catch(() => alive && setFailed(true));
     return () => {
       alive = false;
     };
-  }, [raw]);
-  const fs = useMemo(() => (data && raw ? buildFullScore(data, raw) : null), [data, raw]);
-  return { fs, failed: failed || rawFailed };
+  }, [data]);
+  return { data, failed };
 }
 
 const BREADCRUMB = '홈 > 만점 교육';
-const EXAM_KEY = 'fs-exam';
-const VOCAB_KEY = 'fs-vocab';
-const CORE_KEY = 'fs-core';
-// 실전 모의고사: 앞쪽은 일반 과목1과 비슷한 문제, 뒤쪽은 만점 교육 중점 문제 (실제 후기와 같은 순서)
-const FRONT_TOPICS = new Set(['road', 'signal', 'license']);
-const FOCUS_TOPICS = new Set(['rules', 'penalty', 'cases', 'civil', 'aid']);
+const ALL_KEY = 'mj-all';
+const CARDS_KEY = 'mj-cards';
+const EXAM100_KEY = 'mj-exam100';
+const RANDOM_KEY = 'mj-random';
+const SET_COUNT = 6;
+const FOCUS_TOPICS = new Set(['rules', 'penalty', 'safety', 'emergency']);
 
-function buildExam(fs: FSData) {
-  const byKey = new Map(fs.topics.map((t) => [t.key, t.questions]));
-  const take = ([key, n]: [string, number]) => shuffle(byKey.get(key) ?? []).slice(0, n);
-  const front = shuffle(fs.mix.filter(([k]) => FRONT_TOPICS.has(k)).flatMap(take));
-  const back = shuffle(fs.mix.filter(([k]) => !FRONT_TOPICS.has(k)).flatMap(take));
-  return [...front, ...back];
+// 회차별 모의고사: 주제마다 골고루 나눠 6회분 (각 100문제, 6회를 다 풀면 거의 모든 문제를 한 번씩)
+function buildSets(data: MjData) {
+  const sets: DLQuestion[][] = Array.from({ length: SET_COUNT }, () => []);
+  let turn = 0;
+  for (const topic of data.topics) {
+    const pool = shuffle(
+      data.questions.filter((q) => q.c === topic.c),
+      600 + topic.c,
+    );
+    for (const q of pool) sets[turn++ % SET_COUNT].push(q);
+  }
+  return sets.map((set, i) => {
+    const ids = new Set(set.map((q) => q.id));
+    const extra = shuffle(
+      data.questions.filter((q) => !ids.has(q.id)),
+      900 + i,
+    ).slice(0, Math.max(0, 100 - set.length));
+    return shuffle([...set, ...extra], 1200 + i).slice(0, 100);
+  });
 }
 
 type View =
   | { mode: 'home' }
   | { mode: 'topics' }
-  | { mode: 'exam' }
+  | { mode: 'mock' }
   | { mode: 'fast' }
-  | { mode: 'vocab' }
+  | { mode: 'cards' }
   | { mode: 'quiz'; title: string; questions: DLQuestion[]; storageKey?: string; pool: DLQuestion[]; from: 'topics' | 'fast'; key: number }
   | { mode: 'wrong'; title: string; pool: DLQuestion[]; from: 'topics' | 'fast' };
 
@@ -118,37 +114,40 @@ const btn = {
 };
 
 export function FullScorePage({ onBack }: { onBack: () => void }) {
-  const { fs, failed } = useFullScoreData();
+  const { data, failed } = useMjData();
   const [view, setView] = useState<View>({ mode: 'home' });
-  const [session, setSession] = useState<ExamSession | null>(null);
-  const [outcome, setOutcome] = useState<ExamOutcome | null>(null);
+  const [session, setSession] = useState<(ExamSession & { resultKey: string; back: View }) | null>(null);
+  const [outcome, setOutcome] = useState<(ExamOutcome & { resultKey: string; back: View }) | null>(null);
   useDriverLicenseRecords();
+  const sets = useMemo(() => (data ? buildSets(data) : []), [data]);
 
   useEffect(() => window.scrollTo({ top: 0 }), [view.mode]);
 
-  if (!fs) return <LoadingState failed={failed} onBack={onBack} />;
+  if (!data) return <LoadingState failed={failed} onBack={onBack} />;
 
   const go = (next: View) => setView(next);
-  const startExam = () => {
+  const byId = new Map(data.questions.map((q) => [q.id, q]));
+  const startExam = (title: string, questions: DLQuestion[], resultKey: string, back: View, no: number | null = null) => {
     setOutcome(null);
-    setSession({ no: null, title: '만점 교육 실전 모의고사', questions: buildExam(fs), answers: {}, startedAt: Date.now() });
+    setSession({ no, title, questions, answers: {}, startedAt: Date.now(), resultKey, back });
   };
   const finishExam = (finished: ExamSession) => {
+    if (!session) return;
     const score = finished.questions.filter((q, i) => finished.answers[i] === q.a).length;
     recordAnswers(
       finished.questions
         .map((q, i) => ({ id: q.id, selected: finished.answers[i], correct: finished.answers[i] === q.a }))
         .filter((r) => r.selected !== undefined),
     );
-    const prev = getMockResults<MockResult>()[EXAM_KEY];
-    setMockResult(EXAM_KEY, {
+    const prev = getMockResults<MockResult>()[session.resultKey];
+    setMockResult(session.resultKey, {
       best: Math.max(prev?.best ?? 0, score),
       last: score,
       attempts: (prev?.attempts ?? 0) + 1,
       date: new Date().toLocaleDateString('ko-KR'),
     });
+    setOutcome({ ...finished, score, seconds: Math.min(EXAM_SECONDS, Math.round((Date.now() - finished.startedAt) / 1000)), resultKey: session.resultKey, back: session.back });
     setSession(null);
-    setOutcome({ ...finished, score, seconds: Math.min(EXAM_SECONDS, Math.round((Date.now() - finished.startedAt) / 1000)) });
     window.scrollTo({ top: 0 });
   };
 
@@ -156,7 +155,7 @@ export function FullScorePage({ onBack }: { onBack: () => void }) {
     return (
       <ExamRunner
         session={session}
-        onChange={setSession}
+        onChange={(next) => setSession({ ...next, resultKey: session.resultKey, back: session.back })}
         onSubmit={finishExam}
         onExit={() => {
           if (window.confirm('시험을 그만두시겠어요? 지금까지 고른 답은 저장되지 않습니다.')) setSession(null);
@@ -165,23 +164,29 @@ export function FullScorePage({ onBack }: { onBack: () => void }) {
     );
   }
   if (outcome) {
+    const retry = () => {
+      const fresh = outcome.resultKey === RANDOM_KEY ? shuffle(data.questions).slice(0, 100) : outcome.questions;
+      startExam(outcome.title ?? '만점 교육 모의고사', fresh, outcome.resultKey, outcome.back, outcome.no);
+    };
     return (
       <ExamResult
         outcome={outcome}
         chapters={[]}
-        onRetry={startExam}
+        onRetry={retry}
         onList={() => {
           setOutcome(null);
-          go({ mode: 'exam' });
+          go(outcome.back);
         }}
-        listLabel="만점 교육 모의고사로"
-        groups={{ title: '주제별 결과', rows: fs.topics.map((t) => ({ key: t.key, label: `${t.ko} (${t.zh})`, ids: new Set(t.ids) })) }}
+        listLabel={outcome.back.mode === 'fast' ? '속성 과정으로' : '모의고사 목록'}
+        groups={{
+          title: '주제별 결과',
+          rows: data.topics.map((t) => ({ key: t.key, label: `${t.title} (${t.zh})`, ids: new Set(data.questions.filter((q) => q.c === t.c).map((q) => q.id)) })),
+        }}
       />
     );
   }
 
   if (view.mode === 'quiz') {
-    const backTo: View = { mode: view.from };
     return (
       <PracticeQuiz
         key={view.key}
@@ -189,7 +194,7 @@ export function FullScorePage({ onBack }: { onBack: () => void }) {
         title={view.title}
         breadcrumb={view.from === 'fast' ? `${BREADCRUMB} > 속성 과정` : `${BREADCRUMB} > 주제별 연습`}
         storageKey={view.storageKey}
-        onBack={() => go(backTo)}
+        onBack={() => go({ mode: view.from })}
         backLabel={view.from === 'fast' ? '속성 과정으로 돌아가기' : '주제별 연습으로 돌아가기'}
         onReviewWrong={() => go({ mode: 'wrong', title: view.title, pool: view.pool, from: view.from })}
       />
@@ -206,11 +211,33 @@ export function FullScorePage({ onBack }: { onBack: () => void }) {
       />
     );
   }
-  if (view.mode === 'topics') return <TopicsPage fs={fs} onBack={() => go({ mode: 'home' })} onStart={go} />;
-  if (view.mode === 'exam') return <ExamHome fs={fs} onBack={() => go({ mode: 'home' })} onStart={startExam} />;
-  if (view.mode === 'vocab') return <VocabCards vocab={fs.vocab} onBack={() => go({ mode: 'fast' })} />;
-  if (view.mode === 'fast') return <FastHome fs={fs} onBack={() => go({ mode: 'home' })} onGo={go} onExam={startExam} />;
-  return <GuideHome onGo={go} />;
+  if (view.mode === 'topics') return <TopicsPage data={data} onBack={() => go({ mode: 'home' })} onStart={go} />;
+  if (view.mode === 'mock') {
+    return (
+      <MockPage
+        sets={sets}
+        onBack={() => go({ mode: 'home' })}
+        onStart={(no) =>
+          no === null
+            ? startExam('만점 교육 랜덤 모의고사', shuffle(data.questions).slice(0, 100), RANDOM_KEY, { mode: 'mock' })
+            : startExam(`만점 교육 제${no}회 모의고사`, sets[no - 1], `mj-set${no}`, { mode: 'mock' }, no)
+        }
+      />
+    );
+  }
+  if (view.mode === 'cards') return <MjCards data={data} byId={byId} onBack={() => go({ mode: 'fast' })} />;
+  if (view.mode === 'fast') {
+    const exam = data.exam.map((id) => byId.get(id)).filter((q): q is DLQuestion => !!q);
+    return (
+      <FastHome
+        data={data}
+        onBack={() => go({ mode: 'home' })}
+        onGo={go}
+        onExam={() => startExam('⚡ 시험 전날 실전 100문제', exam, EXAM100_KEY, { mode: 'fast' })}
+      />
+    );
+  }
+  return <GuideHome data={data} onGo={go} />;
 }
 
 // ───────── 안내 (첫 화면) ─────────
@@ -232,31 +259,13 @@ const STEPS: { title: string; desc: string }[] = [
   { title: '면허 반환', desc: '합격 + 벌금 납부를 마치면 벌점이 지워지고 면허증을 돌려받음' },
 ];
 
-function GuideHome({ onGo }: { onGo: (view: View) => void }) {
-  const exam = getMockResults<MockResult>()[EXAM_KEY];
+function GuideHome({ data, onGo }: { data: MjData; onGo: (view: View) => void }) {
+  const results = getMockResults<MockResult>();
+  const best = Math.max(0, ...Object.entries(results).filter(([k]) => k.startsWith('mj-')).map(([, r]) => r.best));
   const cards = [
-    {
-      view: { mode: 'topics' } as View,
-      icon: 'fa-book-open',
-      color: '#ff6b6b',
-      title: '주제별 연습',
-      desc: '만점 교육에 많이 나오는 주제부터\n중국어 문제 + 한국어 번역',
-    },
-    {
-      view: { mode: 'exam' } as View,
-      icon: 'fa-pen-to-square',
-      color: '#37a7f0',
-      title: '실전 모의고사',
-      desc: exam ? `최고 ${exam.best}점 · ${exam.attempts}회 응시` : '실제처럼 중국어로만\n100문제 · 45분',
-    },
-    {
-      view: { mode: 'fast' } as View,
-      icon: 'fa-bolt',
-      color: '#f39c12',
-      title: '⚡ 속성 과정',
-      desc: '핵심 한자 단어 → 핵심 문제\n→ 실전 모의고사',
-      hot: true,
-    },
+    { view: { mode: 'topics' } as View, icon: 'fa-book-open', color: '#ff6b6b', title: '주제별 연습', desc: `만점 문제은행 ${data.questions.length}문제를\n${data.topics.length}개 주제로 나눠 연습` },
+    { view: { mode: 'mock' } as View, icon: 'fa-pen-to-square', color: '#37a7f0', title: '모의고사', desc: best ? `최고 ${best}점\n실제처럼 중국어 100문제 · 45분` : `회차별 ${SET_COUNT}회분 + 랜덤\n중국어 100문제 · 45분` },
+    { view: { mode: 'fast' } as View, icon: 'fa-bolt', color: '#f39c12', title: '⚡ 속성 과정', desc: '핵심 정리 카드 → 전체 문제\n→ 시험 전날 실전 100문제', hot: true },
   ];
   return (
     <div className="max-w-[1100px] mx-auto px-4 pb-12">
@@ -280,7 +289,8 @@ function GuideHome({ onGo }: { onGo: (view: View) => void }) {
         </div>
         <p className="text-sm sm:text-[15px] text-gray-700 leading-relaxed">
           1년(벌점 주기) 안에 벌점이 12점이 되면 면허증을 압수당하고, 7일 동안 만점 교육을 받은 뒤 이 시험에 합격해야 면허증을 돌려받습니다. 외국인도 이 시험은{' '}
-          <b>중국어로만</b> 볼 수 있어서, 여기 있는 모든 문제는 실제 시험처럼 중국어 원문으로 나오고 <b>[번역]</b>을 누르면 한국어가 보입니다.
+          <b>중국어로만</b> 볼 수 있어서, 여기 있는 만점 문제은행 {data.questions.length}문제는 모두 중국어 원문으로 나옵니다. 화면 위의 <b>보기 단계</b>(① 전체 번역 ② 단어
+          힌트 ③ 실전)로 한국어 도움을 줄여 가며 익히세요.
         </p>
       </div>
 
@@ -334,7 +344,7 @@ function GuideHome({ onGo }: { onGo: (view: View) => void }) {
             <b>안전·문명 상식</b> — 과목4 유형의 종합 문제가 섞여 나옵니다.
           </li>
           <li>
-            <b>실제 사고 사례 경고</b> — 실제 교통사고를 소재로 "주된 위반 행위"를 묻는 문제가 나옵니다.
+            <b>실제 사고 사례 경고</b> — 실제 교통사고를 소재로 한 경고 교육 문제가 나옵니다.
           </li>
           <li>
             <b>실전 후기</b> — 일반 과목1 모의고사는 10번 중 8번 넘게 붙었는데, 실제 시험은 앞 20~30문제만 비슷하고 뒤쪽은 처음 보는 문제라 당황했다는 경우가
@@ -342,8 +352,8 @@ function GuideHome({ onGo }: { onGo: (view: View) => void }) {
           </li>
         </ul>
         <p className="text-sm sm:text-[15px] text-gray-800">
-          <b>한마디로</b> 형식은 같지만 문제가 "더 실전적"이고 "더 경고적"입니다. 그래서 이 탭은 <b>법규·처벌, 만점·벌점 제도, 사고 사례, 안전·문명, 응급처치</b>{' '}
-          위주로 다시 골랐고, 모의고사도 실제처럼 뒤쪽 70문제를 이 주제로 냅니다.
+          <b>한마디로</b> 형식은 같지만 문제가 "더 실전적"이고 "더 경고적"입니다. 그래서 여기서는 일반 과목1 문제가 아니라 <b>만점 교육 전용 문제은행</b>으로
+          연습합니다.
         </p>
       </div>
 
@@ -367,7 +377,6 @@ function GuideHome({ onGo }: { onGo: (view: View) => void }) {
       <p className="text-xs text-gray-400 leading-relaxed">
         근거: 《道路交通安全违法行为记分管理办法》(공안부령 제163호). 지역마다 운영 방식이 조금 다를 수 있으니 交管12123 앱의 "满分学习考试"에서 꼭 확인하세요.
       </p>
-
     </div>
   );
 }
@@ -378,35 +387,32 @@ function solvedOf(key: string) {
   return saved ? Object.keys(saved.answers).length : 0;
 }
 
-function TopicsPage({ fs, onBack, onStart }: { fs: FSData; onBack: () => void; onStart: (view: View) => void }) {
+function TopicsPage({ data, onBack, onStart }: { data: MjData; onBack: () => void; onStart: (view: View) => void }) {
   const wrong = getWrongMap();
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-10">
       <BackButton onClick={onBack} label="만점 교육으로 돌아가기" />
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">주제별 연습</h1>
       <p className="text-sm sm:text-[15px] text-gray-500 mb-5 leading-relaxed">
-        문제는 실제 시험처럼 중국어로 나와요. 처음에는 <b>[번역]</b>을 켜고 풀고, 익숙해지면 끄고 풀어 보세요. 위쪽 <span className="text-[#d35400]">★ 중점</span> 주제가
-        만점 교육 시험에 특히 많이 나옵니다.
+        만점 문제은행 {data.questions.length}문제를 주제별로 나눴어요. 문제는 실제 시험처럼 중국어로 나오고, 화면 위의 <b>보기 단계</b>로 한국어 도움을 조절할 수
+        있어요. <span className="text-[#d35400]">★ 중점</span> 주제가 만점 교육 시험에 특히 많이 나옵니다.
       </p>
       <div className="flex flex-col gap-3">
-        {fs.topics.map((topic) => {
-          const key = `fs-${topic.key}`;
+        {data.topics.map((topic) => {
+          const key = `mj-t${topic.c}`;
+          const questions = data.questions.filter((q) => q.c === topic.c);
           const solved = solvedOf(key);
-          const total = topic.questions.length;
-          const wrongCount = topic.questions.filter((q) => q.id in wrong).length;
-          const title = `${topic.ko}`;
+          const total = questions.length;
+          const wrongCount = questions.filter((q) => q.id in wrong).length;
           return (
             <div key={topic.key} className="p-4 sm:p-5 rounded-xl border border-gray-200 bg-white shadow-sm">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-1">
                 {FOCUS_TOPICS.has(topic.key) && <span className="text-xs text-[#d35400] font-medium">★ 중점</span>}
-                <h2 className="text-[17px] font-bold text-gray-800">{topic.ko}</h2>
+                <h2 className="text-[17px] font-bold text-gray-800">{topic.title}</h2>
                 <span className="text-sm text-gray-500">{topic.zh}</span>
                 <span className="ml-auto text-xs text-gray-400">{total}문제</span>
               </div>
               <p className="text-sm text-gray-600 mb-1">{topic.desc}</p>
-              {topic.key === 'cases' && (
-                <p className="text-xs text-gray-400 mb-1">사례 문제는 실제 시험의 사례형 문제와 같은 형식으로 이 사이트에서 만든 연습 문제입니다.</p>
-              )}
               <div className="flex items-center gap-3 my-2.5">
                 <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                   <div className="h-full bg-[#37a7f0]" style={{ width: `${total ? (solved / total) * 100 : 0}%` }}></div>
@@ -418,22 +424,15 @@ function TopicsPage({ fs, onBack, onStart }: { fs: FSData; onBack: () => void; o
               <div className="flex flex-wrap gap-2">
                 <button
                   className={btn.primary}
-                  onClick={() =>
-                    onStart({ mode: 'quiz', title: `${title} (순서대로)`, questions: topic.questions, storageKey: key, pool: topic.questions, from: 'topics', key: Date.now() })
-                  }
+                  onClick={() => onStart({ mode: 'quiz', title: `${topic.title} (순서대로)`, questions, storageKey: key, pool: questions, from: 'topics', key: Date.now() })}
                 >
                   {solved > 0 && solved < total ? `이어서 풀기 (${solved}/${total})` : '순서대로 풀기'}
                 </button>
-                <button
-                  className={btn.plain}
-                  onClick={() =>
-                    onStart({ mode: 'quiz', title: `${title} (랜덤)`, questions: shuffle(topic.questions), pool: topic.questions, from: 'topics', key: Date.now() })
-                  }
-                >
+                <button className={btn.plain} onClick={() => onStart({ mode: 'quiz', title: `${topic.title} (랜덤)`, questions: shuffle(questions), pool: questions, from: 'topics', key: Date.now() })}>
                   랜덤으로 풀기
                 </button>
                 {wrongCount > 0 && (
-                  <button className={btn.danger} onClick={() => onStart({ mode: 'wrong', title, pool: topic.questions, from: 'topics' })}>
+                  <button className={btn.danger} onClick={() => onStart({ mode: 'wrong', title: topic.title, pool: questions, from: 'topics' })}>
                     틀린 문제만 ({wrongCount})
                   </button>
                 )}
@@ -446,27 +445,33 @@ function TopicsPage({ fs, onBack, onStart }: { fs: FSData; onBack: () => void; o
   );
 }
 
-// ───────── 실전 모의고사 ─────────
-function ExamHome({ fs, onBack, onStart }: { fs: FSData; onBack: () => void; onStart: () => void }) {
-  const result = getMockResults<MockResult>()[EXAM_KEY];
-  const name = (key: string) => fs.topics.find((t) => t.key === key)?.ko ?? key;
-  const front = fs.mix.filter(([k]) => FRONT_TOPICS.has(k));
-  const back = fs.mix.filter(([k]) => !FRONT_TOPICS.has(k));
-  const sum = (rows: [string, number][]) => rows.reduce((n, [, c]) => n + c, 0);
+// ───────── 모의고사 (필기시험 모의고사와 같은 틀) ─────────
+function MockPage({ sets, onBack, onStart }: { sets: DLQuestion[][]; onBack: () => void; onStart: (no: number | null) => void }) {
+  const results = getMockResults<MockResult>();
+  const random = results[RANDOM_KEY];
   return (
-    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-10">
+    <div className="max-w-[1200px] mx-auto px-4 py-8">
       <BackButton onClick={onBack} label="만점 교육으로 돌아가기" />
-      <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">만점 교육 실전 모의고사</h1>
-      <p className="text-sm sm:text-[15px] text-gray-500 mb-5 leading-relaxed">
-        실제 시험처럼 <b>중국어로만</b> 100문제를 45분 동안 풀어요. 시험 중에는 번역을 볼 수 없고, 제출한 뒤 결과 화면에서 틀린 문제의 한국어 번역과 해설을 볼 수
-        있어요. 볼 때마다 문제가 새로 뽑힙니다.
-      </p>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      <header className="text-center mb-4">
+        <h1 className="text-2xl font-bold text-[#2c3e50] mb-2">만점 교육 모의고사</h1>
+        <p className="text-sm text-gray-500">실제 시험처럼 중국어로만 100문제를 45분 동안 풀어요. 번역은 제출한 뒤 결과 화면에서 볼 수 있어요.</p>
+      </header>
+      <div className="text-center mb-6">
+        <button onClick={() => onStart(null)} className="w-full sm:w-auto px-6 py-3 rounded-lg text-white bg-[#37a7f0] hover:bg-[#2a8bc9]">
+          <i className="fa-solid fa-shuffle mr-2"></i>랜덤 모의고사 시작
+        </button>
+        {random && (
+          <div className="mt-2 text-xs text-gray-500">
+            랜덤 최고 <b className={random.best >= PASS_SCORE ? 'text-[#2ecc71]' : 'text-[#e74c3c]'}>{random.best}점</b> · {random.attempts}회 응시
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         {[
           { icon: 'fa-list-check', label: '문제 수', value: '100문제', sub: '판단형 + 단일 선택형' },
           { icon: 'fa-language', label: '시험 언어', value: '중국어만', sub: '번역은 결과 화면에서' },
           { icon: 'fa-clock', label: '시험 시간', value: '45분', sub: '시간이 끝나면 자동 제출' },
-          { icon: 'fa-award', label: '합격 기준', value: `${PASS_SCORE}점 이상`, sub: '오답 10문제까지' },
+          { icon: 'fa-award', label: '합격 기준', value: `${PASS_SCORE}점 이상`, sub: '100점 만점, 오답 10문제까지' },
         ].map((item) => (
           <div key={item.label} className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
             <i className={`fa-solid ${item.icon} text-xl mb-2 text-[#37a7f0]`}></i>
@@ -476,89 +481,86 @@ function ExamHome({ fs, onBack, onStart }: { fs: FSData; onBack: () => void; onS
           </div>
         ))}
       </div>
-      <div className="mb-6 p-4 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 leading-relaxed">
-        <div className="font-medium text-gray-800 mb-1.5">문제 구성</div>
-        <div>
-          <b>앞 {sum(front)}문제</b> (일반 과목1과 비슷): {front.map(([k, n]) => `${name(k)} ${n}`).join(' · ')}
-        </div>
-        <div>
-          <b>뒤 {sum(back)}문제</b> (만점 교육 중점): {back.map(([k, n]) => `${name(k)} ${n}`).join(' · ')}
-        </div>
-      </div>
-      <div className="text-center">
-        <button onClick={onStart} className="w-full sm:w-auto px-8 py-3 rounded-lg text-white text-[16px] bg-[#37a7f0] hover:bg-[#2a8bc9]">
-          <i className="fa-solid fa-play mr-2"></i>실전 모의고사 시작
-        </button>
-        <div className="mt-3 text-sm text-gray-500">
-          {result ? (
-            <>
-              최고 <b className={result.best >= PASS_SCORE ? 'text-[#2ecc71]' : 'text-[#e74c3c]'}>{result.best}점</b> · 최근 {result.last}점 · {result.attempts}회 응시
-            </>
-          ) : (
-            '아직 응시하지 않았어요'
-          )}
-        </div>
+      <h2 className="text-lg font-medium text-gray-800 mb-1">회차별 모의고사 ({sets.length}회분)</h2>
+      <p className="text-xs text-gray-500 mb-4">회차마다 모든 주제에서 골고루 나와요. {sets.length}회를 다 풀면 만점 문제은행을 거의 한 번씩 보게 돼요.</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {sets.map((_, i) => {
+          const no = i + 1;
+          const result = results[`mj-set${no}`];
+          return (
+            <button key={no} onClick={() => onStart(no)} className="text-left p-4 bg-white border-2 border-gray-100 rounded-lg hover:border-[#37a7f0] hover:shadow-md transition-all">
+              <div className="font-medium text-gray-800 mb-1">제{no}회 모의고사</div>
+              {result ? (
+                <div className="text-xs text-gray-500">
+                  최고 <b className={result.best >= PASS_SCORE ? 'text-[#2ecc71]' : 'text-[#e74c3c]'}>{result.best}점</b> · {result.attempts}회 응시
+                </div>
+              ) : (
+                <div className="text-xs text-gray-400">아직 응시하지 않음</div>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-// ───────── ⚡ 속성 과정 ─────────
-function FastHome({ fs, onBack, onGo, onExam }: { fs: FSData; onBack: () => void; onGo: (view: View) => void; onExam: () => void }) {
-  const known = getProgress<{ known: string[] }>(VOCAB_KEY)?.known.length ?? 0;
-  const solved = solvedOf(CORE_KEY);
-  const total = fs.core.length;
+// ───────── ⚡ 속성 과정 (필기시험 속성 과정과 같은 틀) ─────────
+function FastHome({ data, onBack, onGo, onExam }: { data: MjData; onBack: () => void; onGo: (view: View) => void; onExam: () => void }) {
+  const ordered = useMemo(() => [...data.questions].sort((a, b) => a.c - b.c || a.id - b.id), [data]);
+  const cardsDone = getProgress<{ done: number[] }>(CARDS_KEY)?.done.length ?? 0;
+  const cardsChecked = checkedCount('mj:');
+  const solved = solvedOf(ALL_KEY);
+  const total = ordered.length;
   const wrong = getWrongMap();
-  const wrongCount = fs.core.filter((q) => q.id in wrong).length;
-  const exam = getMockResults<MockResult>()[EXAM_KEY];
+  const wrongCount = ordered.filter((q) => q.id in wrong).length;
+  const exam = getMockResults<MockResult>()[EXAM100_KEY];
   const pct = (n: number, t: number) => (t ? Math.round((n / t) * 100) : 0);
-  const title = '⚡ 만점 교육 핵심 문제';
+  const title = `⚡ 만점 문제 ${total}`;
   const steps = [
     {
       no: 1,
-      title: '핵심 한자 단어',
+      title: '핵심 정리 카드',
       when: '먼저',
-      desc: '시험 화면 단어(正确·错误·交卷…)와 처벌·위반 행위처럼 문제에 자주 나오는 한자를 익혀요. 문장을 다 못 읽어도 단어로 답을 찾을 수 있어요.',
-      progress: pct(known, fs.vocab.length),
-      status: `${known}/${fs.vocab.length}개 외움`,
-      actions: [{ label: '단어 카드 보기', cls: btn.primary, onClick: () => onGo({ mode: 'vocab' }) }],
+      desc: '벌점·처벌·속도·면허·등화·표지·사고 순서로 꼭 나오는 규칙을 중국어 시험 표현으로 정리했어요. 필기시험에 없는 만점 교육 내용은 "만점 신규"로 표시했어요.',
+      progress: pct(cardsDone, data.cards.length),
+      status: `${cardsDone}/${data.cards.length}장 외움 · 체크 ${cardsChecked}/${data.cards.length}장`,
+      actions: [{ label: '카드 보기', cls: btn.primary, onClick: () => onGo({ mode: 'cards' }) }],
     },
     {
       no: 2,
-      title: '핵심 문제',
+      title: `만점 문제은행 ${total}문제`,
       when: '그다음',
-      desc: '정선 500문제 중 만점 교육 중점 주제(법규·처벌·안전 문명·응급처치)와 만점·벌점 제도, 사고 사례 문제를 모았어요. 번역을 켜고 한 번, 끄고 한 번 풀어 보세요.',
+      desc: '주제 순서대로 전체 문제를 풀어요. 처음에는 ① 전체 번역으로, 익숙해지면 ② 단어 힌트 → ③ 실전으로 바꿔 보세요.',
       progress: pct(solved, total),
-      status: `${solved}/${total}문제 풀이${wrongCount ? ` · 틀린 문제 ${wrongCount}` : ''}`,
+      status: `${solved}/${total}문제 풀이${wrongCount ? ` · 틀린 문제 ${wrongCount}개` : ''}`,
       actions: [
         {
           label: solved > 0 && solved < total ? `이어서 풀기 (${solved}/${total})` : '순서대로 풀기',
           cls: btn.primary,
-          onClick: () => onGo({ mode: 'quiz', title: `${title} (순서대로)`, questions: fs.core, storageKey: CORE_KEY, pool: fs.core, from: 'fast', key: Date.now() }),
+          onClick: () => onGo({ mode: 'quiz', title: `${title} (순서대로)`, questions: ordered, storageKey: ALL_KEY, pool: ordered, from: 'fast', key: Date.now() }),
         },
-        {
-          label: '랜덤으로 풀기',
-          cls: btn.plain,
-          onClick: () => onGo({ mode: 'quiz', title: `${title} (랜덤)`, questions: shuffle(fs.core), pool: fs.core, from: 'fast', key: Date.now() }),
-        },
-        ...(wrongCount ? [{ label: `틀린 문제만 (${wrongCount})`, cls: btn.danger, onClick: () => onGo({ mode: 'wrong', title, pool: fs.core, from: 'fast' }) }] : []),
+        { label: '랜덤으로 풀기', cls: btn.plain, onClick: () => onGo({ mode: 'quiz', title: `${title} (랜덤)`, questions: shuffle(ordered), pool: ordered, from: 'fast', key: Date.now() }) },
+        ...(wrongCount ? [{ label: `틀린 문제만 (${wrongCount})`, cls: btn.danger, onClick: () => onGo({ mode: 'wrong', title, pool: ordered, from: 'fast' }) }] : []),
       ],
     },
     {
       no: 3,
-      title: '실전 모의고사',
-      when: '시험 전',
-      desc: '실제처럼 중국어로만 100문제, 45분. 90점이 넘을 때까지 반복하세요.',
+      title: '시험 전날 실전 100문제',
+      when: '시험 1일 전',
+      desc: '자주 나오는 주제 비중대로 고른 100문제를 실제 시험처럼 중국어로만 45분 동안 풀어요.',
       progress: exam ? Math.min(100, exam.best) : 0,
       status: exam ? `최고 ${exam.best}점 · 최근 ${exam.last}점 (${exam.attempts}회)` : '아직 안 봤어요',
-      actions: [{ label: '실전 모의고사 보기', cls: btn.primary, onClick: onExam }],
+      actions: [{ label: '실전 시험 보기', cls: btn.primary, onClick: onExam }],
     },
   ];
   return (
-    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-10">
+    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
       <BackButton onClick={onBack} label="만점 교육으로 돌아가기" />
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#2c3e50] mb-2">⚡ 만점 교육 속성 과정</h1>
-      <p className="text-[15px] text-gray-600 leading-relaxed mb-6">시간이 없을 때 이 순서대로 하세요. 중국어가 서툴러도 핵심 단어만 알면 대부분의 문제를 풀 수 있어요.</p>
+      <header className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#2c3e50] mb-2">⚡ 만점 교육 속성 과정</h1>
+        <p className="text-[15px] text-gray-600 leading-relaxed">시험이 얼마 안 남았을 때, 꼭 나오는 것만 3단계로 빠르게 끝내요.</p>
+      </header>
       <ol className="flex flex-col gap-4">
         {steps.map((step) => (
           <li key={step.no} className="p-4 sm:p-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -592,86 +594,159 @@ function FastHome({ fs, onBack, onGo, onExam }: { fs: FSData; onBack: () => void
   );
 }
 
-// ───────── ① 핵심 한자 단어 카드 ─────────
-function VocabCards({ vocab, onBack }: { vocab: FSVocab[]; onBack: () => void }) {
+// ───────── ① 핵심 정리 카드 (필기시험 암기 카드와 같은 틀 + 보기 단계) ─────────
+function checkQuestions(questions: DLQuestion[], key: string, level: MjLevel): CheckQuestion[] {
+  return questions.map((q) => {
+    const ko = q.ko;
+    const options = q.t === 'j' ? ['正确', '错误'] : q.o ?? [];
+    const koOptions = q.t === 'j' ? ['맞음', '틀림'] : ko?.o ?? [];
+    return {
+      id: `${key}#${q.id}`,
+      prompt: level === 1 && ko ? `${q.q}\n(${ko.q})` : q.q,
+      choices: options.map((o, i) => (level === 1 && koOptions[i] ? `${o} (${koOptions[i]})` : o)),
+      answer: q.a,
+      explain: q.e,
+      img: q.img,
+      kind: q.t === 'j' ? 'judge' : 'choice',
+    };
+  });
+}
+
+function LineView({ line, level, open, onOpen }: { line: MjLine; level: MjLevel; open: boolean; onOpen: () => void }) {
+  const [zh, pinyin, ko] = line;
+  const showKo = level === 1 || open;
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="text-[15px] sm:text-base text-gray-900 leading-snug">{zh}</div>
+      {level <= 2 && <div className="text-[12px] sm:text-[13px] text-[#c98b2f] leading-snug break-words">{pinyin}</div>}
+      {showKo ? (
+        <div className="text-[14px] text-gray-600 leading-snug">{ko}</div>
+      ) : (
+        <button type="button" onClick={onOpen} className="relative block w-full text-left" aria-label="한국어 보기">
+          <span className="block blur-[5px] select-none text-[14px] text-gray-600 leading-snug" aria-hidden>
+            {ko}
+          </span>
+          <span className="absolute inset-0 flex items-center text-[12px] text-[#2a8bc9] font-medium">눌러서 뜻 보기</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function MjCards({ data, byId, onBack }: { data: MjData; byId: Map<number, DLQuestion>; onBack: () => void }) {
   useDriverLicenseRecords();
-  const groups = ['전체', ...Array.from(new Set(vocab.map((v) => v.g)))];
-  const [group, setGroup] = useState('전체');
-  const [hideMeaning, setHideMeaning] = useState(false);
+  const [level, setLevel] = useMjLevel();
+  const [topic, setTopic] = useState('전체');
   const [opened, setOpened] = useState<Set<string>>(new Set());
+  const [zoomPic, setZoomPic] = useState<{ src: string; caption?: string } | null>(null);
   const [, rerender] = useState(0);
-  const known = new Set(getProgress<{ known: string[] }>(VOCAB_KEY)?.known ?? []);
-  const toggleKnown = (word: string) => {
-    const next = new Set(known);
-    if (next.has(word)) next.delete(word);
-    else next.add(word);
-    setProgress(VOCAB_KEY, { known: Array.from(next) });
+  useEffect(() => setOpened(new Set()), [level]);
+  const done = new Set(getProgress<{ done: number[] }>(CARDS_KEY)?.done ?? []);
+  const toggle = (i: number) => {
+    const next = new Set(done);
+    if (next.has(i)) next.delete(i);
+    else next.add(i);
+    setProgress(CARDS_KEY, { done: Array.from(next).sort((a, b) => a - b) });
     rerender((n) => n + 1);
   };
-  const reveal = (word: string) => setOpened((prev) => new Set(prev).add(word));
-  const list = vocab.filter((v) => group === '전체' || v.g === group);
+  const open = (key: string) => setOpened((prev) => new Set(prev).add(key));
+  const topics = ['전체', '만점 신규', ...Array.from(new Set(data.cards.map((c) => c.topic)))];
+  const cards = data.cards.map((card, i) => ({ card, i })).filter(({ card }) => topic === '전체' || (topic === '만점 신규' ? card.new : card.topic === topic));
 
   return (
-    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-10">
+    <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
       <BackButton onClick={onBack} label="속성 과정으로 돌아가기" />
-      <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">① 핵심 한자 단어</h1>
+      {zoomPic && <ImageLightbox src={zoomPic.src} caption={zoomPic.caption} onClose={() => setZoomPic(null)} />}
+      <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">① 핵심 정리 카드</h1>
       <p className="text-sm text-gray-500 mb-4">
-        시험 문제에 자주 나오는 단어예요. 숫자는 문제은행에 나오는 문제 수입니다. ({known.size}/{vocab.length}개 외움)
+        시험에 나오는 중국어 표현으로 정리했어요. 처음에는 ① 전체 번역, 익숙해지면 ② 단어 힌트(병음만) → ③ 실전(중국어만, 누르면 뜻)으로 바꿔 보세요. ({done.size}/
+        {data.cards.length}장 외움 · 체크 {checkedCount('mj:')}/{data.cards.length}장)
       </p>
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
-        {groups.map((g) => (
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-sm text-gray-600">보기 단계</span>
+        <LevelSwitch level={level} onChange={setLevel} />
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+        {topics.map((t) => (
           <button
-            key={g}
-            onClick={() => setGroup(g)}
-            className={`shrink-0 px-3 py-1.5 rounded-full border text-sm ${group === g ? 'bg-[#37a7f0] border-[#37a7f0] text-white' : 'bg-white border-gray-300 text-gray-700'}`}
+            key={t}
+            onClick={() => setTopic(t)}
+            className={`shrink-0 px-3 py-1.5 rounded-full border text-sm ${
+              topic === t ? 'bg-[#37a7f0] border-[#37a7f0] text-white' : t === '만점 신규' ? 'bg-[#fff4e0] border-[#f7d9a8] text-[#d35400]' : 'bg-white border-gray-300 text-gray-700'
+            }`}
           >
-            {g}
+            {t}
           </button>
         ))}
       </div>
-      <label className="inline-flex items-center gap-2 mb-4 text-sm text-gray-700 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={hideMeaning}
-          onChange={(e) => {
-            setHideMeaning(e.target.checked);
-            setOpened(new Set());
-          }}
-        />
-        뜻 가리고 스스로 확인하기 (카드를 누르면 뜻이 보여요)
-      </label>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {list.map((v) => {
-          const isKnown = known.has(v.zh);
-          const covered = hideMeaning && !opened.has(v.zh);
+      <div className="grid sm:grid-cols-2 gap-4">
+        {cards.map(({ card, i }) => {
+          const isDone = done.has(i);
+          const checks = card.check.map((id) => byId.get(id)).filter((q): q is DLQuestion => !!q);
           return (
             <div
-              key={v.zh}
-              onClick={() => covered && reveal(v.zh)}
-              className={`flex flex-col p-3 sm:p-4 rounded-lg border ${isKnown ? 'border-green-300 bg-green-50/50' : 'border-gray-200 bg-white'} ${covered ? 'cursor-pointer' : ''}`}
+              key={i}
+              id={`mj-card-${i}`}
+              className={`p-4 sm:p-5 rounded-lg border ${isDone ? 'border-green-300 bg-green-50/40' : card.new ? 'border-[#f7d9a8] bg-[#fffaf0]' : 'border-gray-200 bg-white'}`}
             >
-              <div className="text-[22px] sm:text-2xl font-medium text-gray-900 leading-snug break-all">{v.zh}</div>
-              <div className="text-[13px] text-gray-400 mb-1.5">{v.py}</div>
-              {covered ? (
-                <div className="flex-1 text-sm text-[#2a8bc9]">뜻 보기</div>
-              ) : (
-                <div className="flex-1">
-                  <div className="text-[15px] text-gray-800 leading-snug">{v.ko}</div>
-                  {v.tip && <div className="mt-1 text-xs text-[#b9560e] leading-snug">⚡ {v.tip}</div>}
-                </div>
-              )}
-              <div className="mt-2 flex items-center justify-between gap-2">
-                {v.n > 0 ? <span className="text-[11px] text-gray-400">문제 {v.n}개</span> : <span className="text-[11px] text-gray-400">시험 화면</span>}
+              <div className="flex items-start gap-2 mb-2">
+                <span className="shrink-0 px-2 py-0.5 rounded bg-[#eef7fe] text-[#2a8bc9] text-xs">{card.topic}</span>
+                {card.new && <span className="shrink-0 px-2 py-0.5 rounded bg-[#d35400] text-white text-xs font-medium">만점 신규</span>}
+                <h3 className="flex-1 font-medium text-gray-800">
+                  {card.title} <span className="text-sm font-normal text-gray-500">{card.zh}</span>
+                </h3>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleKnown(v.zh);
-                  }}
-                  className={`text-xs px-2.5 py-1 rounded-full border ${isKnown ? 'border-green-500 text-green-700 bg-white' : 'border-gray-300 text-gray-600 bg-white hover:border-[#37a7f0]'}`}
+                  type="button"
+                  onClick={() => speakZh(card.lines.map((l) => l[0]).join('。'))}
+                  aria-label="중국어로 듣기"
+                  className="shrink-0 w-8 h-8 rounded-full bg-[#eef7fe] text-[#2a8bc9] text-sm flex items-center justify-center hover:bg-[#d9edfb]"
                 >
-                  {isKnown ? '✓ 외웠어요' : '외웠어요'}
+                  <i className="fa-solid fa-volume-high"></i>
                 </button>
               </div>
+              <ul className="flex flex-col gap-2">
+                {card.lines.map((line, j) => (
+                  <li key={j} className="flex gap-2">
+                    <i className="fa-solid fa-check text-[#37a7f0] mt-1.5 text-xs"></i>
+                    <LineView line={line} level={level} open={opened.has(`${i}:${j}`)} onOpen={() => open(`${i}:${j}`)} />
+                  </li>
+                ))}
+              </ul>
+              {card.images && (
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {card.images.map((pic) => (
+                    <figure key={pic.src} className="w-[130px] sm:w-[160px] text-center">
+                      <img
+                        src={`${import.meta.env.BASE_URL}driver-license/img/${pic.src}`}
+                        alt={pic.caption || card.title}
+                        loading="lazy"
+                        onClick={() => setZoomPic({ src: pic.src, caption: pic.caption || card.title })}
+                        className="w-full h-auto rounded border border-gray-200 bg-white cursor-zoom-in hover:border-[#37a7f0] transition-colors"
+                      />
+                      {pic.caption && <figcaption className="mt-1 text-xs text-gray-600 leading-snug">{pic.caption}</figcaption>}
+                    </figure>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 px-3 py-2 bg-[#fff8e1] rounded text-sm text-gray-800 flex gap-1.5">
+                <span>⚡</span>
+                <LineView line={card.memo} level={level} open={opened.has(`${i}:memo`)} onOpen={() => open(`${i}:memo`)} />
+              </div>
+              <button
+                onClick={() => toggle(i)}
+                className={`mt-3 text-sm px-3 py-1.5 rounded-full border ${isDone ? 'border-green-500 text-green-700 bg-white' : 'border-gray-300 text-gray-600 bg-white hover:border-[#37a7f0]'}`}
+              >
+                {isDone ? '✓ 외웠어요' : '외웠어요'}
+              </button>
+              <ContentCheck
+                key={`${i}-${level}`}
+                itemKey={`mj:${i}`}
+                questions={checkQuestions(checks, `mj:${i}`, level)}
+                onDone={() => {
+                  scrollToId(`mj-card-${i + 1}`);
+                  rerender((n) => n + 1);
+                }}
+              />
             </div>
           );
         })}
