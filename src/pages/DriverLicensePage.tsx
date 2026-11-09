@@ -11,6 +11,7 @@ import {
   WrongNotesPage,
   readSequentialStats,
 } from '../components/DriverLicenseQuiz';
+import { ManjeomCoursePage } from '../components/ManjeomCourse';
 import { RETENTION_DAYS, startDriverLicenseSync, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
 import { EXAM_GUIDE } from '../data/driverLicenseGuide';
 
@@ -363,6 +364,12 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'practice' ? 'bg-blue-600' : ''}`}
             >
               필기시험
+            </li>
+            <li 
+              onClick={() => setCurrentView('manjeom')}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'manjeom' ? 'bg-blue-600' : ''}`}
+            >
+              만점교육
             </li>
             <li 
               onClick={() => setCurrentView('lecture')}
@@ -1346,6 +1353,9 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
       ) : currentView === 'mock' ? (
         // 모의고사 페이지
         <MockExamPage onBack={() => setCurrentView('practice')} />
+      ) : currentView === 'manjeom' ? (
+        // 만점교육 (중국어 원문 600문제)
+        <ManjeomCoursePage onBack={() => setCurrentView('practice')} />
       ) : currentView === 'wrong' ? (
         // 틀린 문제 모아 보기
         <WrongNotesPage onBack={() => setCurrentView('practice')} />
