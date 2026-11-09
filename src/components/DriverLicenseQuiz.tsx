@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { STAGE_INFO, type StageInfo } from '../data/driverLicenseStages';
 import { FAST_CARDS } from '../data/driverLicenseFastCards';
 import { bankCheckQuestions, buildSectionGalleries, cardCheckQuestions, sectionCheckQuestions } from '../data/driverLicenseCheckQuestions';
@@ -211,6 +211,72 @@ function highlightWords(text: string, words: string[]): ReactNode {
   );
 }
 
+// ── 휴대폰 문제 풀이 화면 공통: 좌우로 밀어 이전·다음, 들어올 때 전체 화면(주소창 숨김) ──
+/** 좌우로 밀면 이전·다음 (세로 스크롤·짧은 터치·data-noswipe 안쪽은 무시) */
+function useSwipe(onPrev: () => void, onNext: () => void) {
+  const start = useRef<{ x: number; y: number; t: number } | null>(null);
+  return {
+    onTouchStart: (e: ReactTouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (e.touches.length !== 1 || target.closest('[data-noswipe]')) {
+        start.current = null;
+        return;
+      }
+      const p = e.touches[0];
+      start.current = { x: p.clientX, y: p.clientY, t: Date.now() };
+    },
+    onTouchEnd: (e: ReactTouchEvent) => {
+      const s = start.current;
+      start.current = null;
+      if (!s) return;
+      const p = e.changedTouches[0];
+      const dx = p.clientX - s.x;
+      const dy = p.clientY - s.y;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - s.t > 700) return;
+      if (dx < 0) onNext();
+      else onPrev();
+    },
+  };
+}
+
+const isPhone = () =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 1023px)').matches && !!window.matchMedia?.('(pointer: coarse)').matches;
+
+/** 휴대폰에서 문제 화면에 들어오면 전체 화면으로 (주소창 숨김), 나갈 때 원래대로 */
+function usePhoneFullscreen() {
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!isPhone() || !root.requestFullscreen || document.fullscreenElement) return;
+    let entered = false;
+    root
+      .requestFullscreen({ navigationUI: 'hide' })
+      .then(() => {
+        entered = true;
+      })
+      .catch(() => {});
+    return () => {
+      if (entered && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    };
+  }, []);
+}
+
+/** 처음 한 번만: 좌우로 밀어서 넘기는 안내 */
+function SwipeHint() {
+  const [show, setShow] = useState(() => isPhone() && !readStore('dl-swipe-hint', false));
+  useEffect(() => {
+    if (!show) return;
+    writeStore('dl-swipe-hint', true);
+    const timer = window.setTimeout(() => setShow(false), 2800);
+    return () => window.clearTimeout(timer);
+  }, [show]);
+  if (!show) return null;
+  return (
+    <div className="lg:hidden pointer-events-none fixed left-1/2 -translate-x-1/2 bottom-24 z-30 px-4 py-2 rounded-full bg-black/75 text-white text-sm whitespace-nowrap">
+      <i className="fa-solid fa-hand-point-left mr-1.5"></i>좌우로 밀어서 이전·다음 문제<i className="fa-solid fa-hand-point-right ml-1.5"></i>
+    </div>
+  );
+}
+
 let audioContext: AudioContext | null = null;
 
 // 정답: 딩동댕(상승하는 3음), 오답: 짧은 경고음
@@ -378,35 +444,36 @@ function QuestionCard({
   );
 
   const options = (
-    <div className={`${compact ? 'flex flex-col gap-2 sm:gap-2.5' : 'flex flex-col gap-3'} lg:max-w-[760px]`}>
+    <div className={`${compact ? 'flex flex-col gap-1 sm:gap-1.5' : 'flex flex-col gap-3'} lg:max-w-[760px]`}>
       {optionsOf(q).map((text, i) => {
         const isSelected = selected.includes(i);
         const isAnswer = i === q.a;
         if (compact) {
           // 보기를 직접 눌러 답 고르기 (모바일 모의고사와 같은 모양). 답한 뒤에는 정답은 초록, 고른 오답은 빨강
-          let tone = 'bg-white border-gray-200 text-gray-800';
-          let badgeTone = 'bg-[#f0f0f0] text-gray-600';
+          // 네모 칸 없이 동그라미 글자 + 큰 글씨 (답한 뒤: 정답 초록, 고른 오답 빨강)
+          let tone = 'text-gray-900';
+          let badgeTone = 'bg-white text-gray-600 shadow-[0_1px_4px_rgba(0,0,0,0.18)]';
           let badge: ReactNode = LETTERS[i];
           if (reveal && isAnswer) {
-            tone = 'bg-green-50 border-green-500 text-gray-900';
+            tone = 'text-green-600 font-medium';
             badgeTone = 'bg-green-500 text-white';
             badge = <i className="fa-solid fa-check"></i>;
           } else if (reveal && isSelected) {
-            tone = 'bg-red-50 border-red-400 text-gray-900';
+            tone = 'text-[#e74c3c]';
             badgeTone = 'bg-[#e74c3c] text-white';
             badge = <i className="fa-solid fa-xmark"></i>;
-          } else if (reveal) tone = 'bg-white border-gray-200 text-gray-500';
+          } else if (reveal) tone = 'text-gray-400';
           return (
             <button
               key={i}
               type="button"
               disabled={!onSelect}
               onClick={() => onSelect?.(i)}
-              className={`w-full min-h-[48px] [@media(max-height:700px)]:min-h-[44px] flex items-center gap-3 px-3 py-2 sm:py-2.5 [@media(max-height:700px)]:py-1.5 rounded-xl border-2 text-left text-[15px] sm:text-[17px] leading-snug transition-colors ${tone} ${
-                onSelect ? 'cursor-pointer hover:border-[#37a7f0] active:bg-gray-50' : 'cursor-default'
+              className={`w-full min-h-[50px] [@media(max-height:700px)]:min-h-[44px] flex items-center gap-4 px-1.5 py-2 [@media(max-height:700px)]:py-1 rounded-lg text-left text-[18px] sm:text-[19px] leading-snug transition-colors ${tone} ${
+                onSelect ? 'cursor-pointer active:bg-gray-100 lg:hover:bg-gray-50' : 'cursor-default'
               }`}
             >
-              <span className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[14px] font-bold ${badgeTone}`}>{badge}</span>
+              <span className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[15px] font-medium ${badgeTone}`}>{badge}</span>
               <span className="flex-1">
                 {text}
                 {koOptions[i] && <span className="ml-1.5 text-[13px] sm:text-sm text-gray-500">{koOptions[i]}</span>}
@@ -450,7 +517,7 @@ function QuestionCard({
   return (
     <div>
       <div className={`flex justify-between items-start gap-4 ${compact ? 'mb-3' : 'mb-5'}`}>
-        <h2 className={`${compact ? 'text-[17px] sm:text-xl leading-snug sm:leading-relaxed' : 'text-lg sm:text-[22px] leading-relaxed'} text-gray-900 font-normal`}>
+        <h2 className={`${compact ? 'text-[19px] sm:text-[21px] leading-snug sm:leading-relaxed' : 'text-lg sm:text-[22px] leading-relaxed'} text-gray-900 font-normal`}>
           {label}{' '}
           {isFast(q) && !q.ko && (
             <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded bg-[#fff4e0] text-[#d35400] text-xs font-medium" title="속성 과정 핵심 500문제">
@@ -508,7 +575,7 @@ function QuestionCard({
       {images}
       {options}
       {zoom && (
-        <div className="fixed inset-0 z-[60] bg-black/70 flex flex-col items-center justify-center p-4 gap-3" onClick={() => setZoom(false)}>
+        <div data-noswipe className="fixed inset-0 z-[60] bg-black/70 flex flex-col items-center justify-center p-4 gap-3" onClick={() => setZoom(false)}>
           <div className="flex flex-col items-center gap-3 overflow-y-auto max-h-full py-2" onClick={(e) => e.stopPropagation()}>
             {q.img!.map((name) => (
               <img key={name} src={imageUrl(name)} alt="문제 그림 확대" style={LIGHTBOX_IMG_STYLE} className="rounded bg-white" />
@@ -616,6 +683,8 @@ export function PracticeQuiz({
   // 만점 교육(중국어 문제): 한국어 번역 보이기
   const hasKo = useMemo(() => questions.some((item) => item.ko), [questions]);
   const [level, setLevel] = useMjLevel();
+  usePhoneFullscreen();
+  const [slide, setSlide] = useState<'next' | 'prev' | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const [favorites, setFavorites] = useState<number[]>(getFavorites);
@@ -691,6 +760,7 @@ export function PracticeQuiz({
 
   const goTo = (target: number) => {
     window.clearTimeout(timer.current);
+    if (target !== index) setSlide(target > index ? 'next' : 'prev');
     setProgress((p) => ({ ...p, index: Math.max(0, Math.min(questions.length - 1, target)) }));
     setShowExplanation(false);
   };
@@ -705,6 +775,11 @@ export function PracticeQuiz({
     if (!ok) setShowExplanation(true);
     else if (autoNext && index < questions.length - 1) timer.current = window.setTimeout(() => goTo(index + 1), 1500);
   };
+
+  const swipe = useSwipe(
+    () => goTo(index - 1),
+    () => goTo(index + 1),
+  );
 
   const toggleFavorite = () => {
     const next = favorites.includes(q.id) ? favorites.filter((id) => id !== q.id) : [...favorites, q.id];
@@ -745,56 +820,25 @@ export function PracticeQuiz({
   // 한 화면 풀이: 위(뒤로·현재 위치·답안지·즐겨찾기) / 가운데(문제·그림·보기·해설) / 아래 고정(이전·해설·다음)
   return (
     <div className="fixed inset-0 z-[1000] bg-white flex flex-col" style={{ height: '100dvh' }} role="dialog" aria-modal="true" aria-label={title}>
-      {/* 모바일: 예전 상단 바 (뒤로·현재 위치·답안지·즐겨찾기) */}
-      <div className="lg:hidden flex-none flex items-center gap-1.5 px-1.5 py-1.5 border-b border-gray-200 bg-[#f7fbfe]">
+      {/* 휴대폰: 위에는 뒤로 화살표만 */}
+      <div className="lg:hidden flex-none h-11 flex items-center px-1">
         <button
           onClick={onBack}
           aria-label={backLabel}
           title={backLabel}
-          className="shrink-0 h-10 px-2.5 rounded-lg flex items-center text-[#2a8bc9] hover:bg-white"
+          className="w-11 h-11 rounded-full flex items-center justify-center text-gray-700 active:bg-gray-100"
         >
-          <i className="fa-solid fa-arrow-left text-lg"></i>
-        </button>
-        <div className="flex-1 min-w-0 leading-tight">
-          <div className="truncate text-[11px] text-gray-400">현재위치: {breadcrumb}</div>
-          <div className="truncate text-[14px] font-medium text-gray-800">{title}</div>
-        </div>
-        {hasKo && (
-          <button
-            onClick={() => setLevel(level === 3 ? 1 : ((level + 1) as MjLevel))}
-            aria-label={`보기 단계: ${MJ_LEVELS[level - 1].label} (누르면 다음 단계)`}
-            className={`shrink-0 h-9 px-2 rounded-lg border text-[13px] font-medium ${
-              level === 3 ? 'bg-[#2c3e50] border-[#2c3e50] text-white' : 'bg-[#37a7f0] border-[#37a7f0] text-white'
-            }`}
-          >
-            {level} {MJ_LEVELS[level - 1].short}
-          </button>
-        )}
-        <button
-          onClick={() => setShowSheet(true)}
-          aria-label="답안지 보기"
-          className="shrink-0 h-9 px-2.5 rounded-lg border border-gray-300 bg-white flex items-center gap-1.5 text-[13px] text-gray-700 hover:border-[#37a7f0] active:bg-gray-100"
-        >
-          <i className="fa-solid fa-table-cells text-[#37a7f0]"></i>
-          <span className="tabular-nums">
-            {index + 1}/{questions.length}
-          </span>
-        </button>
-        <button
-          onClick={toggleFavorite}
-          aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
-          aria-pressed={isFavorite}
-          className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg hover:bg-white ${isFavorite ? 'text-[#f1b10f]' : 'text-gray-400 hover:text-[#f1b10f]'}`}
-        >
-          <i className={`fa-${isFavorite ? 'solid' : 'regular'} fa-star`}></i>
+          <i className="fa-solid fa-chevron-left text-xl"></i>
         </button>
       </div>
-      <div className="lg:hidden flex-none h-1 bg-gray-100">
-        <div className="h-full bg-[#37a7f0] transition-all" style={{ width: `${((stats.correct + stats.wrong) / questions.length) * 100}%` }}></div>
-      </div>
+      <SwipeHint />
 
-      <div ref={panelRef} className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-3.5 sm:py-5 lg:pt-6 [@media(max-height:700px)]:py-2.5">
-        <div className="max-w-[1100px] mx-auto">
+      <div
+        ref={panelRef}
+        {...swipe}
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 sm:px-8 pt-1 pb-3.5 sm:py-5 lg:pt-6 [@media(max-height:700px)]:py-1.5"
+      >
+        <div key={q.id} className={`max-w-[1100px] mx-auto ${slide === 'next' ? 'dl-swipe-next' : slide === 'prev' ? 'dl-swipe-prev' : ''}`}>
           {/* 노트북: 페이지형 헤더 (뒤로·현재 위치·진행률·답안지) */}
           <div className="hidden lg:block">
             <BackButton onClick={onBack} label={backLabel} />
@@ -862,8 +906,60 @@ export function PracticeQuiz({
         </div>
       </div>
 
-      {/* 아래 버튼 줄: 모의고사와 같은 모양 (양쪽 끝 이전·다음, 가운데 해설) */}
-      <div className="flex-none border-t border-gray-200 bg-white px-3 sm:px-8 py-2.5">
+      {/* 휴대폰: 아래에는 맞은·틀린 수, 답안지(번호), 보기 단계, 해설, 즐겨찾기만 (이전·다음은 좌우로 밀기) */}
+      <div className="lg:hidden flex-none border-t border-gray-200 bg-white px-1.5">
+        <div className="h-12 flex items-center gap-0.5">
+          <span className="flex items-center gap-1.5 px-2 text-[15px] text-gray-700 tabular-nums" aria-label={`맞은 문제 ${stats.correct}개`}>
+            <i className="fa-solid fa-circle-check text-[#2ecc71] text-[17px]"></i>
+            {stats.correct}
+          </span>
+          <span className="flex items-center gap-1.5 px-2 text-[15px] text-gray-700 tabular-nums" aria-label={`틀린 문제 ${stats.wrong}개`}>
+            <i className="fa-solid fa-circle-xmark text-[#e74c3c] text-[17px]"></i>
+            {stats.wrong}
+          </span>
+          <button
+            onClick={() => setShowSheet(true)}
+            aria-label="답안지 보기"
+            className="flex items-center gap-1.5 h-10 px-2 rounded-lg text-[15px] text-gray-700 tabular-nums active:bg-gray-100"
+          >
+            <i className="fa-solid fa-table-cells text-gray-400"></i>
+            {index + 1}/{questions.length}
+          </button>
+          <div className="flex-1"></div>
+          {hasKo && (
+            <button
+              onClick={() => setLevel(level === 3 ? 1 : ((level + 1) as MjLevel))}
+              aria-label={`보기 단계: ${MJ_LEVELS[level - 1].label} (누르면 다음 단계)`}
+              className={`h-8 px-2.5 rounded-full text-[13px] font-medium text-white ${level === 3 ? 'bg-[#2c3e50]' : 'bg-[#37a7f0]'}`}
+            >
+              {level} {MJ_LEVELS[level - 1].short}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              if (!showExplanation) scrollToExplanation();
+              setShowExplanation(!showExplanation);
+            }}
+            disabled={!!answered}
+            aria-pressed={explanationOpen}
+            aria-label="해설 보기"
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-[18px] ${explanationOpen ? 'bg-[#e3f2fd]' : 'active:bg-gray-100'}`}
+          >
+            <i className={`fa-${explanationOpen ? 'solid' : 'regular'} fa-lightbulb text-[#f1b10f]`}></i>
+          </button>
+          <button
+            onClick={toggleFavorite}
+            aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+            aria-pressed={isFavorite}
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-[18px] active:bg-gray-100 ${isFavorite ? 'text-[#f1b10f]' : 'text-gray-400'}`}
+          >
+            <i className={`fa-${isFavorite ? 'solid' : 'regular'} fa-star`}></i>
+          </button>
+        </div>
+      </div>
+
+      {/* 노트북: 아래 버튼 줄 (양쪽 끝 이전·다음, 가운데 해설) */}
+      <div className="hidden lg:block flex-none border-t border-gray-200 bg-white px-3 sm:px-8 py-2.5">
         <div className="max-w-[1100px] mx-auto grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <button
             onClick={() => goTo(index - 1)}
@@ -2106,6 +2202,8 @@ export function ExamRunner({
   latest.current = session;
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  usePhoneFullscreen();
+  const [slide, setSlide] = useState<'next' | 'prev' | null>(null);
 
   // 일시정지 중에는 멈춘 시각 기준으로 남은 시간을 계산해 타이머가 얼어붙게 함
   const remaining = EXAM_SECONDS - Math.floor(((pausedAt ?? now) - session.startedAt) / 1000);
@@ -2173,6 +2271,18 @@ export function ExamRunner({
     return () => window.removeEventListener('keydown', onKey);
   });
 
+  // 휴대폰: 좌우로 밀어 이전·다음 문제
+  const moveTo = (target: number) => {
+    const next = Math.max(0, Math.min(total - 1, target));
+    if (next === index) return;
+    setSlide(next > index ? 'next' : 'prev');
+    setIndex(next);
+  };
+  const swipe = useSwipe(
+    () => moveTo(index - 1),
+    () => moveTo(index + 1),
+  );
+
   // 실전처럼 제출 전에 확인 창을 띄움
   const submit = () => setConfirmOpen(true);
   const unanswered = total - answeredCount;
@@ -2188,7 +2298,26 @@ export function ExamRunner({
       <div className="md:min-w-[1024px] h-screen flex flex-col" style={{ height: '100dvh' }}>
         {/* 상단 바 (이전 스타일): 시험 이름·남은 시간·전체 화면·제출·그만두기 */}
         {/* 한 줄 고정: 좁은 화면에서는 시험 이름이 말줄임으로 줄어들고, ← 버튼은 항상 남은 시간 오른쪽에 */}
-        <div className="flex-none flex flex-nowrap items-center gap-x-2 sm:gap-x-3 px-3 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
+        {/* 휴대폰: 위에는 뒤로 화살표, 일시정지, 남은 시간만 */}
+        <div className="md:hidden flex-none h-12 flex items-center gap-1 px-1 border-b border-gray-100">
+          <button onClick={onExit} aria-label="시험 그만두기" className="w-11 h-11 rounded-full flex items-center justify-center text-gray-700 active:bg-gray-100">
+            <i className="fa-solid fa-chevron-left text-xl"></i>
+          </button>
+          <div className="flex-1"></div>
+          <button
+            onClick={togglePause}
+            aria-label={pausedAt === null ? '일시정지' : '다시 시작'}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 active:bg-gray-100"
+          >
+            <i className={`fa-solid ${pausedAt === null ? 'fa-pause' : 'fa-play'}`}></i>
+          </button>
+          <span className={`font-mono text-[17px] pr-2 tabular-nums ${remaining <= 300 ? 'text-[#e74c3c]' : 'text-gray-800'}`}>
+            <i className="fa-regular fa-clock mr-1.5"></i>
+            {formatTime(remaining)}
+          </span>
+        </div>
+        <SwipeHint />
+        <div className="flex-none hidden md:flex flex-nowrap items-center gap-x-2 sm:gap-x-3 px-3 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
           <span className="min-w-0 truncate font-medium text-gray-800">{session.title ?? (session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`)}</span>
           <span className="shrink-0 whitespace-nowrap text-sm text-gray-500">
             {answeredCount}/{total}
@@ -2360,8 +2489,9 @@ export function ExamRunner({
             <span>제 {index + 1}문제 / 전체 {total}문제</span>
             <span>남은 문제 <b className="text-[#e60012]">{unanswered}</b>개</span>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3">
-            <h2 className="text-[18px] font-bold text-gray-900 leading-relaxed">
+          <div {...swipe} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+            <div key={index} className={slide === 'next' ? 'dl-swipe-next' : slide === 'prev' ? 'dl-swipe-prev' : ''}>
+            <h2 className="text-[19px] font-medium text-gray-900 leading-snug">
               {index + 1}. {q.q}
             </h2>
             {q.img && (
@@ -2379,8 +2509,8 @@ export function ExamRunner({
                 ))}
               </div>
             )}
-            {/* 보기를 직접 눌러 답 고르기: 고른 보기는 초록색으로 표시 */}
-            <div className="mt-4 flex flex-col gap-2.5" role="radiogroup" aria-label="답 고르기">
+            {/* 보기를 직접 눌러 답 고르기 (네모 칸 없이, 고른 보기는 초록 동그라미) */}
+            <div className="mt-4 flex flex-col gap-1" role="radiogroup" aria-label="답 고르기">
               {optionsOf(q).map((text, i) => {
                 const chosen = session.answers[index] === i;
                 return (
@@ -2390,13 +2520,13 @@ export function ExamRunner({
                     role="radio"
                     aria-checked={chosen}
                     onClick={() => select(i)}
-                    className={`w-full min-h-[54px] flex items-center gap-3 px-3.5 py-3 rounded-xl border-2 text-left text-[16px] leading-snug transition-colors ${
-                      chosen ? 'bg-[#e8f8f4] border-[#19b39b] text-gray-900' : 'bg-white border-[#d5d5d5] text-gray-800 active:bg-gray-50'
+                    className={`w-full min-h-[52px] flex items-center gap-4 px-1.5 py-2 rounded-lg text-left text-[18px] leading-snug transition-colors active:bg-gray-100 ${
+                      chosen ? 'text-[#13917e] font-medium' : 'text-gray-900'
                     }`}
                   >
                     <span
-                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[15px] font-bold ${
-                        chosen ? 'bg-[#19b39b] text-white' : 'bg-[#f0f0f0] text-gray-600'
+                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[15px] font-medium ${
+                        chosen ? 'bg-[#19b39b] text-white' : 'bg-white text-gray-600 shadow-[0_1px_4px_rgba(0,0,0,0.18)]'
                       }`}
                     >
                       {chosen ? <i className="fa-solid fa-check"></i> : LETTERS[i]}
@@ -2406,43 +2536,18 @@ export function ExamRunner({
                 );
               })}
             </div>
-          </div>
-          <div className="flex-none border-t border-[#e0e0e0] bg-white">
-            <div className="px-3 py-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-              <button
-                onClick={() => setIndex(index - 1)}
-                disabled={index === 0}
-                className="justify-self-start w-full max-w-[140px] h-12 rounded-xl border border-[#bfbfbf] bg-white text-[15px] font-medium text-[#333] active:bg-[#f0f0f0] disabled:text-[#bbb] disabled:border-[#e0e0e0]"
-              >
-                <i className="fa-solid fa-chevron-left mr-1.5"></i>이전
-              </button>
-              <button onClick={togglePause} className="h-12 px-4 rounded-xl border border-[#bfbfbf] bg-[#f0f0f0] text-[14px] text-[#333] active:bg-[#e4e4e4]">
-                <i className="fa-solid fa-pause mr-1.5"></i>일시정지
-              </button>
-              {index < total - 1 ? (
-                <button
-                  onClick={() => setIndex(index + 1)}
-                  className="justify-self-end w-full max-w-[140px] h-12 rounded-xl bg-[#37a7f0] text-[15px] font-medium text-white active:bg-[#2a8bc9]"
-                >
-                  다음<i className="fa-solid fa-chevron-right ml-1.5"></i>
-                </button>
-              ) : (
-                <button
-                  onClick={submit}
-                  className="justify-self-end w-full max-w-[140px] h-12 rounded-xl bg-[#19b39b] text-[15px] font-medium text-white active:bg-[#14917e]"
-                >
-                  제출하기
-                </button>
-              )}
             </div>
-            <button onClick={() => setSheetOpen(true)} className="w-full px-3 py-2.5 border-t border-[#e0e0e0] text-[14px] font-medium text-gray-700 bg-[#f7fbfe]">
-              <i className="fa-solid fa-table-cells mr-1.5"></i>답안지 정보 (답함 {answeredCount}/{total})
+          </div>
+          {/* 아래에는 답안지 정보만 (이전·다음은 좌우로 밀기, 제출은 답안지 안에서) */}
+          <div className="flex-none border-t border-[#e0e0e0] bg-white">
+            <button onClick={() => setSheetOpen(true)} className="w-full h-12 px-3 text-[15px] font-medium text-gray-700 bg-[#f7fbfe] active:bg-[#eaf4fb]">
+              <i className="fa-solid fa-table-cells mr-1.5"></i>답안지 정보 · 제출 (답함 {answeredCount}/{total})
             </button>
           </div>
         </div>
 
         {/* 하단 바 */}
-        <div className="flex-none border-t border-[#e0e0e0] py-1.5 text-center text-[11px] text-gray-400">
+        <div className="hidden md:block flex-none border-t border-[#e0e0e0] py-1.5 text-center text-[11px] text-gray-400">
           운전면허 모의고사 시뮬레이션 · 과목1 C1 · 실전 시험 화면 재현
         </div>
       </div>
