@@ -105,8 +105,6 @@ export const kindOf = (q: DLQuestion): DLKind => q.k ?? 'txt';
 
 const JUDGE_ZH = ['正确', '错误'];
 const optionsOf = (q: DLQuestion) => (q.t === 'j' ? (q.ko ? JUDGE_ZH : JUDGE_OPTIONS) : q.o ?? []);
-// 중국어 문제의 보기 한국어 번역 (판단형은 맞음/틀림)
-const koOptionsOf = (q: DLQuestion) => (q.ko ? (q.t === 'j' ? JUDGE_OPTIONS : q.ko.o ?? []) : []);
 const isCorrect = (q: DLQuestion, selected: number[] | undefined) => selected?.length === 1 && selected[0] === q.a;
 const answerText = (q: DLQuestion) => `${LETTERS[q.a]}. ${optionsOf(q)[q.a]}`;
 const imageUrl = (name: string) => `${import.meta.env.BASE_URL}driver-license/img/${name}`;
@@ -140,14 +138,14 @@ function imageStyle(name: string, count: number, compact = false): CSSProperties
   return { width: Math.round(Math.min(maxWidth, ((count > 1 ? 200 : 300) * w) / h)), aspectRatio };
 }
 
-// ── 만점 교육: 보기 단계 (① 전체 번역 ② 단어 힌트 ③ 실전) — 카드·문제 풀이 공통, 한 번 고르면 저장 ──
+// ── 보기 단계 (① 한국어 ② 한·중 ③ 실전=중국어만) — 만점 교육·필기시험 연습·카드 공통, 한 번 고르면 저장 ──
 export type MjLevel = 1 | 2 | 3;
 const MJ_LEVEL_KEY = 'dl-mj-level';
 const MJ_LEVEL_EVENT = 'dl-mj-level';
 export const MJ_LEVELS: { v: MjLevel; label: string; short: string }[] = [
-  { v: 1, label: '① 전체 번역', short: '번역' },
-  { v: 2, label: '② 단어 힌트', short: '단어' },
-  { v: 3, label: '③ 실전', short: '실전' },
+  { v: 1, label: '① 한국어', short: '한국어' },
+  { v: 2, label: '② 한·중', short: '한·중' },
+  { v: 3, label: '③ 실전(중국어)', short: '실전' },
 ];
 export function useMjLevel(): [MjLevel, (level: MjLevel) => void] {
   const [level, setLevel] = useState<MjLevel>(() => readStore<MjLevel>(MJ_LEVEL_KEY, 1));
@@ -181,6 +179,43 @@ export function LevelSwitch({ level, onChange, size = 'md' }: { level: MjLevel; 
       ))}
     </div>
   );
+}
+
+// 필기시험 문제의 중국어 원문·핵심 단어 (보기 단계 ②·③용, 연습 화면을 열 때만 불러옴)
+type ZhEntry = { q: string; o?: string[]; kw?: [string, string, string][] };
+let zhData: Record<string, ZhEntry> | null = null;
+let zhPending: Promise<void> | null = null;
+function useZhData(enabled: boolean) {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    if (!enabled || zhData) return;
+    if (!zhPending) {
+      zhPending = import('../data/driverLicenseZh.json')
+        .then((m) => {
+          zhData = m.default as unknown as Record<string, ZhEntry>;
+        })
+        .catch(() => {
+          zhPending = null;
+        });
+    }
+    let alive = true;
+    zhPending?.then(() => {
+      if (alive) bump((n) => n + 1);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [enabled]);
+  return !!zhData;
+}
+
+// 한 문제의 중국어·한국어 (만점 문제: 중국어가 본문 + 한국어 번역 / 필기시험: 한국어가 본문 + 불러온 중국어)
+type Bilingual = { zhQ: string; zhO: string[]; koQ: string; koO: string[]; kw: [string, string, string][] };
+function bilingualOf(q: DLQuestion): Bilingual | null {
+  if (q.ko) return { zhQ: q.q, zhO: q.t === 'j' ? JUDGE_ZH : q.o ?? [], koQ: q.ko.q, koO: q.t === 'j' ? JUDGE_OPTIONS : q.ko.o ?? [], kw: q.kw ?? [] };
+  const z = zhData?.[q.id];
+  if (!z) return null;
+  return { zhQ: z.q, zhO: q.t === 'j' ? JUDGE_ZH : z.o ?? [], koQ: q.q, koO: q.t === 'j' ? JUDGE_OPTIONS : q.o ?? [], kw: z.kw ?? [] };
 }
 
 /** 중국어 읽어 주기 (브라우저 음성) */
@@ -414,7 +449,7 @@ function QuestionCard({
   onSelect?: (index: number) => void;
   headerRight?: ReactNode;
   compact?: boolean;
-  level?: MjLevel; // 만점 교육(중국어 문제) 보기 단계 — 없으면 ① 전체 번역 (결과·오답 화면)
+  level?: MjLevel; // 보기 단계 (연습 화면). 결과·오답 화면은 만점 문제는 한·중, 필기시험은 한국어
 }) {
   const [zoom, setZoom] = useState(false);
   // 번역을 가린 단계에서 눌러서 잠깐 보기 / 실전 단계에서 누른 핵심 단어
@@ -424,9 +459,17 @@ function QuestionCard({
     setPeek(false);
     setOpenWords([]);
   }, [q.id]);
-  const lv: MjLevel = q.ko ? level ?? 1 : 1;
-  const showKo = !!q.ko && (lv === 1 || peek);
-  const koOptions = showKo ? koOptionsOf(q) : [];
+  // 보기 단계: ① 한국어(+핵심 단어 3개) ② 한·중(중국어 + 회색 한국어) ③ 실전(중국어만, 누르면 한국어)
+  // 결과·오답 화면(compact 아님)은 만점 문제는 한·중, 필기시험은 한국어 그대로
+  const bi = bilingualOf(q);
+  const lv: MjLevel | 0 = !bi ? 0 : compact ? level ?? 1 : q.ko ? 2 : 0;
+  const mainQ = !bi || lv === 0 ? q.q : lv === 1 ? bi.koQ : bi.zhQ;
+  const mainO = !bi || lv === 0 ? optionsOf(q) : lv === 1 ? bi.koO : bi.zhO;
+  const subQ = bi && lv >= 2 ? bi.koQ : null;
+  const showSub = lv === 2 || peek;
+  const subO = bi && (lv === 2 || (lv === 3 && peek)) ? bi.koO : [];
+  const words = !bi || !lv ? [] : lv === 1 ? bi.kw.filter(([zh]) => bi.zhQ.includes(zh) || bi.zhO[q.a]?.includes(zh)).slice(0, 3) : bi.kw;
+  const zhLang = bi && lv >= 2 ? 'zh-CN' : undefined; // 중국어 글자를 한 글꼴(중국어)로 그리게
   const images = q.img && (
     <div className={compact ? 'flex flex-wrap gap-2 justify-center lg:max-w-[760px] lg:mb-4' : 'flex flex-wrap gap-3 mb-6'}>
       {q.img.map((name) => (
@@ -445,7 +488,7 @@ function QuestionCard({
 
   const options = (
     <div className={`${compact ? 'flex flex-col gap-1 sm:gap-1.5' : 'flex flex-col gap-3'} lg:max-w-[760px]`}>
-      {optionsOf(q).map((text, i) => {
+      {mainO.map((text, i) => {
         const isSelected = selected.includes(i);
         const isAnswer = i === q.a;
         if (compact) {
@@ -475,8 +518,8 @@ function QuestionCard({
             >
               <span className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[15px] font-medium ${badgeTone}`}>{badge}</span>
               <span className="flex-1">
-                {text}
-                {koOptions[i] && <span className="ml-1.5 text-[13px] sm:text-sm text-gray-500">{koOptions[i]}</span>}
+                <span lang={zhLang}>{text}</span>
+                {subO[i] && <span className="ml-1.5 text-[14px] sm:text-[15px] text-gray-500">{subO[i]}</span>}
               </span>
             </button>
           );
@@ -505,8 +548,8 @@ function QuestionCard({
           >
             <span className="shrink-0 w-7 flex justify-center">{mark}</span>
             <span>
-              {LETTERS[i]}. {text}
-              {koOptions[i] && <span className="block text-sm text-gray-500">{koOptions[i]}</span>}
+              {LETTERS[i]}. <span lang={zhLang}>{text}</span>
+              {subO[i] && <span className="block text-sm text-gray-500">{subO[i]}</span>}
             </span>
           </button>
         );
@@ -517,21 +560,21 @@ function QuestionCard({
   return (
     <div>
       <div className={`flex justify-between items-start gap-4 ${compact ? 'mb-3' : 'mb-5'}`}>
-        <h2 className={`${compact ? 'text-[19px] sm:text-[21px] leading-snug sm:leading-relaxed' : 'text-lg sm:text-[22px] leading-relaxed'} text-gray-900 font-normal`}>
+        <h2 className={`${compact ? 'text-[19px] sm:text-[21px] leading-snug sm:leading-relaxed font-medium' : 'text-lg sm:text-[22px] leading-relaxed font-normal'} text-gray-900`}>
           {label}{' '}
           {isFast(q) && !q.ko && (
             <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded bg-[#fff4e0] text-[#d35400] text-xs font-medium" title="속성 과정 핵심 500문제">
               ⚡속성
             </span>
           )}
-          {q.kw ? highlightWords(q.q, q.kw.map((w) => w[0])) : q.q}
-          {q.ko &&
-            (showKo ? (
-              <span className="block mt-1 text-[14px] sm:text-[15px] text-gray-500 leading-snug">{q.ko.q}</span>
+          {bi && lv >= 2 ? <span lang="zh-CN">{highlightWords(mainQ, bi.kw.map((w) => w[0]))}</span> : mainQ}
+          {subQ &&
+            (showSub ? (
+              <span className="block mt-1 text-[15px] sm:text-[16px] font-normal text-gray-500 leading-snug">{subQ}</span>
             ) : (
-              <button type="button" onClick={() => setPeek(true)} className="relative block w-full mt-1 text-left" aria-label="번역 보기">
-                <span className="block blur-[5px] select-none text-[14px] sm:text-[15px] text-gray-500 leading-snug" aria-hidden>
-                  {q.ko.q}
+              <button type="button" onClick={() => setPeek(true)} className="relative block w-full mt-1 text-left font-normal" aria-label="번역 보기">
+                <span className="block blur-[5px] select-none text-[15px] sm:text-[16px] text-gray-500 leading-snug" aria-hidden>
+                  {subQ}
                 </span>
                 <span className="absolute inset-0 flex items-center text-[13px] text-[#2a8bc9] font-medium">눌러서 번역 보기</span>
               </button>
@@ -539,26 +582,26 @@ function QuestionCard({
         </h2>
         {headerRight}
       </div>
-      {q.ko && (q.kw?.length ?? 0) > 0 && (
+      {bi && lv > 0 && (
         <div className={`flex flex-wrap items-center gap-1.5 ${compact ? '-mt-1 mb-3' : 'mb-4'}`}>
           <button
             type="button"
-            onClick={() => speakZh(q.q + (q.t === 's' ? '。' + optionsOf(q).map((o, i) => `${LETTERS[i]}，${o}`).join('。') : ''))}
+            onClick={() => speakZh(bi.zhQ + (q.t === 's' ? '。' + bi.zhO.map((o, i) => `${LETTERS[i]}，${o}`).join('。') : ''))}
             aria-label="중국어로 읽어 주기"
             className="w-7 h-7 rounded-full bg-[#eef7fe] text-[#2a8bc9] text-xs flex items-center justify-center hover:bg-[#d9edfb]"
           >
             <i className="fa-solid fa-volume-high"></i>
           </button>
-          {q.kw!.map(([zh, pinyin, meaning]) => {
+          {words.map(([zh, pinyin, meaning]) => {
             const open = lv < 3 || openWords.includes(zh);
             return (
               <button
                 key={zh}
                 type="button"
                 onClick={() => setOpenWords((list) => (list.includes(zh) ? list.filter((w) => w !== zh) : [...list, zh]))}
-                className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-[#fff8e6] border border-[#f5d58a] text-[11px] sm:text-xs text-gray-700"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fff8e6] border border-[#f5d58a] text-[12px] sm:text-[13px] text-gray-700"
               >
-                <b className="text-[#b9560e] text-[12px] sm:text-[13px]">{zh}</b>
+                <b lang="zh-CN" className="text-[#b9560e] text-[13px] sm:text-[14px]">{zh}</b>
                 {open ? (
                   <>
                     <span className="text-[#c98b2f]">{pinyin}</span>
@@ -614,16 +657,20 @@ function explainPrompt(q: DLQuestion, selected?: number) {
     .join('\n');
 }
 
-function ExplanationBox({ q, selected, compact = false }: { q: DLQuestion; selected?: number; compact?: boolean }) {
+function ExplanationBox({ q, selected, compact = false, level }: { q: DLQuestion; selected?: number; compact?: boolean; level?: MjLevel }) {
   const correct = selected === undefined ? null : selected === q.a;
+  const bi = bilingualOf(q);
+  const lvl = level ?? (q.ko ? 2 : 1);
+  const answerMain = bi ? (lvl === 1 ? bi.koO[q.a] : bi.zhO[q.a]) : optionsOf(q)[q.a];
+  const answerSub = bi ? (lvl === 1 ? bi.zhO[q.a] : bi.koO[q.a]) : null;
   return (
     <div className={`${compact ? 'mt-3 px-3.5 py-3 sm:p-4' : 'mt-5 p-4 sm:p-5'} border-l-4 rounded ${correct === false ? 'bg-[#fdf0ef] border-[#e74c3c]' : 'bg-[#e3f2fd] border-[#37a7f0]'}`}>
       <h4 className="text-base font-medium text-gray-800 mb-1.5">
         {correct === true && <span className="mr-2 text-green-600">⭕ 정답이에요!</span>}
         {correct === false && <span className="mr-2 text-[#e74c3c]">❌ 틀렸어요.</span>}
         <span className={correct === null ? '' : 'text-gray-600 font-normal'}>
-          정답 {answerText(q)}
-          {q.ko && <span className="text-gray-500 font-normal"> ({koOptionsOf(q)[q.a]})</span>}
+          정답 {LETTERS[q.a]}. {answerMain}
+          {answerSub && <span className="text-gray-500 font-normal"> ({answerSub})</span>}
         </span>
       </h4>
       {q.e && (
@@ -681,7 +728,9 @@ export function PracticeQuiz({
   );
   const [autoNext, setAutoNext] = useState(() => readStore('dl-auto-next', false));
   // 만점 교육(중국어 문제): 한국어 번역 보이기
-  const hasKo = useMemo(() => questions.some((item) => item.ko), [questions]);
+  const isMj = useMemo(() => questions.some((item) => item.ko), [questions]);
+  const zhReady = useZhData(!isMj);
+  const hasKo = isMj || zhReady;
   const [level, setLevel] = useMjLevel();
   usePhoneFullscreen();
   const [slide, setSlide] = useState<'next' | 'prev' | null>(null);
@@ -887,7 +936,7 @@ export function PracticeQuiz({
           />
           {explanationOpen && (
             <div ref={explanationRef} className="scroll-mb-3">
-              <ExplanationBox q={q} selected={answered?.[0]} compact />
+              <ExplanationBox q={q} selected={answered?.[0]} compact level={hasKo ? level : undefined} />
             </div>
           )}
           {finished && (
@@ -932,7 +981,7 @@ export function PracticeQuiz({
               aria-label={`보기 단계: ${MJ_LEVELS[level - 1].label} (누르면 다음 단계)`}
               className={`h-8 px-2.5 rounded-full text-[13px] font-medium text-white ${level === 3 ? 'bg-[#2c3e50]' : 'bg-[#37a7f0]'}`}
             >
-              {level} {MJ_LEVELS[level - 1].short}
+              {'①②③'[level - 1]} {MJ_LEVELS[level - 1].short}
             </button>
           )}
           <button
@@ -2382,13 +2431,13 @@ export function ExamRunner({
               <div className="flex-none px-4 py-2 border-b border-[#d5d5d5] font-bold text-[14px] text-gray-800">시험 문제</div>
               <div ref={panelRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
                 <h2 className="text-[21px] font-bold text-gray-900 leading-relaxed">
-                  {index + 1}. {q.q}
+                  {index + 1}. <span lang={q.ko ? 'zh-CN' : undefined}>{q.q}</span>
                 </h2>
                 {/* 실전처럼 보기 글자는 읽기 전용 */}
                 <div className="mt-5 space-y-4 text-[17px] text-gray-800">
                   {optionsOf(q).map((text, i) => (
                     <div key={i}>
-                      {LETTERS[i]}、{text}
+                      {LETTERS[i]}、<span lang={q.ko ? 'zh-CN' : undefined}>{text}</span>
                     </div>
                   ))}
                 </div>
@@ -2492,7 +2541,7 @@ export function ExamRunner({
           <div {...swipe} className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3">
             <div key={index} className={slide === 'next' ? 'dl-swipe-next' : slide === 'prev' ? 'dl-swipe-prev' : ''}>
             <h2 className="text-[19px] font-medium text-gray-900 leading-snug">
-              {index + 1}. {q.q}
+              {index + 1}. <span lang={q.ko ? 'zh-CN' : undefined}>{q.q}</span>
             </h2>
             {q.img && (
               <div className="my-3 flex flex-wrap justify-center gap-2">
@@ -2531,7 +2580,7 @@ export function ExamRunner({
                     >
                       {chosen ? <i className="fa-solid fa-check"></i> : LETTERS[i]}
                     </span>
-                    <span className="flex-1">{text}</span>
+                    <span className="flex-1" lang={q.ko ? 'zh-CN' : undefined}>{text}</span>
                   </button>
                 );
               })}

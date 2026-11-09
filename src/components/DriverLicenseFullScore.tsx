@@ -1,7 +1,7 @@
 // 만점 교육 (满分学习考试): 1년(벌점 주기)에 벌점 12점이 되면 받는 교육·시험
 // - 형식은 과목1과 같지만(100문제·45분·90점) 시험은 중국어로만 보고, 법규·처벌·사고·안전 문명·응급처치 비중이 큼
 // - 틀은 필기시험과 같음: 주제별 연습 · 모의고사(회차별) · ⚡속성 과정(핵심 정리 카드 → 전체 문제 → 시험 전날 100문제)
-// - 문제·카드는 중국어 원문 + 보기 단계 스위치(① 전체 번역 ② 단어 힌트 ③ 실전)
+// - 문제·카드는 중국어 원문 + 보기 단계 스위치(① 한국어 ② 한·중 ③ 실전=중국어만)
 // - 데이터: data/driverLicenseManjeom.json (만점 문제은행 정리본, scratchpad 빌드 스크립트로 생성)
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -292,8 +292,8 @@ function GuideHome({ data, onGo }: { data: MjData; onGo: (view: View) => void })
         </div>
         <p className="text-sm sm:text-[15px] text-gray-700 leading-relaxed">
           1년(벌점 주기) 안에 벌점이 12점이 되면 면허증을 압수당하고, 7일 동안 만점 교육을 받은 뒤 이 시험에 합격해야 면허증을 돌려받습니다. 외국인도 이 시험은{' '}
-          <b>중국어로만</b> 볼 수 있어서, 여기 있는 만점 문제은행 {data.questions.length}문제는 모두 중국어 원문으로 나옵니다. 화면 위의 <b>보기 단계</b>(① 전체 번역 ② 단어
-          힌트 ③ 실전)로 한국어 도움을 줄여 가며 익히세요.
+          <b>중국어로만</b> 볼 수 있어서, 여기 있는 만점 문제은행 {data.questions.length}문제는 모두 중국어 원문으로 나옵니다. <b>보기 단계</b>(① 한국어 → ② 한·중
+          → ③ 실전)로 한국어 도움을 줄여 가며 익히세요. 모의고사는 실제 시험처럼 중국어로만 나옵니다.
         </p>
       </div>
 
@@ -397,8 +397,8 @@ function TopicsPage({ data, onBack, onStart }: { data: MjData; onBack: () => voi
       <BackButton onClick={onBack} label="만점 교육으로 돌아가기" />
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">주제별 연습</h1>
       <p className="text-sm sm:text-[15px] text-gray-500 mb-5 leading-relaxed">
-        만점 문제은행 {data.questions.length}문제를 주제별로 나눴어요. 문제는 실제 시험처럼 중국어로 나오고, 화면 위의 <b>보기 단계</b>로 한국어 도움을 조절할 수
-        있어요. <span className="text-[#d35400]">★ 중점</span> 주제가 만점 교육 시험에 특히 많이 나옵니다.
+        만점 문제은행 {data.questions.length}문제를 주제별로 나눴어요. 풀이 화면의 <b>보기 단계</b>(① 한국어 → ② 한·중 → ③ 실전=중국어만)로 한국어 도움을
+        줄여 갈 수 있어요. <span className="text-[#d35400]">★ 중점</span> 주제가 만점 교육 시험에 특히 많이 나옵니다.
       </p>
       <div className="flex flex-col gap-3">
         {data.topics.map((topic) => {
@@ -534,7 +534,7 @@ function FastHome({ data, onBack, onGo, onExam }: { data: MjData; onBack: () => 
       no: 2,
       title: `만점 문제은행 ${total}문제`,
       when: '그다음',
-      desc: '주제 순서대로 전체 문제를 풀어요. 처음에는 ① 전체 번역으로, 익숙해지면 ② 단어 힌트 → ③ 실전으로 바꿔 보세요.',
+      desc: '주제 순서대로 전체 문제를 풀어요. 처음에는 ① 한국어(핵심 중국어 단어 표시)로 뜻을 익히고, ② 한·중 → ③ 실전(중국어만)으로 바꿔 보세요.',
       progress: pct(solved, total),
       status: `${solved}/${total}문제 풀이${wrongCount ? ` · 틀린 문제 ${wrongCount}개` : ''}`,
       actions: [
@@ -605,8 +605,8 @@ function checkQuestions(questions: DLQuestion[], key: string, level: MjLevel): C
     const koOptions = q.t === 'j' ? ['맞음', '틀림'] : ko?.o ?? [];
     return {
       id: `${key}#${q.id}`,
-      prompt: level === 1 && ko ? `${q.q}\n(${ko.q})` : q.q,
-      choices: options.map((o, i) => (level === 1 && koOptions[i] ? `${o} (${koOptions[i]})` : o)),
+      prompt: !ko || level === 3 ? q.q : level === 1 ? `${ko.q}\n(${q.q})` : `${q.q}\n(${ko.q})`,
+      choices: options.map((o, i) => (!koOptions[i] || level === 3 ? o : level === 1 ? `${koOptions[i]} (${o})` : `${o} (${koOptions[i]})`)),
       answer: q.a,
       explain: q.e,
       img: q.img,
@@ -617,11 +617,18 @@ function checkQuestions(questions: DLQuestion[], key: string, level: MjLevel): C
 
 function LineView({ line, level, open, onOpen }: { line: MjLine; level: MjLevel; open: boolean; onOpen: () => void }) {
   const [zh, pinyin, ko] = line;
-  const showKo = level === 1 || open;
+  if (level === 1)
+    return (
+      <div className="flex-1 min-w-0">
+        <div className="text-[15px] sm:text-base text-gray-900 leading-snug">{ko}</div>
+        <div className="text-[13px] text-[#b9560e] leading-snug break-words">{zh}</div>
+      </div>
+    );
+  const showKo = level === 2 || open;
   return (
     <div className="flex-1 min-w-0">
       <div className="text-[15px] sm:text-base text-gray-900 leading-snug">{zh}</div>
-      {level <= 2 && <div className="text-[12px] sm:text-[13px] text-[#c98b2f] leading-snug break-words">{pinyin}</div>}
+      {level === 2 && <div className="text-[12px] sm:text-[13px] text-[#c98b2f] leading-snug break-words">{pinyin}</div>}
       {showKo ? (
         <div className="text-[14px] text-gray-600 leading-snug">{ko}</div>
       ) : (
@@ -664,7 +671,7 @@ function MjCards({ data, byId, onBack }: { data: MjData; byId: Map<number, DLQue
       {zoomPic && <ImageLightbox src={zoomPic.src} caption={zoomPic.caption} onClose={() => setZoomPic(null)} />}
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">① 핵심 정리 카드</h1>
       <p className="text-sm text-gray-500 mb-4">
-        시험에 나오는 중국어 표현으로 정리했어요. 처음에는 ① 전체 번역, 익숙해지면 ② 단어 힌트(병음만) → ③ 실전(중국어만, 누르면 뜻)으로 바꿔 보세요. ({done.size}/
+        시험에 나오는 중국어 표현으로 정리했어요. 처음에는 ① 한국어로 뜻을 익히고, ② 한·중(중국어+병음+한국어) → ③ 실전(중국어만, 누르면 뜻)으로 바꿔 보세요. ({done.size}/
         {data.cards.length}장 외움 · 체크 {checkedCount('mj:')}/{data.cards.length}장)
       </p>
       <div className="mb-4 flex flex-wrap items-center gap-2">
