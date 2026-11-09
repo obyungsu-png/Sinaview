@@ -257,41 +257,161 @@ function ManjeomQuestionView({
   );
 }
 
-// ── 암기 구결·요령 카드 ──
-function MnemonicCards({ data, onBack }: { data: ManjeomData; onBack: () => void }) {
+// ── 암기 구결·요령 카드 (필기시험 속성 과정과 같은 틀: 주제 칩 → 카드 그리드 → 원문·번역 → 메모 → 외웠어요/체크) ──
+const MN_TOPIC_RULES: { topic: string; re: RegExp }[] = [
+  { topic: '벌점', re: /记\s*\d+\s*分|记分|满分|一次记|扣分/ },
+  { topic: '벌금·형벌', re: /罚款|拘留|吊销|暂扣|判刑|禁驾|罚金/ },
+  { topic: '속도·거리', re: /限速|时速|速度|千米|加速|减速|距离|车距|米/ },
+  { topic: '면허·수습', re: /驾驶证|年审|换证|实习|补领|审验|准驾|核发|迁/ },
+  { topic: '등화·신호', re: /灯|信号|远光|近光|闪|雾/ },
+  { topic: '표지', re: /标志|标线|指示标|禁止标|警告/ },
+  { topic: '사고·응급', re: /事故|故障|伤|血|急救|应急|报警/ },
+  { topic: '주차·양보', re: /停车|停放|让|先行|掉头|倒车|变道|超车|会车|车道|转弯/ },
+];
+const MN_TOPIC_ORDER = ['벌점', '벌금·형벌', '속도·거리', '면허·수습', '등화·신호', '표지', '사고·응급', '주차·양보', '기타'];
+// 필기시험 속성 과정(한국어판)에 이미 있는 주제 → 보충, 없는 주제는 "만점 신규"로 강조
+const KOREAN_FAST_TOPICS = new Set(['벌점', '벌금·형벌', '속도·거리', '면허·수습', '등화·신호', '표지', '사고·응급', '답 고르는 요령']);
+
+function classifyMn(mn: string): string {
+  for (const r of MN_TOPIC_RULES) {
+    if (r.re.test(mn)) return r.topic;
+  }
+  return '기타';
+}
+
+type MnCard = { keyId: number; topic: string; mn: string; mk: string; questions: ManjeomQuestion[]; img?: string[] };
+
+function MnemonicCards({ data, onBack, onQuiz }: { data: ManjeomData; onBack: () => void; onQuiz: (questions: ManjeomQuestion[], title: string) => void }) {
   const [done, setDone] = useState<number[]>(() => readStore<number[]>(KEY_CARDS, []));
-  const cards = useMemo(() => {
-    const map = new Map<string, ManjeomQuestion>();
+  const [topic, setTopic] = useState('전체');
+  const [zoomPic, setZoomPic] = useState<{ src: string; caption?: string } | null>(null);
+  const [, rerender] = useState(0);
+
+  const cards = useMemo<MnCard[]>(() => {
+    const map = new Map<string, MnCard>();
     for (const q of data.questions) {
-      if (q.mnemonic && !map.has(q.mnemonic)) map.set(q.mnemonic, q);
+      if (!q.mnemonic) continue;
+      let c = map.get(q.mnemonic);
+      if (!c) {
+        c = { keyId: q.id, topic: classifyMn(q.mnemonic), mn: q.mnemonic, mk: q.mk || '', questions: [], img: q.img };
+        map.set(q.mnemonic, c);
+      }
+      if (!c.img && q.img) c.img = q.img;
+      c.questions.push(q);
     }
-    return Array.from(map.values());
+    const list = Array.from(map.values());
+    list.sort((a, b) => {
+      const ta = MN_TOPIC_ORDER.indexOf(a.topic);
+      const tb = MN_TOPIC_ORDER.indexOf(b.topic);
+      if (ta !== tb) return ta - tb; // 벌점 → … → 기타 순서
+      return b.questions.length - a.questions.length; // 주제 안에서는 자주 나오는 순
+    });
+    return list;
   }, [data]);
+
   const toggle = (id: number) => {
     setDone((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
       writeStore(KEY_CARDS, next);
       return next;
     });
+    rerender((n) => n + 1);
   };
+
+  const topicCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of cards) m.set(c.topic, (m.get(c.topic) ?? 0) + 1);
+    return m;
+  }, [cards]);
+  const hotCount = cards.filter((c) => c.questions.length >= 3).length;
+
+  const visible = cards.filter((c) =>
+    topic === '전체' ? true : topic === '🔥 핵심' ? c.questions.length >= 3 : c.topic === topic
+  );
+
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
       <BackButton onClick={onBack} label="속성 과정으로 돌아가기" />
+      {zoomPic && (
+        <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4" onClick={() => setZoomPic(null)}>
+          <img src={imageUrl(zoomPic.src)} alt="확대" className="max-w-[92vw] max-h-[80vh] object-contain rounded bg-white" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">① 암기 구결·요령</h1>
-      <p className="text-sm text-gray-500 mb-5">만점교육 600문제에서 뽑은 암기 구결(速记口诀)입니다. 외운 구결은 "외웠어요"로 표시하세요. ({done.length}/{cards.length})</p>
-      <div className="grid sm:grid-cols-2 gap-4">
-        {cards.map((q) => (
-          <div key={q.id} className={`p-4 rounded-lg border ${done.includes(q.id) ? 'border-green-300 bg-green-50/40' : 'border-gray-200 bg-white'}`}>
-            <div className="flex items-start gap-2 mb-2">
-              <span className="shrink-0 px-2 py-0.5 rounded bg-[#fff4e0] text-[#d35400] text-xs">口诀</span>
-              <button onClick={() => speak(q.mnemonic)} className="ml-auto text-xs text-[#2a8bc9] hover:underline"><i className="fa-solid fa-volume-high"></i> 듣기</button>
-            </div>
-            <p className="text-[15px] text-gray-800 leading-relaxed">{q.mnemonic}</p>
-            <button onClick={() => toggle(q.id)} className={`mt-3 text-sm px-3 py-1.5 rounded-full border ${done.includes(q.id) ? 'border-green-500 text-green-700 bg-white' : 'border-gray-300 text-gray-600 bg-white hover:border-[#37a7f0]'}`}>
-              {done.includes(q.id) ? '✓ 외웠어요' : '외웠어요'}
+      <p className="text-sm text-gray-500 mb-5">
+        만점교육 600문제의 速记口诀을 벌점부터 답 고르는 요령까지 주제별로, 그리고 자주 나오는 것부터 외우도록 정렬했어요. ({done.length}/{cards.length}장 외움)
+      </p>
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+        {['전체', '🔥 핵심', ...MN_TOPIC_ORDER].map((t) => {
+          const count = t === '전체' ? cards.length : t === '🔥 핵심' ? hotCount : topicCounts.get(t) ?? 0;
+          if (count === 0 && t !== '전체') return null;
+          return (
+            <button
+              key={t}
+              onClick={() => setTopic(t)}
+              className={`shrink-0 px-3 py-1.5 rounded-full border text-sm ${topic === t ? 'bg-[#37a7f0] border-[#37a7f0] text-white' : 'bg-white border-gray-300 text-gray-700'}`}
+            >
+              {t} {count}
             </button>
-          </div>
-        ))}
+          );
+        })}
+      </div>
+      <div className="grid sm:grid-cols-2 gap-4">
+        {visible.map((c) => {
+          const isNew = !KOREAN_FAST_TOPICS.has(c.topic);
+          const isHot = c.questions.length >= 3;
+          const isDone = done.includes(c.keyId);
+          return (
+            <div
+              key={c.keyId}
+              id={`mn-card-${c.keyId}`}
+              className={`p-4 sm:p-5 rounded-lg border ${isDone ? 'border-green-300 bg-green-50/40' : isNew ? 'border-amber-400 border-l-[6px] bg-amber-50/30' : 'border-gray-200 bg-white'}`}
+            >
+              <div className="flex items-start gap-2 mb-2 flex-wrap">
+                <span className={`shrink-0 px-2 py-0.5 rounded text-xs ${isNew ? 'bg-[#fff4e0] text-[#d35400]' : 'bg-[#eef7fe] text-[#2a8bc9]'}`}>{c.topic}</span>
+                {isNew && <span className="shrink-0 px-2 py-0.5 rounded bg-[#d35400] text-white text-xs font-bold">만점 신규</span>}
+                {isHot && <span className="shrink-0 px-2 py-0.5 rounded bg-[#fdecea] text-[#c0392b] text-xs font-bold">🔥 {c.questions.length}문제</span>}
+              </div>
+              <h3 className="font-medium text-gray-800 mb-2 leading-snug">{c.mk || c.mn}</h3>
+              <div className="px-3 py-2 bg-[#f5f7fa] border-l-4 border-[#37a7f0] rounded text-[15px] text-gray-800 leading-relaxed flex items-start gap-2">
+                <span className="flex-1">{c.mn}</span>
+                <button onClick={() => speak(c.mn)} className="shrink-0 text-xs text-[#2a8bc9] hover:underline" aria-label="중국어로 듣기">
+                  <i className="fa-solid fa-volume-high"></i>
+                </button>
+              </div>
+              {c.img && c.img.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {c.img.slice(0, 2).map((name) => (
+                    <figure key={name} className="w-[130px] sm:w-[160px] text-center">
+                      <img
+                        src={imageUrl(name)}
+                        alt={c.mk || c.mn}
+                        loading="lazy"
+                        onClick={() => setZoomPic({ src: name, caption: c.mk || c.mn })}
+                        className="w-full h-auto rounded border border-gray-200 bg-white cursor-zoom-in hover:border-[#37a7f0] transition-colors"
+                      />
+                    </figure>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 px-3 py-2 bg-[#fff8e1] rounded text-sm text-gray-800">⚡ 이 구결 하나로 {c.questions.length}문제 해결</div>
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => toggle(c.keyId)}
+                  className={`text-sm px-3 py-1.5 rounded-full border ${isDone ? 'border-green-500 text-green-700 bg-white' : 'border-gray-300 text-gray-600 bg-white hover:border-[#37a7f0]'}`}
+                >
+                  {isDone ? '✓ 외웠어요' : '외웠어요'}
+                </button>
+                <button
+                  onClick={() => onQuiz(c.questions, `⚡ ${c.topic} 구결 체크 · ${c.questions.length}문제`)}
+                  className="text-sm px-3 py-1.5 rounded-full bg-[#eef7fe] text-[#2a8bc9] border border-[#b5dcf6] hover:bg-[#e2f0fe]"
+                >
+                  이 내용 체크 · {c.questions.length}문제
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -425,6 +545,9 @@ function ExamRunner({ questions, title, seconds, onBack, onFinish, resultKey }: 
 export function ManjeomCoursePage({ onBack }: { onBack: () => void }) {
   const { data, failed } = useManjeomData();
   const [screen, setScreen] = useState<'home' | 'cards' | 'quiz' | 'exam' | 'mock'>('home');
+  // 구결 카드에서 "이 내용 체크"로 진입했을 때의 문제 집합 (null이면 전체 600문제)
+  const [quizSet, setQuizSet] = useState<ManjeomQuestion[] | null>(null);
+  const [quizTitle, setQuizTitle] = useState('⚡ 핵심 600문제');
 
   const examIds = useMemo(() => (data ? data.examIds : []), [data]);
   const examQuestions = useMemo(() => {
@@ -433,17 +556,35 @@ export function ManjeomCoursePage({ onBack }: { onBack: () => void }) {
     return examIds.map((id) => byId.get(id)).filter((q): q is ManjeomQuestion => !!q);
   }, [data, examIds]);
 
+  // (Hooks는 조건부 return 이전에 전부 호출해야 함 — Rules of Hooks)
+  const cardsTotal = useMemo(
+    () => (data ? new Set(data.questions.filter((q) => q.mnemonic).map((q) => q.mnemonic)).size : 0),
+    [data]
+  );
+
   if (!data) return <LoadingState failed={failed} onBack={onBack} />;
 
   const solved = Object.keys(readStore<Record<number, number>>(`${KEY_QUIZ}:answers`, {})).length;
   const cardsDone = readStore<number[]>(KEY_CARDS, []).length;
 
-  if (screen === 'cards') return <MnemonicCards data={data} onBack={() => setScreen('home')} />;
-  if (screen === 'quiz') return <QuizRunner questions={data.questions} title="⚡ 핵심 600문제" storageKey={KEY_QUIZ} onBack={() => setScreen('home')} />;
+  if (screen === 'cards') return <MnemonicCards data={data} onBack={() => setScreen('home')} onQuiz={(qs, title) => { setQuizSet(qs); setQuizTitle(title); setScreen('quiz'); window.scrollTo({ top: 0 }); }} />;
+  if (screen === 'quiz') return (
+    <QuizRunner
+      questions={quizSet ?? data.questions}
+      title={quizSet ? quizTitle : '⚡ 핵심 600문제'}
+      storageKey={quizSet ? undefined : KEY_QUIZ}
+      onBack={() => {
+        if (quizSet) {
+          setQuizSet(null);
+          setScreen('cards');
+        } else {
+          setScreen('home');
+        }
+      }}
+    />
+  );
   if (screen === 'exam') return <ExamRunner questions={examQuestions.length ? examQuestions : shuffle(data.questions).slice(0, 100)} title="⚡ 시험 전날 실전 100문제" seconds={2700} resultKey={KEY_EXAM} onBack={() => setScreen('home')} />;
   if (screen === 'mock') return <ExamRunner questions={shuffle(data.questions).slice(0, 100)} title="만점교육 모의고사" seconds={2700} resultKey={KEY_MOCK} onBack={() => setScreen('home')} />;
-
-  const cardsTotal = useMemo(() => new Set(data.questions.filter((q) => q.mnemonic).map((q) => q.mnemonic)).size, [data]);
 
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-12">
@@ -469,7 +610,7 @@ export function ManjeomCoursePage({ onBack }: { onBack: () => void }) {
             <div className="flex justify-between"><span>③ 실전 100문제</span><span className="text-gray-400">{readStore<{best:number}>(KEY_EXAM, {best:0}).best}점</span></div>
           </div>
           <button onClick={() => setScreen('cards')} className="w-full px-4 py-2.5 rounded-lg bg-[#f39c12] text-white hover:bg-[#e08e0b] mb-2">① 암기 구결·요령</button>
-          <button onClick={() => setScreen('quiz')} className="w-full px-4 py-2.5 rounded-lg bg-[#37a7f0] text-white hover:bg-[#2a8bc9] mb-2">② 핵심 600문제</button>
+          <button onClick={() => { setQuizSet(null); setQuizTitle('⚡ 핵심 600문제'); setScreen('quiz'); }} className="w-full px-4 py-2.5 rounded-lg bg-[#37a7f0] text-white hover:bg-[#2a8bc9] mb-2">② 핵심 600문제</button>
           <button onClick={() => setScreen('exam')} className="w-full px-4 py-2.5 rounded-lg border border-[#37a7f0] text-[#37a7f0] hover:bg-[#eef7fe]">③ 시험 전날 실전 100문제</button>
         </div>
 
