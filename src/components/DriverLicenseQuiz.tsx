@@ -140,19 +140,26 @@ function imageStyle(name: string, count: number, compact = false): CSSProperties
   return { width: Math.round(Math.min(maxWidth, ((count > 1 ? 200 : 300) * w) / h)), aspectRatio };
 }
 
-// ── 보기 단계 (1단계 한국어 / 2단계 중국어+한국어 / 3단계 실전=중국어만) — 만점 교육·필기시험 연습·카드 공통, 한 번 고르면 저장 ──
+// ── 보기 단계 (1단계 한국어 / 2단계 중국어) — 만점 교육 연습·카드 공통, 한 번 고르면 저장 ──
 export type MjLevel = 1 | 2 | 3;
 const MJ_LEVEL_KEY = 'dl-mj-level';
 const MJ_LEVEL_EVENT = 'dl-mj-level';
+// 고를 수 있는 단계는 둘: 1단계 한국어(+작은 중국어 핵심 단어) / 2단계 중국어(시험처럼 중국어만, 누르면 번역·뜻)
+// 값 2(중국어+회색 한국어)는 결과·틀린 문제 화면의 복습용 표시로만 씀
 export const MJ_LEVELS: { v: MjLevel; label: string; short: string }[] = [
   { v: 1, label: '1단계 · 한국어', short: '1단계' },
-  { v: 2, label: '2단계 · 중국어', short: '2단계' },
-  { v: 3, label: '3단계 · 실전', short: '실전' },
+  { v: 3, label: '2단계 · 중국어', short: '2단계' },
 ];
+const levelInfo = (level: MjLevel) => MJ_LEVELS.find((item) => item.v === level) ?? MJ_LEVELS[0];
+// 예전에 고른 '2단계(중국어+한국어)'는 새 2단계(중국어)로
+const readLevel = (): MjLevel => {
+  const saved = readStore<MjLevel>(MJ_LEVEL_KEY, 1);
+  return saved === 2 ? 3 : saved;
+};
 export function useMjLevel(): [MjLevel, (level: MjLevel) => void] {
-  const [level, setLevel] = useState<MjLevel>(() => readStore<MjLevel>(MJ_LEVEL_KEY, 1));
+  const [level, setLevel] = useState<MjLevel>(readLevel);
   useEffect(() => {
-    const sync = () => setLevel(readStore<MjLevel>(MJ_LEVEL_KEY, 1));
+    const sync = () => setLevel(readLevel());
     window.addEventListener(MJ_LEVEL_EVENT, sync);
     return () => window.removeEventListener(MJ_LEVEL_EVENT, sync);
   }, []);
@@ -197,10 +204,10 @@ function LevelBar({ level, onChange }: { level: MjLevel; onChange: (level: MjLev
       <button
         type="button"
         onClick={() => toggle(true)}
-        aria-label={`보기 단계 펼치기 (지금 ${MJ_LEVELS[level - 1].label})`}
+        aria-label={`보기 단계 펼치기 (지금 ${levelInfo(level).label})`}
         className="ml-auto mr-1 h-8 px-3 rounded-full bg-gray-100 text-[13px] text-gray-600 flex items-center gap-1.5"
       >
-        {MJ_LEVELS[level - 1].short}
+        {levelInfo(level).short}
         <i className="fa-solid fa-chevron-down text-[10px]"></i>
       </button>
     );
@@ -218,7 +225,7 @@ function LevelBar({ level, onChange }: { level: MjLevel; onChange: (level: MjLev
             className={`h-7 px-2.5 rounded-full text-[12.5px] transition-colors ${level === item.v ? 'bg-white shadow-sm text-[#2a8bc9] font-medium' : 'text-gray-500'}`}
           >
             {item.short}
-            {item.v < 3 && <span className="ml-0.5 text-[11px] opacity-80">{item.v === 1 ? '한국어' : '중국어'}</span>}
+            <span className="ml-0.5 text-[11px] opacity-80">{item.v === 1 ? '한국어' : '중국어'}</span>
           </button>
         ))}
       </div>
@@ -917,7 +924,7 @@ function QuestionCard({
     setOpenWords([]);
     closeWordPopup();
   }, [q.id]);
-  // 보기 단계: ① 한국어(+핵심 단어 3개) ② 한·중(중국어 + 회색 한국어) ③ 실전(중국어만, 누르면 한국어)
+  // 보기 단계(값): 1 한국어(+핵심 단어) / 3 = 화면의 '2단계 중국어'(중국어만, 누르면 한국어) / 2 중국어+회색 한국어(결과·틀린 문제 복습용)
   // 결과·오답 화면(compact 아님)은 만점 문제는 한·중, 필기시험은 한국어 그대로
   const bi = bilingualOf(q);
   const lv: MjLevel | 0 = !bi ? 0 : compact ? level ?? 1 : q.ko ? 2 : 0;
