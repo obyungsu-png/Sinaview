@@ -20,7 +20,7 @@ import {
   type MjLevel,
   type MockResult,
 } from './DriverLicenseQuiz';
-import { XfExamRunner, XfExamResultView, XfExamRules, recordXfExam, type XfExamOutcome, type XfQ } from './DriverLicenseXfExam';
+import { XfExamRunner, XfExamResultView, XfExamRules, XfFullscreen, recordXfExam, type XfExamOutcome, type XfQ } from './DriverLicenseXfExam';
 import { ContentCheck, checkedCount, scrollToId } from './DriverLicenseContentCheck';
 import type { CheckQuestion } from '../data/driverLicenseCheckQuestions';
 import { getMockResults, getProgress, getWrongMap, setProgress, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
@@ -128,39 +128,45 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
     const ids = data.exams[examNo - 1] ?? [];
     const questions = ids.map((id) => byId.get(id)).filter((q): q is XfQ => !!q);
     return (
-      <XfExamRunner
-        no={examNo}
-        questions={questions}
-        initial={continueFrom ?? undefined}
-        onFinish={finishExam}
-        onExit={() => {
-          setExamNo(null);
-          setContinueFrom(null);
-        }}
-      />
+      <XfFullscreen key="xf-exam">
+        <XfExamRunner
+          no={examNo}
+          questions={questions}
+          initial={continueFrom ?? undefined}
+          onFinish={finishExam}
+          onExit={() => {
+            setExamNo(null);
+            setContinueFrom(null);
+          }}
+        />
+      </XfFullscreen>
     );
   }
   if (rulesNo !== null) {
     return (
-      <XfExamRules
-        no={rulesNo}
-        total={(data.exams[rulesNo - 1] ?? []).length}
-        onBack={() => setRulesNo(null)}
-        onStart={() => startExam(rulesNo)}
-      />
+      <XfFullscreen key="xf-rules">
+        <XfExamRules
+          no={rulesNo}
+          total={(data.exams[rulesNo - 1] ?? []).length}
+          onBack={() => setRulesNo(null)}
+          onStart={() => startExam(rulesNo)}
+        />
+      </XfFullscreen>
     );
   }
   if (outcome) {
     return (
-      <XfExamResultView
-        outcome={outcome}
-        onRetry={() => startExam(outcome.no)}
-        onContinue={outcome.failedOut && !outcome.continued ? continueExam : undefined}
-        onList={() => {
-          setOutcome(null);
-          go(outcome.back);
-        }}
-      />
+      <XfFullscreen key="xf-result">
+        <XfExamResultView
+          outcome={outcome}
+          onRetry={() => startExam(outcome.no)}
+          onContinue={outcome.failedOut && !outcome.continued ? continueExam : undefined}
+          onList={() => {
+            setOutcome(null);
+            go(outcome.back);
+          }}
+        />
+      </XfFullscreen>
     );
   }
 

@@ -4,7 +4,7 @@
 //  └ 판단형은 "Y：正确 / N：错误", 단선형은 라디오, 다선형은 네모 체크(下一题를 눌러야 채점)
 //  └ 앱 규칙: 답 수정 불가 · 오답/초과 누적 3문제면 불합격(이어풀기 가능) · 18문제 이상 합격
 //  └ 시험 화면은 앱과 똑같이 중국어로만 표시 (한국어 번역·해설은 시험지 검토에서)
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSwipe, type DLQuestion } from './DriverLicenseQuiz';
 import { recordAnswers, setMockResult, getMockResults, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
 import type { MockResult } from './DriverLicenseQuiz';
@@ -62,6 +62,22 @@ const WHAT_IS = '机动车驾驶人处理完交通违法行为记录后累积记
 
 const selLetters = (sel: number | string | undefined) => (typeof sel === 'string' ? sel : '');
 const isMulti = (q: XfQ) => q.t === 'm';
+
+/** 고사 흐름 전체화면 오버레이: 앱 상단 내비게이션 바·하단 내비게이션 바를 가리고 시험 화면만 보이게 함 */
+export function XfFullscreen({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+  return (
+    <div className="fixed inset-0 z-[90] overflow-y-auto overscroll-contain bg-[#f0f2f5]">
+      {children}
+    </div>
+  );
+}
 
 // ───────── 시작 전 考试规则 안내 화면 (앱 1번 화면) ─────────
 export function XfExamRules({ no, total, onBack, onStart }: { no: number; total: number; onBack: () => void; onStart: () => void }) {
