@@ -156,6 +156,9 @@ export function XfExamRunner({ no, questions, onExit, onFinish, initial }: Runne
   const q = questions[index];
   const answered = answers[index] !== undefined;
   const finishedRef = useRef(false);
+  // 마지막 채점 결과 (같은 클릭 안에서 finish가 갱신 전 state를 읽지 않게)
+  const latest = useRef({ answers, results });
+  latest.current = { answers, results };
 
   const gradeAndLock = (idx: number, sel: number | string) => {
     if (answers[idx] !== undefined || finishedRef.current || failPending) return null;
@@ -165,6 +168,7 @@ export function XfExamRunner({ no, questions, onExit, onFinish, initial }: Runne
     const nextResults = { ...results, [idx]: ok };
     setAnswers(nextAnswers);
     setResults(nextResults);
+    latest.current = { answers: nextAnswers, results: nextResults };
     if (!ok && !continued && Object.values(nextResults).filter((r) => !r).length >= MAX_WRONG) {
       // 앱 규칙: 오답 3개 누적 → 안내 (결과 보기 또는 이어풀기 선택)
       setFailPending(true);
@@ -176,12 +180,13 @@ export function XfExamRunner({ no, questions, onExit, onFinish, initial }: Runne
   const finish = (failed: boolean) => {
     if (finishedRef.current) return;
     finishedRef.current = true;
-    const correct = Object.values(results).filter(Boolean).length;
+    const { answers: finalAnswers, results: finalResults } = latest.current;
+    const correct = Object.values(finalResults).filter(Boolean).length;
     onFinish({
       no,
       questions,
-      answers,
-      results,
+      answers: finalAnswers,
+      results: finalResults,
       correct,
       seconds: Math.min(EXAM_SECONDS_XF, Math.round((Date.now() - startedAt.current) / 1000)),
       failedOut: failed,
@@ -190,10 +195,11 @@ export function XfExamRunner({ no, questions, onExit, onFinish, initial }: Runne
   };
 
   // 문제 이동 (단일·판단은 답을 골야 다음으로, 다선은 下一题 제출 필요)
-  const moveTo = (target: number) => {
+  // justAnswered: 방금 채점한 다선 문제 — 같은 렌더의 answered 값은 아직 갱신 전이라 따로 넘김
+  const moveTo = (target: number, justAnswered = false) => {
     const next = Math.max(0, Math.min(total - 1, target));
     if (next === index) return;
-    if (next > index && !answered) {
+    if (next > index && !answered && !justAnswered) {
       setWarn(true);
       window.setTimeout(() => setWarn(false), 1300);
       return;
@@ -213,7 +219,7 @@ export function XfExamRunner({ no, questions, onExit, onFinish, initial }: Runne
       const fail = gradeAndLock(index, multiPick);
       if (fail) return; // 불합격 안내창 표시
       if (index === total - 1) finish(false);
-      else moveTo(index + 1);
+      else moveTo(index + 1, true);
       return;
     }
     if (!answered) return;
@@ -445,7 +451,7 @@ export function XfExamResultView({ outcome, onRetry, onList, onContinue }: { out
   const mm = Math.floor(seconds / 60);
   const ss = seconds % 60;
   const best = (() => {
-    const r = getMockResults<MockResult>()[`xf-exam${no}`];
+    const r = getMockResults<MockResult>()[`xf2-exam${no}`];
     return r?.best ?? correct;
   })();
 
@@ -598,7 +604,7 @@ export function recordXfExam(outcome: XfExamOutcome) {
       .map((q, i) => ({ id: q.id, selected: typeof outcome.answers[i] === 'number' ? (outcome.answers[i] as number) : undefined, correct: outcome.results[i] }))
       .filter((r) => r.selected !== undefined && r.selected !== -1),
   );
-  const key = `xf-exam${outcome.no}`;
+  const key = `xf2-exam${outcome.no}`; // 2026-11 판단5·단선10·다선5로 회차를 새로 짜서 기록 키도 새로
   const prev = getMockResults<MockResult>()[key];
   setMockResult(key, {
     best: Math.max(prev?.best ?? 0, outcome.correct),

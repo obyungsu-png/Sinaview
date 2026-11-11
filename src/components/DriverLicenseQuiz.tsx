@@ -21,7 +21,7 @@ import { askAi, setAiContext } from '../utils/aiAssistant';
 export type DLQuestion = {
   id: number;
   c: number; // 단계(장) 번호
-  t: 'j' | 's'; // 판단형 / 단일 선택형
+  t: 'j' | 's' | 'm'; // 판단형 / 단일 선택형 / 다답형(학법 감점, 여러 개 고르기)
   k?: 'pic' | 'sign' | 'sig'; // 그림 상황 / 교통 표지·노면 표시 / 신호등·교통경찰 수신호 (없으면 글 문제)
   q: string;
   o?: string[];
@@ -32,6 +32,7 @@ export type DLQuestion = {
   ko?: { q: string; o?: string[] };
   kw?: [string, string, string][]; // 핵심 단어 [한자, 병음, 뜻]
   ez?: string; // 중국어 원문 해설
+  ma?: string; // 다답형 정답 글자 (예: "ACD")
   kj?: [string, string, string]; // 速记口诀 [중국어(【】=노란 강조), 병음, 한국어]
   sm?: [string, string, string]; // 핵심 요약 [중국어, 병음, 한국어]
 };
@@ -107,8 +108,12 @@ export const kindOf = (q: DLQuestion): DLKind => q.k ?? 'txt';
 
 const JUDGE_ZH = ['正确', '错误'];
 const optionsOf = (q: DLQuestion) => (q.t === 'j' ? (q.ko ? JUDGE_ZH : JUDGE_OPTIONS) : q.o ?? []);
-const isCorrect = (q: DLQuestion, selected: number[] | undefined) => selected?.length === 1 && selected[0] === q.a;
-const answerText = (q: DLQuestion) => `${LETTERS[q.a]}. ${optionsOf(q)[q.a]}`;
+/** 이 보기가 정답인지 (다답형은 정답 글자 안에 있으면) */
+const isAnswerIdx = (q: DLQuestion, i: number) => (q.t === 'm' ? !!q.ma?.includes(LETTERS[i]) : i === q.a);
+const isCorrect = (q: DLQuestion, selected: number[] | undefined) =>
+  q.t === 'm' ? !!selected?.length && [...selected].sort().map((i) => LETTERS[i]).join('') === q.ma : selected?.length === 1 && selected[0] === q.a;
+const answerText = (q: DLQuestion) =>
+  q.t === 'm' ? (q.ma ?? '').split('').map((l) => `${l}. ${optionsOf(q)[LETTERS.indexOf(l)]}`).join(' / ') : `${LETTERS[q.a]}. ${optionsOf(q)[q.a]}`;
 export const imageUrl = (name: string) => `${import.meta.env.BASE_URL}driver-license/img/${name}`;
 
 let fastIdSet: Set<number> | null = null;
@@ -944,14 +949,19 @@ function QuestionCard({
     <div className={`${compact ? 'flex flex-col gap-1 sm:gap-1.5' : 'flex flex-col gap-3'} lg:max-w-[760px]`}>
       {mainO.map((text, i) => {
         const isSelected = selected.includes(i);
-        const isAnswer = i === q.a;
+        const isAnswer = isAnswerIdx(q, i);
         if (compact) {
           // 보기를 직접 눌러 답 고르기 (모바일 모의고사와 같은 모양). 답한 뒤에는 정답은 초록, 고른 오답은 빨강
           // 네모 칸 없이 동그라미 글자 + 큰 글씨 (답한 뒤: 정답 초록, 고른 오답 빨강)
           let tone = 'text-gray-900';
           let badgeTone = 'bg-white text-gray-600 shadow-[0_1px_4px_rgba(0,0,0,0.18)]';
           let badge: ReactNode = LETTERS[i];
-          if (reveal && isAnswer) {
+          if (reveal && isAnswer && q.t === 'm' && !isSelected) {
+            // 다답형에서 놓친 정답
+            tone = 'text-green-600 font-medium';
+            badgeTone = 'bg-white text-green-600 border-2 border-green-500 text-[13px]';
+            badge = '漏';
+          } else if (reveal && isAnswer) {
             tone = 'text-green-600 font-medium';
             badgeTone = 'bg-green-500 text-white';
             badge = <i className="fa-solid fa-check"></i>;
@@ -960,6 +970,12 @@ function QuestionCard({
             badgeTone = 'bg-[#e74c3c] text-white';
             badge = <i className="fa-solid fa-xmark"></i>;
           } else if (reveal) tone = 'text-gray-400';
+          else if (isSelected) {
+            // 다답형: 고르는 중 (답 확인 전)
+            tone = 'text-[#1c66c0] font-medium';
+            badgeTone = 'bg-[#37a7f0] text-white';
+            badge = <i className="fa-solid fa-check"></i>;
+          }
           return (
             <button
               key={i}
@@ -1027,6 +1043,11 @@ function QuestionCard({
       <div className={`flex justify-between items-start gap-4 ${compact ? 'mb-3' : 'mb-5'}`}>
         <h2 className={`${compact ? 'text-[19px] sm:text-[21px] leading-snug sm:leading-relaxed font-medium' : 'text-lg sm:text-[22px] leading-relaxed font-normal'} text-gray-900`}>
           {label}{' '}
+          {q.t === 'm' && (
+            <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded bg-[#eef7fe] text-[#1c66c0] text-xs font-medium" title="여러 개를 고르는 문제">
+              多选 · 여러 개
+            </span>
+          )}
           {isFast(q) && !q.ko && (
             <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded bg-[#fff4e0] text-[#d35400] text-xs font-medium" title="속성 과정 핵심 500문제">
               ⚡속성
@@ -1142,12 +1163,25 @@ function explainPrompt(q: DLQuestion, selected?: number) {
     .join('\n');
 }
 
-function ExplanationBox({ q, selected, compact = false, level }: { q: DLQuestion; selected?: number; compact?: boolean; level?: MjLevel }) {
-  const correct = selected === undefined ? null : selected === q.a;
+function ExplanationBox({
+  q,
+  selected,
+  picks,
+  compact = false,
+  level,
+}: {
+  q: DLQuestion;
+  selected?: number;
+  picks?: number[]; // 다답형에서 고른 보기들
+  compact?: boolean;
+  level?: MjLevel;
+}) {
+  const multi = q.t === 'm';
+  const correct = multi ? (picks?.length ? isCorrect(q, picks) : null) : selected === undefined ? null : selected === q.a;
   const bi = bilingualOf(q);
   const lvl = level ?? (q.ko ? 2 : 1);
-  const answerMain = bi ? (lvl === 1 ? bi.koO[q.a] : bi.zhO[q.a]) : optionsOf(q)[q.a];
-  const answerSub = bi ? (lvl === 1 ? bi.zhO[q.a] : bi.koO[q.a]) : null;
+  const answerMain = multi ? null : bi ? (lvl === 1 ? bi.koO[q.a] : bi.zhO[q.a]) : optionsOf(q)[q.a];
+  const answerSub = multi ? null : bi ? (lvl === 1 ? bi.zhO[q.a] : bi.koO[q.a]) : null;
   const mjw = useMjWords(!!q.kj);
   return (
     <div className={`${compact ? 'mt-3 px-3.5 py-3 sm:p-4' : 'mt-5 p-4 sm:p-5'} border-l-4 rounded ${correct === false ? 'bg-[#fdf0ef] border-[#e74c3c]' : 'bg-[#e3f2fd] border-[#37a7f0]'}`}>
@@ -1173,7 +1207,7 @@ function ExplanationBox({ q, selected, compact = false, level }: { q: DLQuestion
         {correct === true && <span className="mr-2 text-green-600">⭕ 정답이에요!</span>}
         {correct === false && <span className="mr-2 text-[#e74c3c]">❌ 틀렸어요.</span>}
         <span className={correct === null ? '' : 'text-gray-600 font-normal'}>
-          정답 {LETTERS[q.a]}. {answerMain}
+          {multi ? `정답 ${(q.ma ?? '').split('').join('·')}` : `정답 ${LETTERS[q.a]}. ${answerMain}`}
           {answerSub && <span className="text-gray-500 font-normal"> ({answerSub})</span>}
         </span>
       </h4>
@@ -1217,8 +1251,8 @@ function ExplanationBox({ q, selected, compact = false, level }: { q: DLQuestion
           type="button"
           onClick={() =>
             askAi({
-              label: correct === false ? `${LETTERS[selected!]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답 이유를 자세히 설명해 줘',
-              prompt: explainPrompt(q, selected),
+              label: correct === false && !multi ? `${LETTERS[selected!]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답 이유를 자세히 설명해 줘',
+              prompt: explainPrompt(q, multi ? undefined : selected),
             })
           }
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#bfe2fa] bg-white text-sm text-[#2a8bc9] hover:bg-[#eef7fe]"
@@ -1273,12 +1307,18 @@ export function PracticeQuiz({
   const index = Math.min(progress.index, questions.length - 1);
   const q = questions[index];
   const answered = progress.answers[q.id];
+  const isMultiQ = q.t === 'm';
+  // 다답형: 고르는 중인 보기들 ('답 확인'을 눌러야 채점)
+  const [picks, setPicks] = useState<number[]>([]);
+  useEffect(() => {
+    setPicks([]);
+  }, [q.id]);
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   // AI 도우미 버튼을 누르면 지금 보는 문제를 바로 설명받을 수 있게
   useEffect(() => {
-    const selected = answered?.[0];
+    const selected = q.t === 'm' ? undefined : answered?.[0];
     setAiContext({
       title: `${title} ${index + 1}번 문제`,
       label: selected !== undefined && selected !== q.a ? `${LETTERS[selected]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답·오답 이유를 설명해 줘',
@@ -1343,15 +1383,27 @@ export function PracticeQuiz({
     setShowExplanation(false);
   };
 
-  const handleSelect = (i: number) => {
-    if (answered) return;
-    const ok = i === q.a;
+  const finishAnswer = (chosen: number[]) => {
+    const ok = isCorrect(q, chosen);
     playTone(ok);
-    setProgress((p) => ({ ...p, answers: { ...p.answers, [q.id]: [i] } }));
-    recordAnswers([{ id: q.id, selected: i, correct: ok }]);
+    setProgress((p) => ({ ...p, answers: { ...p.answers, [q.id]: chosen } }));
+    recordAnswers([{ id: q.id, selected: chosen[0], correct: ok }]);
     scrollToExplanation();
     if (!ok) setShowExplanation(true);
     else if (autoNext && index < questions.length - 1) timer.current = window.setTimeout(() => goTo(index + 1), 1500);
+  };
+  const handleSelect = (i: number) => {
+    if (answered) return;
+    if (isMultiQ) {
+      // 다답형은 눌러서 고르기·빼기, '답 확인'으로 채점
+      setPicks((list) => (list.includes(i) ? list.filter((x) => x !== i) : [...list, i].sort()));
+      return;
+    }
+    finishAnswer([i]);
+  };
+  const submitPicks = () => {
+    if (answered || !isMultiQ || picks.length === 0) return;
+    finishAnswer([...picks].sort());
   };
 
   const swipe = useSwipe(
@@ -1386,6 +1438,7 @@ export function PracticeQuiz({
       if ((e.target as HTMLElement | null)?.closest('input, textarea, select')) return;
       if (e.key === 'ArrowRight') goTo(index + 1);
       else if (e.key === 'ArrowLeft') goTo(index - 1);
+      else if (e.key === 'Enter' && isMultiQ && !answered) submitPicks();
       else if (!answered) {
         const choice = Math.max('1234'.indexOf(e.key), 'abcd'.indexOf(e.key.toLowerCase()));
         if (choice >= 0 && choice < optionsOf(q).length) handleSelect(choice);
@@ -1445,7 +1498,7 @@ export function PracticeQuiz({
           <QuestionCard
             q={q}
             label={`${index + 1}.`}
-            selected={answered ?? []}
+            selected={answered ?? (isMultiQ ? picks : [])}
             reveal={!!answered}
             onSelect={answered ? undefined : handleSelect}
             compact
@@ -1464,9 +1517,23 @@ export function PracticeQuiz({
               </div>
             }
           />
+          {isMultiQ && !answered && (
+            // 다답형: 여러 개 고른 뒤 확인
+            <div className="mt-3 flex items-center gap-3 lg:max-w-[760px]">
+              <button
+                type="button"
+                onClick={submitPicks}
+                disabled={picks.length === 0}
+                className="flex-1 sm:flex-none sm:min-w-[200px] h-12 rounded-xl text-[16px] font-medium text-white bg-[#37a7f0] disabled:bg-gray-300"
+              >
+                답 확인 {picks.length > 0 ? `(${picks.map((i) => LETTERS[i]).join('·')})` : ''}
+              </button>
+              <span className="text-[13px] text-gray-500">정답을 모두 골라야 맞아요</span>
+            </div>
+          )}
           {explanationOpen && (
             <div ref={explanationRef} className="scroll-mb-3">
-              <ExplanationBox q={q} selected={answered?.[0]} compact level={hasKo ? level : undefined} />
+              <ExplanationBox q={q} selected={answered?.[0]} picks={isMultiQ ? answered : undefined} compact level={hasKo ? level : undefined} />
             </div>
           )}
           {finished && (

@@ -29,7 +29,8 @@ import { getMockResults, getProgress, getWrongMap, setProgress, useDriverLicense
 type XfTopic = { c: number; key: string; title: string; zh: string; desc: string; count: number; cards: number[] };
 type XfLine = [string, string, string]; // 중국어, 병음, 한국어
 type XfCard = { topic: string; title: string; zh: string; new: boolean; lines: XfLine[]; memo: XfLine; check: number[] };
-type XfData = { topics: XfTopic[]; questions: DLQuestion[]; multiQuestions?: XfQ[]; cards: XfCard[]; exams: number[][]; imgSize: Record<string, [number, number]> };
+// questions: 판단(j)·단선(s)·다선(m, ma=정답 글자) 모두 — 법규학습은행 주제별 + 실전 고사(exams: id 목록)
+type XfData = { topics: XfTopic[]; questions: DLQuestion[]; cards: XfCard[]; exams: number[][]; imgSize: Record<string, [number, number]> };
 
 let cache: XfData | null = null;
 let pending: Promise<XfData> | null = null;
@@ -107,7 +108,7 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
 
   const go = (next: View) => setView(next);
   const byId = new Map<number, XfQ>(
-    [...data.questions, ...(data.multiQuestions ?? [])].map((q) => [q.id, q as unknown as XfQ]),
+    data.questions.map((q) => [q.id, q as unknown as XfQ]),
   );
   const startExam = (no: number) => {
     setOutcome(null);
@@ -236,7 +237,7 @@ function XfHome({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
   const examBest = (() => {
     const results = getMockResults<MockResult>();
     let best = 0;
-    for (let i = 1; i <= data.exams.length; i++) best = Math.max(best, results[`xf-exam${i}`]?.best ?? 0);
+    for (let i = 1; i <= data.exams.length; i++) best = Math.max(best, results[`xf2-exam${i}`]?.best ?? 0);
     return best;
   })();
   const pct = (n: number, t: number) => (t ? Math.round((n / t) * 100) : 0);
@@ -255,7 +256,7 @@ function XfHome({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
       no: 2,
       title: `실전 고사 (${data.exams.length}회 × ${EXAM_SIZE}문제)`,
       when: '그다음',
-      desc: '실제 시험과 같은 방식이에요. 원본 문제은행(935~1070쪽)을 문서 순서 그대로 20문제씩 묶었어요. 사진 문제 포함, 문제당 60초, 오답 3개 누적 시 자동 불합격.',
+      desc: '실제 앱 시험과 같은 방식이에요. 회차마다 판단 5 · 단선 10 · 다선 5문제, 사진 문제 5~7장. 문제당 60초, 오답 3개 누적 시 자동 불합격.',
       progress: examBest ? Math.min(100, Math.round((examBest / EXAM_SIZE) * 100)) : 0,
       status: examBest ? `최고 ${examBest}/${EXAM_SIZE}문제 정답` : '아직 안 봤어요',
       actions: [{ label: '실전 고사 보기', cls: btn.primary, onClick: () => onGo({ mode: 'exams' }) }],
@@ -359,7 +360,7 @@ function XfBank({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-5 py-8 sm:py-10">
       <BackButton onClick={onBack} label="학법 감점으로 돌아가기" />
-      <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">법규학습은행 {data.questions.length}문제</h1>
+      <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">법규학습은행 {ordered.length}문제</h1>
       <p className="text-sm sm:text-[15px] text-gray-500 mb-6 leading-relaxed">
         交管12123 学法减分 문제은행을 주제별로 나눴어요. 주제를 고르면 문제를 풀어요. 풀이 화면 위의 <b>보기 단계</b>(1단계 한국어 → 2단계 중국어)로 한국어 도움을 줄여 가세요.
       </p>
@@ -441,7 +442,7 @@ function XfBank({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
   );
 }
 
-// ───────── ③ 실전 고사 (회차별 20문제: 판단 5 + 단선 10 + 다선 5, 사진문제 4~6개) ─────────
+// ───────── ③ 실전 고사 (회차별 20문제: 1~5 판단 + 6~15 단선 + 16~20 다선, 사진 문제 5~7장) ─────────
 function XfExams({ data, onBack, onPick }: { data: XfData; onBack: () => void; onPick: (no: number) => void }) {
   useDriverLicenseRecords();
   const results = getMockResults<MockResult>();
@@ -454,8 +455,8 @@ function XfExams({ data, onBack, onPick }: { data: XfData; onBack: () => void; o
       </header>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         {[
-          { icon: 'fa-list-check', label: '문제 구성', value: '회차당 20문제', sub: '원본 문제은행 순서 그대로' },
-          { icon: 'fa-image', label: '사진 문제', value: '그림 문제 포함', sub: '표지·신호·상황 그림 문제' },
+          { icon: 'fa-list-check', label: '문제 구성', value: '회차당 20문제', sub: '판단 5 · 단선 10 · 다선 5' },
+          { icon: 'fa-image', label: '사진 문제', value: '회차당 5~7장', sub: '표지·신호·상황 그림 문제' },
           { icon: 'fa-clock', label: '문제당 시간', value: '60초', sub: '초과하면 오답 처리' },
           { icon: 'fa-award', label: '합격 기준', value: '18문제 이상', sub: '오답 3문제 누적 시 자동 불합격' },
         ].map((item) => (
@@ -468,11 +469,11 @@ function XfExams({ data, onBack, onPick }: { data: XfData; onBack: () => void; o
         ))}
       </div>
       <h2 className="text-lg font-medium text-gray-800 mb-1">회차별 고사 ({data.exams.length}회분)</h2>
-      <p className="text-xs text-gray-500 mb-4">원본 문제은행(935~1070쪽)을 문서 순서 그대로 회차당 20문제씩 묶었어요. 다중선택은 보기를 여러 개 고른 뒤 “下一题”를 누르면 채점돼요.</p>
+      <p className="text-xs text-gray-500 mb-4">앱과 같은 순서로 1~5번 판단, 6~15번 단선(1개 고르기), 16~20번 다선(여러 개 고르기)이에요. 회차끼리 문제가 겹치지 않아요. 다선은 보기를 여러 개 고른 뒤 “下一题”를 누르면 채점돼요.</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {data.exams.map((_, i) => {
           const no = i + 1;
-          const result = results[`xf-exam${no}`];
+          const result = results[`xf2-exam${no}`];
           return (
             <button key={no} onClick={() => onPick(no)} className="text-left p-4 bg-white border-2 border-gray-100 rounded-lg hover:border-[#37a7f0] hover:shadow-md transition-all">
               <div className="font-medium text-gray-800 mb-1">제{no}회 고사</div>
@@ -603,7 +604,7 @@ function XfCards({ data, byId, onBack }: { data: XfData; byId: Map<number, DLQue
       <div className="grid sm:grid-cols-2 gap-4">
         {cards.map(({ card, i }) => {
           const isDone = done.has(i);
-          const checks = card.check.map((id) => byId.get(id)).filter((q): q is DLQuestion => !!q);
+          const checks = card.check.map((id) => byId.get(id)).filter((q): q is DLQuestion => !!q && q.t !== 'm');
           return (
             <div
               key={i}
