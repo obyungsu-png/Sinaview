@@ -5,7 +5,7 @@
 //  └ 앱 규칙: 답 수정 불가 · 오답/초과 누적 3문제면 불합격(이어풀기 가능) · 18문제 이상 합격
 //  └ 시험 화면은 앱과 똑같이 중국어로만 표시 (한국어 번역·해설은 시험지 검토에서)
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useSwipe, type DLQuestion } from './DriverLicenseQuiz';
+import { useSwipe, imageUrl, type DLQuestion } from './DriverLicenseQuiz';
 import { recordAnswers, setMockResult, getMockResults, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
 import type { MockResult } from './DriverLicenseQuiz';
 
@@ -349,6 +349,14 @@ export function XfExamRunner({ no, questions, onExit, onFinish, initial }: Runne
               );
             })}
           </div>
+          {/* 사진문제: 실제 앱처럼 질문→보기→사진 순 */}
+          {q.img && q.img.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-3">
+              {q.img.map((name) => (
+                <img key={name} src={imageUrl(name)} alt="문제 그림" loading="lazy" className="max-w-full h-auto max-h-56 rounded border border-gray-200 bg-white object-contain" />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 스와이프 시 답 미제출 안내 */}
@@ -494,6 +502,13 @@ export function XfExamResultView({ outcome, onRetry, onList, onContinue }: { out
                     );
                   })}
                 </div>
+                {q.img && q.img.length > 0 && (
+                  <div className="flex flex-wrap gap-2 my-2">
+                    {q.img.map((name) => (
+                      <img key={name} src={imageUrl(name)} alt="문제 그림" loading="lazy" className="max-w-full h-auto max-h-44 rounded border border-gray-200 bg-white object-contain" />
+                    ))}
+                  </div>
+                )}
                 {(q.ko?.q || q.e) && (
                   <div className="mt-2 pt-2 border-t border-gray-100 text-[13px] text-gray-600 leading-relaxed">
                     {q.ko?.o && (

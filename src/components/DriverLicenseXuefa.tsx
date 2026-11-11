@@ -9,6 +9,7 @@ import {
   LoadingState,
   PASS_SCORE,
   PracticeQuiz,
+  registerImageSizes,
   WordPopupHost,
   WordStudyHost,
   ZhText,
@@ -97,6 +98,10 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [view.mode, outcome]);
+
+  useEffect(() => {
+    if (data?.imgSize) registerImageSizes(data.imgSize);
+  }, [data]);
 
   if (!data) return <LoadingState failed={failed} onBack={onBack} />;
 
@@ -250,10 +255,27 @@ function XfHome({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
       no: 2,
       title: `실전 고사 (${data.exams.length}회 × ${EXAM_SIZE}문제)`,
       when: '그다음',
-      desc: '실제 시험과 같은 구성이에요. 판단형 5문제 + 단일선택 10문제 + 다중선택 5문제(사진 문제 4~6개 포함), 문제당 60초, 오답 3개 누적 시 자동 불합격.',
+      desc: '실제 시험과 같은 방식이에요. 원본 문제은행(935~1070쪽)을 문서 순서 그대로 20문제씩 묶었어요. 사진 문제 포함, 문제당 60초, 오답 3개 누적 시 자동 불합격.',
       progress: examBest ? Math.min(100, Math.round((examBest / EXAM_SIZE) * 100)) : 0,
       status: examBest ? `최고 ${examBest}/${EXAM_SIZE}문제 정답` : '아직 안 봤어요',
       actions: [{ label: '실전 고사 보기', cls: btn.primary, onClick: () => onGo({ mode: 'exams' }) }],
+    },
+    {
+      no: 3,
+      title: `법규학습은행 ${total}문제`,
+      when: '마지막',
+      desc: '연습할 때는 여기서 풀어요. 처음에는 1단계(한국어 + 작은 중국어 핵심 단어)로 뜻을 익히고, 익숙해지면 2단계(시험처럼 중국어만)로 바꿔 보세요.',
+      progress: pct(solved, total),
+      status: `${solved}/${total} 풀이${wrongCount ? ` · 틀린 문제 ${wrongCount}` : ''}`,
+      actions: [
+        { label: '은행 열기', cls: btn.primary, onClick: () => onGo({ mode: 'bank' }) },
+        {
+          label: solved > 0 && solved < total ? `전체 이어서 풀기 (${solved}/${total})` : '전체 순서대로 풀기',
+          cls: btn.plain,
+          onClick: () => onGo({ mode: 'quiz', title: `법규학습은행 ${total}문제 (순서대로)`, questions: ordered, storageKey: ALL_KEY, pool: ordered, key: Date.now() }),
+        },
+        ...(wrongCount > 0 ? [{ label: `틀린 문제만 (${wrongCount})`, cls: btn.danger, onClick: () => onGo({ mode: 'wrong', title: '틀린 문제', pool: ordered }) }] : []),
+      ],
     },
   ];
 
@@ -274,7 +296,7 @@ function XfHome({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
           <li>
             • 벌점 12점이 되기 전, <b>교통법규를 학습하고 시험에 합격하면 벌점을 1~2점씩 깎아 줍니다</b>. 한 벌점 주기(1년)에 최대 <b>6점</b>까지 감면.
           </li>
-          <li>• 온라인 학습 30분 + 시험 = <b>1점</b> / 현장 학습 1시간 + 시험 = <b>2점</b>. 交管12123 앱에서 신청합니다.</li>
+          <li>• 온라인 학습 30분 + 시험 = <b>1점</b>. 交管12123 앱에서 신청합니다.</li>
           <li>
             • 시험 규칙: <b>20문제 · 문제당 60초</b>, <b>18문제 이상</b> 정답이면 합격. <b>오답(또는 시간 초과)이 3문제 누적</b>되면 자동으로 불합격 처리돼요.
           </li>
@@ -319,34 +341,6 @@ function XfHome({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
           </li>
         ))}
       </ol>
-
-      {/* 법규학습은행 보조 진입 (연습용) */}
-      <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
-          <i className="fa-solid fa-book text-[#37a7f0]" aria-hidden></i>
-          <h2 className="text-[17px] font-bold text-gray-800">법규학습은행 {total}문제</h2>
-          <span className="ml-auto text-xs text-gray-500">
-            {solved}/{total} 풀이{wrongCount ? ` · 틀린 문제 ${wrongCount}` : ''}
-          </span>
-        </div>
-        <p className="text-sm text-gray-600 mb-3">연습할 때는 여기서 풀어요. 처음에는 1단계(한국어 + 작은 중국어 핵심 단어)로 뜻을 익히고, 익숙해지면 2단계(시험처럼 중국어만)로 바꿔 보세요.</p>
-        <div className="flex flex-wrap gap-2">
-          <button className={btn.primary} onClick={() => onGo({ mode: 'bank' })}>
-            은행 열기
-          </button>
-          <button
-            className={btn.plain}
-            onClick={() => onGo({ mode: 'quiz', title: `법규학습은행 ${total}문제 (순서대로)`, questions: ordered, storageKey: ALL_KEY, pool: ordered, key: Date.now() })}
-          >
-            {solved > 0 && solved < total ? `전체 이어서 풀기 (${solved}/${total})` : '전체 순서대로 풀기'}
-          </button>
-          {wrongCount > 0 && (
-            <button className={btn.danger} onClick={() => onGo({ mode: 'wrong', title: '틀린 문제', pool: ordered })}>
-              틀린 문제만 ({wrongCount})
-            </button>
-          )}
-        </div>
-      </div>
 
       <p className="mt-6 text-xs text-gray-400 leading-relaxed">
         근거: 《接受交通安全教育扣减交通违法行为记分工作规范》· 交管12123 앱 "学法减分". 지역마다 운영 방식이 조금 다를 수 있으니 앱에서 꼭 확인하세요.
@@ -460,8 +454,8 @@ function XfExams({ data, onBack, onPick }: { data: XfData; onBack: () => void; o
       </header>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         {[
-          { icon: 'fa-list-check', label: '문제 구성', value: '20문제', sub: '판단 5 + 단일선택 10 + 다중선택 5' },
-          { icon: 'fa-image', label: '사진 문제', value: '회차당 4~6개', sub: '표지·신호·상황 그림 문제' },
+          { icon: 'fa-list-check', label: '문제 구성', value: '회차당 20문제', sub: '원본 문제은행 순서 그대로' },
+          { icon: 'fa-image', label: '사진 문제', value: '그림 문제 포함', sub: '표지·신호·상황 그림 문제' },
           { icon: 'fa-clock', label: '문제당 시간', value: '60초', sub: '초과하면 오답 처리' },
           { icon: 'fa-award', label: '합격 기준', value: '18문제 이상', sub: '오답 3문제 누적 시 자동 불합격' },
         ].map((item) => (
@@ -474,7 +468,7 @@ function XfExams({ data, onBack, onPick }: { data: XfData; onBack: () => void; o
         ))}
       </div>
       <h2 className="text-lg font-medium text-gray-800 mb-1">회차별 고사 ({data.exams.length}회분)</h2>
-      <p className="text-xs text-gray-500 mb-4">실제 시험 조합(판단 5 · 단일선택 10 · 다중선택 5)으로 구성했어요. 다중선택은 보기를 여러 개 고른 뒤 “下一题”를 누르면 채점돼요.</p>
+      <p className="text-xs text-gray-500 mb-4">원본 문제은행(935~1070쪽)을 문서 순서 그대로 회차당 20문제씩 묶었어요. 다중선택은 보기를 여러 개 고른 뒤 “下一题”를 누르면 채점돼요.</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {data.exams.map((_, i) => {
           const no = i + 1;

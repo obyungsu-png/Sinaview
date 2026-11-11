@@ -109,7 +109,7 @@ const JUDGE_ZH = ['正确', '错误'];
 const optionsOf = (q: DLQuestion) => (q.t === 'j' ? (q.ko ? JUDGE_ZH : JUDGE_OPTIONS) : q.o ?? []);
 const isCorrect = (q: DLQuestion, selected: number[] | undefined) => selected?.length === 1 && selected[0] === q.a;
 const answerText = (q: DLQuestion) => `${LETTERS[q.a]}. ${optionsOf(q)[q.a]}`;
-const imageUrl = (name: string) => `${import.meta.env.BASE_URL}driver-license/img/${name}`;
+export const imageUrl = (name: string) => `${import.meta.env.BASE_URL}driver-license/img/${name}`;
 
 let fastIdSet: Set<number> | null = null;
 const isFast = (q: DLQuestion) => {
@@ -1067,7 +1067,8 @@ function QuestionCard({
             <i className="fa-solid fa-volume-high"></i>
           </button>
           {words.map(([zh, pinyin, meaning]) => {
-            const open = lv < 3 || openWords.includes(zh);
+            // 1단계·2단계(중국어)는 눌러야 병음·뜻 표시, 복습용(lv=2)만 항상 표시
+            const open = lv === 2 || openWords.includes(zh);
             return (
               <button
                 key={zh}
@@ -1089,8 +1090,18 @@ function QuestionCard({
           })}
         </div>
       )}
-      {images}
-      {options}
+      {/* 학법감점 사진문제는 실제 앱처럼 질문→보기→사진 순, 만점은 기존(사진→보기) 유지 */}
+      {qIsXf ? (
+        <>
+          {options}
+          {images}
+        </>
+      ) : (
+        <>
+          {images}
+          {options}
+        </>
+      )}
       {zoom && (
         <div data-noswipe className="fixed inset-0 z-[60] bg-black/70 flex flex-col items-center justify-center p-4 gap-3" onClick={() => setZoom(false)}>
           <div className="flex flex-col items-center gap-3 overflow-y-auto max-h-full py-2" onClick={(e) => e.stopPropagation()}>
