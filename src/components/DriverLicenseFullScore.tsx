@@ -1,7 +1,7 @@
 // 만점 교육 (满分学习考试): 1년(벌점 주기)에 벌점 12점이 되면 받는 교육·시험
 // - 형식은 과목1과 같지만(100문제·45분·90점) 시험은 중국어로만 보고, 법규·처벌·사고·안전 문명·응급처치 비중이 큼
 // - 틀은 필기시험과 같음: 주제별 연습 · 모의고사(회차별) · ⚡속성 과정(핵심 정리 카드 → 전체 문제 → 시험 전날 100문제)
-// - 문제·카드는 중국어 원문 + 보기 단계(1단계 한국어 / 2단계 중국어+한국어 / 실전=중국어만), 문제마다 速记口诀·핵심 요약·단어 공부
+// - 문제·카드는 중국어 원문 + 보기 단계(1단계 한국어 / 2단계 중국어만), 문제마다 速记口诀·핵심 요약·단어 공부
 // - 데이터: data/driverLicenseManjeom.json (만점 문제은행 정리본, scratchpad 빌드 스크립트로 생성)
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -315,7 +315,7 @@ function GuideHome({ data, onGo }: { data: MjData; onGo: (view: View) => void })
         <p className="text-sm sm:text-[15px] text-gray-700 leading-relaxed">
           1년(벌점 주기) 안에 벌점이 12점이 되면 면허증을 압수당하고, 7일 동안 만점 교육을 받은 뒤 이 시험에 합격해야 면허증을 돌려받습니다. 외국인도 이 시험은{' '}
           <b>중국어로만</b> 볼 수 있어서, 여기 있는 만점 문제은행 {data.questions.length}문제는 모두 중국어 원문으로 나옵니다. <b>보기 단계</b>(1단계 한국어 → 2단계
-          중국어 → 실전)로 한국어 도움을 줄여 가며 익히세요. 모의고사는 실제 시험처럼 중국어로만 나옵니다.
+          중국어)로 한국어 도움을 줄여 가며 익히세요. 모의고사는 실제 시험처럼 중국어로만 나옵니다.
         </p>
       </div>
 
@@ -420,7 +420,7 @@ function TopicsPage({ data, onBack, onStart }: { data: MjData; onBack: () => voi
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">주제별 연습</h1>
       <p className="text-sm sm:text-[15px] text-gray-500 mb-5 leading-relaxed">
         만점 문제은행 {data.questions.length}문제를 주제별로 나눴어요. 주제를 고르면 <b>핵심 내용</b>(중국어·병음·한국어)을 먼저 보고 문제를 풀어요.
-        풀이 화면 위의 <b>보기 단계</b>(1단계 한국어 → 2단계 중국어 → 실전)로 한국어 도움을 줄여 가세요. <span className="text-[#d35400]">★ 중점</span> 주제가 만점 교육 시험에 특히 많이 나옵니다.
+        풀이 화면 위의 <b>보기 단계</b>(1단계 한국어 → 2단계 중국어)로 한국어 도움을 줄여 가세요. <span className="text-[#d35400]">★ 중점</span> 주제가 만점 교육 시험에 특히 많이 나옵니다.
       </p>
       <div className="flex flex-col gap-3">
         {data.topics.map((topic) => {
@@ -545,7 +545,7 @@ function FastHome({ data, onBack, onGo, onExam }: { data: MjData; onBack: () => 
       no: 2,
       title: `만점 문제은행 ${total}문제`,
       when: '그다음',
-      desc: '주제 순서대로 전체 문제를 풀어요. 처음에는 1단계(한국어 + 작은 중국어 핵심 단어)로 뜻을 익히고, 2단계(중국어) → 실전(중국어만)으로 바꿔 보세요.',
+      desc: '주제 순서대로 전체 문제를 풀어요. 처음에는 1단계(한국어 + 작은 중국어 핵심 단어)로 뜻을 익히고, 익숙해지면 2단계(시험처럼 중국어만)로 바꿔 보세요.',
       progress: pct(solved, total),
       status: `${solved}/${total}문제 풀이${wrongCount ? ` · 틀린 문제 ${wrongCount}개` : ''}`,
       actions: [
@@ -834,7 +834,7 @@ function MjCards({ data, byId, onBack }: { data: MjData; byId: Map<number, DLQue
       {zoomPic && <ImageLightbox src={zoomPic.src} caption={zoomPic.caption} onClose={() => setZoomPic(null)} />}
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">① 핵심 정리 카드</h1>
       <p className="text-sm text-gray-500 mb-4">
-        시험에 나오는 중국어 표현으로 정리했어요. 처음에는 1단계(한국어)로 뜻을 익히고, 2단계(중국어+병음+한국어) → 실전(중국어만, 누르면 뜻)으로 바꿔 보세요. 카드마다 <b>📖 단어</b>를 누르면 단어 정리가 나와요. ({done.size}/
+        시험에 나오는 중국어 표현으로 정리했어요. 처음에는 1단계(한국어)로 뜻을 익히고, 익숙해지면 2단계(중국어만, 누르면 뜻)로 바꿔 보세요. 카드마다 <b>📖 단어</b>를 누르면 단어 정리가 나와요. ({done.size}/
         {data.cards.length}장 외움 · 체크 {checkedCount('mj:')}/{data.cards.length}장)
       </p>
       <div className="mb-4 flex flex-wrap items-center gap-2">

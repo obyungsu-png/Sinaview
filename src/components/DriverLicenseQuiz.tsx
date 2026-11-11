@@ -273,6 +273,13 @@ export type MjWords = {
 };
 const mjWordStore = lazyData<MjWords>(() => import('../data/driverLicenseManjeomWords.json'));
 export const useMjWords = mjWordStore.useData;
+// 학법 감점(学法减分) 단어장 — 학법 문제(id 70000+)·카드의 단어 팝업/단어 공부에 사용
+const xfWordStore = lazyData<MjWords>(() => import('../data/driverLicenseXuefaWords.json'));
+export const useXfWords = xfWordStore.useData;
+/** 학법 감점 문제 여부 (문제 id가 70000 이상이면 학법 감점 문제) */
+export function isXuefaQuestion(id: number) {
+  return id >= 70000;
+}
 
 /** 【】로 감싼 부분을 노란 형광펜처럼 강조 */
 export function Marked({ text, mark = 'bg-[#ffe666] text-gray-900 rounded px-0.5' }: { text: string; mark?: string }) {
@@ -564,7 +571,10 @@ export function openWordStudy(q: DLQuestion, label = '') {
 /** 단어 공부 창 (만점 교육 화면에 하나 두면 openWordStudy 로 열림) */
 export function WordStudyHost() {
   const [target, setTarget] = useState<{ q: DLQuestion; label: string } | null>(null);
-  const words = useMjWords(!!target);
+  const isXf = !!target && isXuefaQuestion(target.q.id);
+  const mjw = useMjWords(!!target && !isXf);
+  const xfw = useXfWords(!!target && isXf);
+  const words = isXf ? xfw : mjw;
   useEffect(() => {
     const onOpen = (e: Event) => setTarget((e as CustomEvent).detail);
     window.addEventListener(WORD_STUDY_EVENT, onOpen);
@@ -705,7 +715,7 @@ function highlightWords(text: string, words: string[]): ReactNode {
 
 // ── 휴대폰 문제 풀이 화면 공통: 좌우로 밀어 이전·다음, 들어올 때 전체 화면(주소창 숨김) ──
 /** 좌우로 밀면 이전·다음 (세로 스크롤·짧은 터치·data-noswipe 안쪽은 무시) */
-function useSwipe(onPrev: () => void, onNext: () => void) {
+export function useSwipe(onPrev: () => void, onNext: () => void) {
   const start = useRef<{ x: number; y: number; t: number } | null>(null);
   return {
     onTouchStart: (e: ReactTouchEvent) => {
@@ -772,7 +782,7 @@ function SwipeHint() {
 let audioContext: AudioContext | null = null;
 
 // 정답: 딩동댕(상승하는 3음), 오답: 짧은 경고음
-function playTone(correct: boolean) {
+export function playTone(correct: boolean) {
   try {
     const Ctx = window.AudioContext || (window as any).webkitAudioContext;
     if (!Ctx) return;
@@ -926,8 +936,11 @@ function QuestionCard({
   const subQ = bi && lv >= 2 ? bi.koQ : null;
   const showSub = lv === 2 || peek;
   const subO = bi && (lv === 2 || (lv === 3 && peek)) ? bi.koO : [];
-  // 만점 단어장: 1단계는 한국어 문장·보기 안에 핵심 단어(작은 중국어+병음), 2단계·실전은 중국어 낱말 팝업
-  const mjw = useMjWords(!!q.ko);
+  // 만점/학법 단어장: 1단계는 한국어 문장·보기 안에 핵심 단어(작은 중국어+병음), 2단계·실전은 중국어 낱말 팝업
+  const qIsXf = isXuefaQuestion(q.id);
+  const mjwMj = useMjWords(!!q.ko && !qIsXf);
+  const mjwXf = useXfWords(!!q.ko && qIsXf);
+  const mjw = qIsXf ? mjwXf : mjwMj;
   const inline = q.ko && lv === 1 && mjw ? mjw.k[q.id] : null;
   const toks = q.ko && mjw ? mjw.t[q.id] : undefined;
   const optionMode: ZhMode = onSelect ? 'press' : 'tap'; // 답하기 전 보기는 톡 = 답 고르기, 꾹 = 뜻
@@ -2755,11 +2768,15 @@ export function ExamRunner({
   onChange,
   onSubmit,
   onExit,
+  seconds = EXAM_SECONDS,
+  requireAnswer = false,
 }: {
   session: ExamSession;
   onChange: (session: ExamSession) => void;
   onSubmit: (session: ExamSession) => void;
   onExit: () => void;
+  seconds?: number; // 시험 시간(초). 기본 45분
+  requireAnswer?: boolean; // 답을 골라야 다음 문제로 넘어감 (학법 감점 시험)
 }) {
   const [index, setIndex] = useState(0);
   const [now, setNow] = useState(Date.now());
@@ -2776,7 +2793,7 @@ export function ExamRunner({
   const [slide, setSlide] = useState<'next' | 'prev' | null>(null);
 
   // 일시정지 중에는 멈춘 시각 기준으로 남은 시간을 계산해 타이머가 얼어붙게 함
-  const remaining = EXAM_SECONDS - Math.floor(((pausedAt ?? now) - session.startedAt) / 1000);
+  const remaining = seconds - Math.floor(((pausedAt ?? now) - session.startedAt) / 1000);
   const answeredCount = Object.keys(session.answers).length;
   const q = session.questions[index];
   const total = session.questions.length;
@@ -2830,7 +2847,7 @@ export function ExamRunner({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey || e.repeat || pausedAt !== null) return;
-      if (e.key === 'ArrowRight') setIndex((i) => Math.min(total - 1, i + 1));
+      if (e.key === 'ArrowRight') moveTo(Math.min(total - 1, index + 1));
       else if (e.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1));
       else {
         const choice = Math.max('1234'.indexOf(e.key), 'abcd'.indexOf(e.key.toLowerCase()));
@@ -2842,9 +2859,18 @@ export function ExamRunner({
   });
 
   // 휴대폰: 좌우로 밀어 이전·다음 문제
+  // requireAnswer 모드: 답을 고르지 않고 앞으로 넘기면 중앙에 안내 글자만 보여 줌 (학법 감점 시험)
+  const [swipeWarn, setSwipeWarn] = useState(false);
+  const warnTimer = useRef<number>();
   const moveTo = (target: number) => {
     const next = Math.max(0, Math.min(total - 1, target));
     if (next === index) return;
+    if (requireAnswer && next > index && session.answers[index] === undefined) {
+      setSwipeWarn(true);
+      window.clearTimeout(warnTimer.current);
+      warnTimer.current = window.setTimeout(() => setSwipeWarn(false), 1300);
+      return;
+    }
     setSlide(next > index ? 'next' : 'prev');
     setIndex(next);
   };
@@ -2852,6 +2878,7 @@ export function ExamRunner({
     () => moveTo(index - 1),
     () => moveTo(index + 1),
   );
+  useEffect(() => () => window.clearTimeout(warnTimer.current), []);
 
   // 실전처럼 제출 전에 확인 창을 띄움
   const submit = () => setConfirmOpen(true);
@@ -2887,6 +2914,12 @@ export function ExamRunner({
           </span>
         </div>
         <SwipeHint />
+        {/* 답을 고르지 않고 넘기려 하면 중앙에 안내 (학법 감점 시험) */}
+        {swipeWarn && (
+          <div className="pointer-events-none fixed left-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 px-4 py-2 rounded-full bg-black/75 text-white text-sm whitespace-nowrap">
+            <i className="fa-solid fa-circle-exclamation mr-1.5"></i>먼저 답을 골라 주세요
+          </div>
+        )}
         <div className="flex-none hidden md:flex flex-nowrap items-center gap-x-2 sm:gap-x-3 px-3 sm:px-6 py-2.5 border-b border-gray-200 bg-[#f7fbfe]">
           <span className="min-w-0 truncate font-medium text-gray-800">{session.title ?? (session.no === null ? '랜덤 모의고사' : `제${session.no}회 모의고사`)}</span>
           <span className="shrink-0 whitespace-nowrap text-sm text-gray-500">
@@ -2997,7 +3030,7 @@ export function ExamRunner({
                     <button onClick={() => setIndex(index - 1)} disabled={index === 0} className={EXAM_BUTTON}>
                       이전
                     </button>
-                    <button onClick={() => setIndex(index + 1)} disabled={index === total - 1} className={EXAM_BUTTON}>
+                    <button onClick={() => moveTo(index + 1)} disabled={index === total - 1} className={EXAM_BUTTON}>
                       다음
                     </button>
                     <button onClick={submit} className={EXAM_BUTTON}>

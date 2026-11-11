@@ -14,6 +14,7 @@ import {
 import { RETENTION_DAYS, startDriverLicenseSync, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
 import { EXAM_GUIDE } from '../data/driverLicenseGuide';
 import { FullScorePage } from '../components/DriverLicenseFullScore';
+import { XuefaPage } from '../components/DriverLicenseXuefa';
 
 interface DriverLicensePageProps {
   onBack: () => void;
@@ -254,7 +255,7 @@ const FAQ_ITEMS: FaqItem[] = [
 export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePageProps) {
   const [selectedCity, setSelectedCity] = useState('대련');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'fast' | 'mock' | 'wrong' | 'app123' | 'fullscore'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'practice' | 'lecture' | 'faq' | 'favorites' | 'sequential' | 'chapter' | 'fast' | 'mock' | 'wrong' | 'app123' | 'fullscore' | 'xuefa'>('home');
   const [introOpen, setIntroOpen] = useState(false);
   useDriverLicenseRecords();
   useEffect(() => {
@@ -369,7 +370,13 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               onClick={() => setCurrentView('fullscore')}
               className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'fullscore' ? 'bg-blue-600' : ''}`}
             >
-              만점 교육
+              만점 교육 <span lang="zh-CN" className="text-[12px] sm:text-[13px] opacity-80">满分教育</span>
+            </li>
+            <li
+              onClick={() => setCurrentView('xuefa')}
+              className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'xuefa' ? 'bg-blue-600' : ''}`}
+            >
+              학법 감점 <span lang="zh-CN" className="text-[12px] sm:text-[13px] opacity-80">学法减分</span>
             </li>
             <li 
               onClick={() => setCurrentView('lecture')}
@@ -1359,6 +1366,9 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
       ) : currentView === 'fullscore' ? (
         // 만점 교육: 벌점 12점 교육 시험 (중국어로만 출제) - 안내·주제별 연습·실전 모의고사·속성 과정
         <FullScorePage onBack={() => setCurrentView('home')} />
+      ) : currentView === 'xuefa' ? (
+        // 학법 감점: 교통법규 학습 감점 (20문제·20분·18문제 합격) - 설명·핵심 카드·법규학습은행·실전 고사
+        <XuefaPage onBack={() => setCurrentView('home')} />
       ) : (
         // 동영상 강의 페이지
         <div className="max-w-[1200px] mx-auto px-4 py-8">
