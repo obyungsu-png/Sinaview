@@ -90,6 +90,7 @@ for n, (q, tr) in enumerate(usable):
         "ko": {"q": tr["q"], "o": ko_o if ko_o else None} if ko_o or tr["q"] else None,
         "kw": match_words(q["text"]),
         "ez": q.get("exp_zh") or None,
+        "pic": bool(q.get("pic")),
     })
 # ko.o가 빈 배열이면 제거
 for q in questions:
@@ -98,14 +99,82 @@ for q in questions:
 
 by_id = {q["id"]: q for q in questions}
 
-# ── 4. 실전 고사: 20문제씩 (마지막 회차가 부족하면 앞에서 채워 20문제 유지) ─────────────────────────
+# ── 3b. 다선(多选) 문제 — 실전 고사 전용 (은행에는 미포함) ─────────────────────────
+multi_trans = {}
+mpath = f"{BASE}/xfjz_multi_translated.jsonl"
+import os
+if os.path.exists(mpath):
+    with open(mpath, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            o = json.loads(line)
+            multi_trans[o["i"]] = o
+
+multi_qs = []
+seen_multi = set()
+for i, q in enumerate(clean):
+    if not (q.get("multi") or (q.get("bad_answer") and re.match(r"^[A-D]{2,4}\s*$", str(q["bad_answer"]).replace(" ", "").replace(",", "").replace("，", "")))):
+        continue
+    tr = multi_trans.get(i)
+    if not tr or not tr.get("q") or not tr.get("o"):
+        continue
+    norm = re.sub(r"[\s。．，,？?！!]", "", q["text"])
+    if norm[:50] in seen_multi:
+        continue
+    seen_multi.add(norm[:50])
+    letters = re.sub(r"[^A-D]", "", str(q.get("bad_answer") or q["answer"]))
+    oz = [t.strip() for _, t in q["opts"]]
+    ko_o = [str(x) for x in (tr.get("o") or [])]
+    multi_qs.append({
+        "id": 80001 + len(multi_qs),
+        "c": classify(q["text"]),
+        "t": "m",
+        "q": q["text"],
+        "o": oz,
+        "a": -1,
+        "ma": letters,
+        "e": tr.get("e", ""),
+        "ko": {"q": tr["q"], "o": ko_o if ko_o else None} if ko_o or tr["q"] else None,
+        "kw": match_words(q["text"]),
+        "ez": q.get("exp_zh") or None,
+    })
+for q in multi_qs:
+    if q.get("ko") and not q["ko"].get("o"):
+        q["ko"].pop("o", None)
+
+# ── 4. 실전 고사: 회차별 구성 = 판단 5 + 단선 10 + 다선 5, 사진문제 4~6개 ─────────────────────────
 EXAM_SIZE = 20
-ids = [q["id"] for q in questions]
+pic = lambda q: bool(q.get("pic"))
+judge_pool = [q for q in questions if q["t"] == "j"]
+single_pool = [q for q in questions if q["t"] == "s"]
+judge_pic = [q for q in judge_pool if pic(q)]
+judge_txt = [q for q in judge_pool if not pic(q)]
+single_pic = [q for q in single_pool if pic(q)]
+single_txt = [q for q in single_pool if not pic(q)]
+n_exams = min(len(multi_qs) // 5, (len(judge_pic) + len(single_pic)) // 4, len(judge_pool) // 5, len(single_pool) // 10)
 exams = []
-for i in range(0, len(ids), EXAM_SIZE):
-    chunk = ids[i:i + EXAM_SIZE]
-    if len(chunk) < EXAM_SIZE:
-        chunk += ids[: EXAM_SIZE - len(chunk)]
+ji = si = jpi = spi = mi = 0
+for e in range(n_exams):
+    chunk = []
+    # 판단 5: 사진 판단 2~3개(교대) + 나머지 비사진 판단
+    pj = 2 if e % 2 == 0 else 3
+    for _ in range(pj):
+        if jpi < len(judge_pic):
+            chunk.append(judge_pic[jpi]["id"]); jpi += 1
+    while len(chunk) < 5 and ji < len(judge_txt):
+        chunk.append(judge_txt[ji]["id"]); ji += 1
+    # 단선 10: 사진 단선 (5-pj)개 + 나머지 비사진 단선
+    ps = 5 - pj
+    for _ in range(ps):
+        if spi < len(single_pic):
+            chunk.append(single_pic[spi]["id"]); spi += 1
+    while len(chunk) < 15 and si < len(single_txt):
+        chunk.append(single_txt[si]["id"]); si += 1
+    # 다선 5
+    while len(chunk) < 20 and mi < len(multi_qs):
+        chunk.append(multi_qs[mi]["id"]); mi += 1
     exams.append(chunk)
 
 # ── 5. 카드 체크 문제 매칭 ─────────────────────────
@@ -141,6 +210,7 @@ for t in TOPICS:
 data = {
     "topics": topics_out,
     "questions": questions,
+    "multiQuestions": multi_qs,
     "cards": cards_out,
     "exams": exams,
     "imgSize": {},
@@ -153,7 +223,7 @@ c_cnt = Counter(q["c"] for q in questions)
 t_cnt = Counter(q["t"] for q in questions)
 kw_cnt = sum(1 for q in questions if q["kw"])
 rep = [
-    f"questions={len(questions)} exams={len(exams)} cards={len(cards_out)}",
+    f"questions={len(questions)} multi={len(multi_qs)} exams={len(exams)} cards={len(cards_out)}",
     f"judge={t_cnt.get('j', 0)} single={t_cnt.get('s', 0)}",
     "per topic: " + json.dumps(dict(sorted(c_cnt.items()))),
     f"kw coverage={kw_cnt}/{len(questions)}",

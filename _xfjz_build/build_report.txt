@@ -1,4 +1,4 @@
-questions=369 exams=19 cards=21
+questions=369 multi=53 exams=10 cards=21
 judge=196 single=173
 per topic: {"1": 2, "2": 31, "3": 9, "4": 16, "5": 33, "6": 68, "7": 22, "8": 188}
 kw coverage=306/369

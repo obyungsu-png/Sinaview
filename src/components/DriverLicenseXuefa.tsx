@@ -20,7 +20,7 @@ import {
   type MjLevel,
   type MockResult,
 } from './DriverLicenseQuiz';
-import { XfExamRunner, XfExamResultView, recordXfExam, type XfExamOutcome } from './DriverLicenseXfExam';
+import { XfExamRunner, XfExamResultView, XfExamRules, recordXfExam, type XfExamOutcome, type XfQ } from './DriverLicenseXfExam';
 import { ContentCheck, checkedCount, scrollToId } from './DriverLicenseContentCheck';
 import type { CheckQuestion } from '../data/driverLicenseCheckQuestions';
 import { getMockResults, getProgress, getWrongMap, setProgress, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
@@ -28,7 +28,7 @@ import { getMockResults, getProgress, getWrongMap, setProgress, useDriverLicense
 type XfTopic = { c: number; key: string; title: string; zh: string; desc: string; count: number; cards: number[] };
 type XfLine = [string, string, string]; // 중국어, 병음, 한국어
 type XfCard = { topic: string; title: string; zh: string; new: boolean; lines: XfLine[]; memo: XfLine; check: number[] };
-type XfData = { topics: XfTopic[]; questions: DLQuestion[]; cards: XfCard[]; exams: number[][]; imgSize: Record<string, [number, number]> };
+type XfData = { topics: XfTopic[]; questions: DLQuestion[]; multiQuestions?: XfQ[]; cards: XfCard[]; exams: number[][]; imgSize: Record<string, [number, number]> };
 
 let cache: XfData | null = null;
 let pending: Promise<XfData> | null = null;
@@ -89,7 +89,8 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
   const { data, failed } = useXfData();
   const [view, setView] = useState<View>({ mode: 'home' });
   const [examNo, setExamNo] = useState<number | null>(null);
-  const [continueFrom, setContinueFrom] = useState<{ answers: Record<number, number>; results: Record<number, boolean>; continued: boolean } | null>(null);
+  const [rulesNo, setRulesNo] = useState<number | null>(null);
+  const [continueFrom, setContinueFrom] = useState<{ answers: Record<number, number | string>; results: Record<number, boolean>; continued: boolean } | null>(null);
   const [outcome, setOutcome] = useState<(XfExamOutcome & { back: View }) | null>(null);
   useDriverLicenseRecords();
 
@@ -100,10 +101,13 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
   if (!data) return <LoadingState failed={failed} onBack={onBack} />;
 
   const go = (next: View) => setView(next);
-  const byId = new Map(data.questions.map((q) => [q.id, q]));
+  const byId = new Map<number, XfQ>(
+    [...data.questions, ...(data.multiQuestions ?? [])].map((q) => [q.id, q as unknown as XfQ]),
+  );
   const startExam = (no: number) => {
     setOutcome(null);
     setContinueFrom(null);
+    setRulesNo(null);
     setExamNo(no);
   };
   const continueExam = () => {
@@ -122,7 +126,7 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
 
   if (examNo !== null) {
     const ids = data.exams[examNo - 1] ?? [];
-    const questions = ids.map((id) => byId.get(id)).filter((q): q is DLQuestion => !!q);
+    const questions = ids.map((id) => byId.get(id)).filter((q): q is XfQ => !!q);
     return (
       <XfExamRunner
         no={examNo}
@@ -133,6 +137,16 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
           setExamNo(null);
           setContinueFrom(null);
         }}
+      />
+    );
+  }
+  if (rulesNo !== null) {
+    return (
+      <XfExamRules
+        no={rulesNo}
+        total={(data.exams[rulesNo - 1] ?? []).length}
+        onBack={() => setRulesNo(null)}
+        onStart={() => startExam(rulesNo)}
       />
     );
   }
@@ -177,7 +191,7 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
   }
   if (view.mode === 'cards') return <XfCards data={data} byId={byId} onBack={() => go({ mode: 'home' })} />;
   if (view.mode === 'bank') return <XfBank data={data} onBack={() => go({ mode: 'home' })} onGo={go} />;
-  if (view.mode === 'exams') return <XfExams data={data} onBack={() => go({ mode: 'home' })} onStart={startExam} />;
+  if (view.mode === 'exams') return <XfExams data={data} onBack={() => go({ mode: 'home' })} onPick={(no) => setRulesNo(no)} />;
   return <XfHome data={data} onBack={onBack} onGo={go} />;
 }
 
@@ -230,7 +244,7 @@ function XfHome({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
       no: 2,
       title: `실전 고사 (${data.exams.length}회 × ${EXAM_SIZE}문제)`,
       when: '그다음',
-      desc: '실제 학법 감점 시험 앱과 같은 화면이에요. 문제당 60초, 답을 골라야 다음으로 넘어가고, 오답이 3개 쌓이면 자동 불합격 돼요.',
+      desc: '실제 시험과 같은 구성이에요. 판단형 5문제 + 단일선택 10문제 + 다중선택 5문제(사진 문제 4~6개 포함), 문제당 60초, 오답 3개 누적 시 자동 불합격.',
       progress: examBest ? Math.min(100, Math.round((examBest / EXAM_SIZE) * 100)) : 0,
       status: examBest ? `최고 ${examBest}/${EXAM_SIZE}문제 정답` : '아직 안 봤어요',
       actions: [{ label: '실전 고사 보기', cls: btn.primary, onClick: () => onGo({ mode: 'exams' }) }],
@@ -427,8 +441,8 @@ function XfBank({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
   );
 }
 
-// ───────── ③ 실전 고사 (회차별 20문제) ─────────
-function XfExams({ data, onBack, onStart }: { data: XfData; onBack: () => void; onStart: (no: number) => void }) {
+// ───────── ③ 실전 고사 (회차별 20문제: 판단 5 + 단선 10 + 다선 5, 사진문제 4~6개) ─────────
+function XfExams({ data, onBack, onPick }: { data: XfData; onBack: () => void; onPick: (no: number) => void }) {
   useDriverLicenseRecords();
   const results = getMockResults<MockResult>();
   return (
@@ -436,12 +450,12 @@ function XfExams({ data, onBack, onStart }: { data: XfData; onBack: () => void; 
       <BackButton onClick={onBack} label="학법 감점으로 돌아가기" />
       <header className="text-center mb-4">
         <h1 className="text-2xl font-bold text-[#2c3e50] mb-2">실전 고사 (学法减分考试)</h1>
-        <p className="text-sm text-gray-500">交管12123 앱과 같은 화면이에요. 답을 고르면 즉시 채점되고, 오답 3문제가 쌓이면 자동 불합격 돼요.</p>
+        <p className="text-sm text-gray-500">交管12123 앱과 똑같은 구성이에요. 회차를 고르면 시험 규칙 안내 후 시작합니다.</p>
       </header>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         {[
-          { icon: 'fa-list-check', label: '문제 수', value: '20문제', sub: '판단형 + 단일 선택형' },
-          { icon: 'fa-language', label: '시험 언어', value: '중국어만', sub: '번역·해설은 검토 화면에서' },
+          { icon: 'fa-list-check', label: '문제 구성', value: '20문제', sub: '판단 5 + 단일선택 10 + 다중선택 5' },
+          { icon: 'fa-image', label: '사진 문제', value: '회차당 4~6개', sub: '표지·신호·상황 그림 문제' },
           { icon: 'fa-clock', label: '문제당 시간', value: '60초', sub: '초과하면 오답 처리' },
           { icon: 'fa-award', label: '합격 기준', value: '18문제 이상', sub: '오답 3문제 누적 시 자동 불합격' },
         ].map((item) => (
@@ -454,13 +468,13 @@ function XfExams({ data, onBack, onStart }: { data: XfData; onBack: () => void; 
         ))}
       </div>
       <h2 className="text-lg font-medium text-gray-800 mb-1">회차별 고사 ({data.exams.length}회분)</h2>
-      <p className="text-xs text-gray-500 mb-4">문제은행 순서대로 {EXAM_SIZE}문제씩 나눴어요. {data.exams.length}회를 다 풀면 문제은행을 한 번씩 보게 돼요.</p>
+      <p className="text-xs text-gray-500 mb-4">실제 시험 조합(판단 5 · 단일선택 10 · 다중선택 5)으로 구성했어요. 다중선택은 보기를 여러 개 고른 뒤 “下一题”를 누르면 채점돼요.</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {data.exams.map((_, i) => {
           const no = i + 1;
           const result = results[`xf-exam${no}`];
           return (
-            <button key={no} onClick={() => onStart(no)} className="text-left p-4 bg-white border-2 border-gray-100 rounded-lg hover:border-[#37a7f0] hover:shadow-md transition-all">
+            <button key={no} onClick={() => onPick(no)} className="text-left p-4 bg-white border-2 border-gray-100 rounded-lg hover:border-[#37a7f0] hover:shadow-md transition-all">
               <div className="font-medium text-gray-800 mb-1">제{no}회 고사</div>
               {result ? (
                 <div className="text-xs text-gray-500">
