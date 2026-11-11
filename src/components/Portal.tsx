@@ -52,6 +52,9 @@ const WeChatLoginPage = lazy(() => import('../pages/WeChatLoginPage').then(m => 
 const RealEstatePage = lazy(() => import('../pages/RealEstatePage').then(m => ({ default: m.RealEstatePage })));
 const HSKPage = lazy(() => import('../pages/HSKPage').then(m => ({ default: m.HSKPage })));
 
+// 휴대폰 글자 크게(sv-read)에서 빼는 화면: 운전면허(시험지 크기로 따로 맞춤)·학습 도구
+const NO_READ_SCALE = new Set(['driverlicense', 'csm', 'lsm', 'hsk']);
+
 // 페이지별 하위 URL 매핑 (해시 라우팅: 예) https://사이트/#/driver-license)
 // 정적 호스팅에서도 서버 재작성 없이 동작하도록 해시(#) 기반으로 유지합니다.
 const PAGE_PATH: Record<string, string> = {
@@ -318,11 +321,13 @@ export function Portal() {
   };
 
   if (currentPage !== 'main' && pageMap[currentPage]) {
+    // 휴대폰 글자 조금 크게(sv-read) — 운전면허·학습 도구는 화면별로 글자 크기를 따로 맞춰 둬서 제외
+    const readable = !NO_READ_SCALE.has(currentPage);
     return (
       <Suspense fallback={<LoadingSpinner />}>
-        {pageMap[currentPage]}
+        <div className={readable ? 'sv-read contents' : 'contents'}>{pageMap[currentPage]}</div>
         <AiAssistantWidget hideFab={currentPage === 'driverlicense'} page={currentPage} />
-        {bottomNav}
+        <div className="sv-read contents">{bottomNav}</div>
         {authModals}
       </Suspense>
     );
@@ -330,7 +335,7 @@ export function Portal() {
 
   return (
     <CommunityNavContext.Provider value={communityNav}>
-    <div className="min-h-screen bg-gray-50">
+    <div className="sv-read min-h-screen bg-gray-50">
       <Header 
         key={currentUser?.region || 'no-user'}
         onCategorySelect={setActiveNewsCategory} 

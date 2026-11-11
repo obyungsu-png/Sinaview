@@ -7,6 +7,25 @@
   html, body, #root { min-height: 100vh; height: 100%; margin: 0; }
 }
 
+/* 휴대폰(640px 미만) 포털 화면: 글자를 한 단계 안 되게(약 1px) 키우고 두 줄 제목 줄 간격을 조금 넓힘
+   Tailwind 글자 크기 변수를 이 영역에서만 바꿔서 text-xs·text-sm·text-base를 쓰는 곳이 모두 함께 커짐 */
+@media (max-width: 639px) {
+  .sv-read {
+    --text-xs: 0.8125rem; /* 12 → 13px */
+    --text-sm: 0.9375rem; /* 14 → 15px */
+    --text-base: 1.0625rem; /* 16 → 17px */
+    --leading-tight: 1.35; /* 1.25 → 1.35 */
+  }
+  .sv-read .text-\[10px\] { font-size: 11px; }
+  .sv-read .text-\[11px\] { font-size: 12px; }
+  .sv-read .text-\[12px\] { font-size: 13px; }
+  .sv-read .text-\[13px\]:not(.sv-keep) { font-size: 14px; }
+}
+/* 머리글 메뉴 5칸(sv-keep)은 폭에 딱 맞춰 둬서, 400px 이상 넓은 휴대폰에서만 함께 키움 */
+@media (min-width: 400px) and (max-width: 639px) {
+  .sv-read .sv-keep.text-\[13px\] { font-size: 14px; }
+}
+
 /* 답안지 하단 시트 슬라이드 업 */
 @keyframes dl-sheet-up {
   from { transform: translateY(100%); }

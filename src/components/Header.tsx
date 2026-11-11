@@ -367,7 +367,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
 
         {/* Service Navigation - 모바일: 5칸 2줄로 한눈에, 데스크탑: 한 줄 */}
         <nav className="mt-2 sm:mt-4">
-          <div className="grid grid-cols-[repeat(5,auto)] justify-between items-center gap-y-0.5 p-1 rounded-xl bg-gray-50 border border-gray-100 text-[13px] max-[359px]:text-[11.5px] sm:flex sm:justify-start sm:gap-y-0 sm:space-x-8 sm:p-0 sm:pb-1.5 sm:rounded-none sm:bg-transparent sm:border-0 sm:text-base sm:overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="sv-keep grid grid-cols-[repeat(5,auto)] justify-between items-center gap-y-0.5 p-1 rounded-xl bg-gray-50 border border-gray-100 text-[13px] max-[359px]:text-[11.5px] sm:flex sm:justify-start sm:gap-y-0 sm:space-x-8 sm:p-0 sm:pb-1.5 sm:rounded-none sm:bg-transparent sm:border-0 sm:text-base sm:overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button 
               onClick={() => navTab('visa', 'visa-documents', 'visa-documents-mobile')}
               className={navItem}
