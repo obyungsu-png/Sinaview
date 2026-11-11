@@ -189,7 +189,7 @@ type View =
   | { mode: 'quiz'; title: string; questions: DLQuestion[]; storageKey?: string; pool: DLQuestion[]; key: number; back?: View }
   | { mode: 'wrong'; title: string; pool: DLQuestion[] };
 
-// ───────── 홈: 시작 전 간단한 설명 + 속성 과정 3단계 ─────────
+// ───────── 홈: 시작 전 간단한 설명 + 속성 과정 단계 ─────────
 function solvedOf(key: string) {
   const saved = getProgress<Progress>(key);
   return saved ? Object.keys(saved.answers).length : 0;
@@ -309,7 +309,7 @@ function XfHome({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
             {solved}/{total} 풀이{wrongCount ? ` · 틀린 문제 ${wrongCount}` : ''}
           </span>
         </div>
-        <p className="text-sm text-gray-600 mb-3">연습할 때는 여기서 풀어요. 1단계(한국어) → 2단계(중국어) → 실전(중국어만) 보기 단계로 한국어 도움을 줄여 가세요.</p>
+        <p className="text-sm text-gray-600 mb-3">연습할 때는 여기서 풀어요. 처음에는 1단계(한국어 + 작은 중국어 핵심 단어)로 뜻을 익히고, 익숙해지면 2단계(시험처럼 중국어만)로 바꿔 보세요.</p>
         <div className="flex flex-wrap gap-2">
           <button className={btn.primary} onClick={() => onGo({ mode: 'bank' })}>
             은행 열기
@@ -347,7 +347,7 @@ function XfBank({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
       <BackButton onClick={onBack} label="학법 감점으로 돌아가기" />
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">법규학습은행 {data.questions.length}문제</h1>
       <p className="text-sm sm:text-[15px] text-gray-500 mb-6 leading-relaxed">
-        交管12123 学法减分 문제은행을 주제별로 나눴어요. 주제를 고르면 문제를 풀어요. 풀이 화면 위의 <b>보기 단계</b>(1단계 한국어 → 2단계 중국어 → 실전)로 한국어 도움을 줄여 가세요.
+        交管12123 学法减分 문제은행을 주제별로 나눴어요. 주제를 고르면 문제를 풀어요. 풀이 화면 위의 <b>보기 단계</b>(1단계 한국어 → 2단계 중국어)로 한국어 도움을 줄여 가세요.
       </p>
       <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm mb-6">
         <div className="flex items-center gap-3 my-2.5">
@@ -568,7 +568,7 @@ function XfCards({ data, byId, onBack }: { data: XfData; byId: Map<number, DLQue
       <BackButton onClick={onBack} label="속성 과정으로 돌아가기" />
       <h1 className="text-2xl font-bold text-[#2c3e50] mb-1">① 핵심 정리 카드</h1>
       <p className="text-sm text-gray-500 mb-4">
-        학법 감점 시험에 나오는 중국어 표현으로 정리했어요. 처음에는 1단계(한국어)로 뜻을 익히고, 2단계(중국어+병음+한국어) → 실전(중국어만, 누르면 뜻)으로 바꿔 보세요. ({done.size}/
+        학법 감점 시험에 나오는 중국어 표현으로 정리했어요. 처음에는 1단계(한국어)로 뜻을 익히고, 익숙해지면 2단계(중국어만, 누르면 뜻)로 바꿔 보세요. ({done.size}/
         {data.cards.length}장 외움 · 체크 {checkedCount('xf:')}/{data.cards.length}장)
       </p>
       <div className="mb-4 flex flex-wrap items-center gap-2">
