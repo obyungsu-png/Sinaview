@@ -35,14 +35,14 @@ const SHOW_ADS = false;
 
 /* 서비스 아이콘 8개 - PC와 같은 단색 라인 아이콘 */
 const SERVICE_ICONS = [
-  {id:'visa',       label:'비자/서류',     Icon:FileText,      tab:'visa',       tone:'bg-blue-50 text-blue-600'},
-  {id:'education',  label:'교육',          Icon:GraduationCap, tab:'education',  tone:'bg-indigo-50 text-indigo-600'},
-  {id:'yellow',     label:'엘로우 페이지', Icon:BookOpen,      tab:'yellow',     tone:'bg-amber-50 text-amber-600'},
-  {id:'auto',       label:'자동차',        Icon:Car,           tab:'auto',       tone:'bg-sky-50 text-sky-600'},
-  {id:'market',     label:'중고장터',      Icon:ShoppingBag,   tab:'market',     tone:'bg-orange-50 text-orange-600'},
-  {id:'securities', label:'증권',          Icon:TrendingUp,    tab:'securities', tone:'bg-rose-50 text-rose-600'},
-  {id:'realestate', label:'부동산',        Icon:Building2,     tab:'realestate', tone:'bg-emerald-50 text-emerald-600'},
-  {id:'community',  label:'게시판',        Icon:MessageCircle, tab:'community', page:'chinalife', tone:'bg-purple-50 text-purple-600'},
+  {id:'visa',       label:'비자/서류',     Icon:FileText,      tab:'visa'},
+  {id:'education',  label:'교육',          Icon:GraduationCap, tab:'education'},
+  {id:'yellow',     label:'엘로우 페이지', Icon:BookOpen,      tab:'yellow'},
+  {id:'auto',       label:'자동차',        Icon:Car,           tab:'auto'},
+  {id:'market',     label:'중고장터',      Icon:ShoppingBag,   tab:'market'},
+  {id:'securities', label:'증권',          Icon:TrendingUp,    tab:'securities'},
+  {id:'realestate', label:'부동산',        Icon:Building2,     tab:'realestate'},
+  {id:'community',  label:'게시판',        Icon:MessageCircle, tab:'community', page:'chinalife'},
 ];
 
 /* 주요 서비스 - PC 우측/하단 영역과 같은 구성 */
@@ -531,7 +531,7 @@ export function MobileHome({
   );
 }
 
-/* ── 서비스 아이콘 (색 있는 아이콘 + 진한 이름, 한눈에 구분) ── */
+/* ── 서비스 아이콘 (네이버처럼 연회색 바탕 + 진회색 아이콘, 진한 이름) ── */
 function ServiceIconGrid({onSelect}) {
   return (
     <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-200 pt-4 pb-3 px-1">
@@ -539,8 +539,8 @@ function ServiceIconGrid({onSelect}) {
         {SERVICE_ICONS.map(svc=>(
           <button key={svc.id} onClick={()=>onSelect(svc.tab, svc.page)}
             className="flex flex-col items-center gap-1.5 min-w-0 px-0.5 group">
-            <span className={`w-12 h-12 rounded-2xl flex items-center justify-center group-active:scale-95 transition-transform ${svc.tone}`}>
-              <svc.Icon className="w-6 h-6" strokeWidth={1.8}/>
+            <span className="w-12 h-12 rounded-2xl bg-[#f3f4f6] text-gray-800 flex items-center justify-center group-active:bg-gray-200 transition-colors">
+              <svc.Icon className="w-6 h-6" strokeWidth={1.6}/>
             </span>
             <span className="text-[13.5px] font-medium text-gray-800 whitespace-nowrap tracking-tight">{svc.label}</span>
           </button>
@@ -559,8 +559,8 @@ function MainServices({onSelect}) {
         {MAIN_SERVICES.map(item=>(
           <button key={item.tab} onClick={()=>onSelect(item.tab, null)}
             className="w-full flex items-center gap-3 py-3 text-left active:bg-gray-50">
-            <span className="shrink-0 w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
-              <item.Icon className="w-5 h-5 text-teal-600" strokeWidth={1.8}/>
+            <span className="shrink-0 w-10 h-10 rounded-xl bg-[#f3f4f6] flex items-center justify-center">
+              <item.Icon className="w-5 h-5 text-gray-700" strokeWidth={1.7}/>
             </span>
             <span className="flex-1 min-w-0">
               <span className="block text-[16px] font-semibold text-gray-900 leading-snug">{item.title}</span>

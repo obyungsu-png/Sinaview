@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ArrowLeft, PenLine, Search, X } from 'lucide-react';
 import { CITY_ROOMS, NAVER_CAFE_URL } from '../config/communityLinks';
 import { Post, BOARD_CATEGORIES, CATEGORY_PAGES } from '../data/chinaLifePosts';
 import { useCommunityPosts, deletePost, recordView, fetchPostDetail, toggleLike, addComment, deleteComment, PostComment } from '../utils/community';
@@ -329,6 +330,29 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                 flex-wrap: nowrap !important;
             }
             .category-tabs::-webkit-scrollbar { display: none; }
+        }
+
+        /* === 휴대폰(767px 이하): 위 흰 바 + 밑줄 탭 + 목록 줄 (JSX의 md:hidden 부분), 글 화면 글자 크게 === */
+        @media (max-width: 767px) {
+            .community-top-bar, .community-sidebar { display: none !important; }
+            .community-content { padding: 0 16px 24px !important; }
+            .post-detail { padding-top: 16px !important; }
+            .back-to-list { display: none !important; }
+            .post-detail-header { padding-bottom: 14px !important; margin-bottom: 4px !important; }
+            .post-title { font-size: 21px !important; margin-bottom: 10px !important; }
+            .post-meta { flex-wrap: wrap; gap: 6px 10px !important; font-size: 13.5px !important; }
+            .post-content { font-size: 16.5px !important; line-height: 1.85 !important; padding: 18px 0 !important; }
+            .post-actions { gap: 10px !important; padding: 16px 0 !important; margin-bottom: 20px !important; }
+            .action-btn { font-size: 15px !important; padding: 9px 14px !important; }
+            .comments-section { margin-top: 20px !important; padding-top: 18px !important; }
+            .comments-header { font-size: 17px !important; }
+            .comment-author-name { font-size: 15px !important; }
+            .comment-date { font-size: 13px !important; }
+            .comment-content { font-size: 15.5px !important; line-height: 1.7 !important; }
+            .comment-textarea { font-size: 16px !important; }
+            .comment-submit-btn { font-size: 15px !important; }
+            .comment-input-header { font-size: 15px !important; }
+            .login-required { font-size: 14.5px !important; }
         }
 
         /* === 좌측 사이드바 === */
@@ -874,6 +898,43 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
         }
       `}</style>
 
+      {/* 휴대폰 위 바: ← · 게시판 · 글쓰기, 그 아래 분류 밑줄 탭 (다른 게시판 화면과 같은 모양) */}
+      <div className="md:hidden sticky top-0 z-20 bg-white border-b border-gray-200">
+        <div className="h-[52px] px-2 flex items-center gap-1">
+          <button
+            onClick={() => (isWriting ? setIsWriting(false) : selectedPost ? setSelectedPost(null) : onBack?.())}
+            aria-label={selectedPost || isWriting ? '목록으로' : '홈으로'}
+            className="p-2 text-gray-800"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="flex-1 min-w-0 text-[19px] font-bold text-gray-900 truncate">
+            {selectedPost ? '게시판' : isWriting ? '글쓰기' : '중국생활 게시판'}
+          </h1>
+          {!selectedPost && !isWriting && (
+            <button
+              onClick={() => (isLoggedIn ? (setIsWriting(true), window.scrollTo({ top: 0 })) : alert('글쓰기는 로그인 후 이용 가능합니다.'))}
+              className="mr-1.5 flex items-center gap-1 px-3.5 h-9 rounded-full bg-[#03c75a] text-white text-[14.5px] font-semibold active:bg-[#02b350]"
+            >
+              <PenLine className="w-4 h-4" /> 글쓰기
+            </button>
+          )}
+        </div>
+        {!selectedPost && !isWriting && (
+          <div className="flex gap-5 overflow-x-auto scrollbar-hide px-4" style={{ scrollbarWidth: 'none' }}>
+            {['전체', '공지사항', '신입 가이드', ...BOARD_CATEGORIES].map(cat => (
+              <button
+                key={cat}
+                onClick={() => handleCategoryClick(cat)}
+                className={`shrink-0 py-2.5 text-[15.5px] whitespace-nowrap border-b-2 -mb-px ${activeCategory === cat ? 'border-gray-900 text-gray-900 font-bold' : 'border-transparent text-gray-500'}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="community-top-bar">
         <h1>중국생활 커뮤니티</h1>
         <button className="btn-home" onClick={onBack}>
@@ -937,6 +998,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
             />
           ) : !selectedPost ? (
             <>
+<div className="hidden md:block">
               <div className="board-header">
                 <h2>
                   {activeCategory === '전체' ? '중국 생활 정보 게시판' : activeCategory}
@@ -960,6 +1022,37 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                   >{name === '전체' ? '전체 지역' : name}</button>
                 ))}
               </div>
+</div>
+              {/* 휴대폰: 지역 한 줄(옆으로 넘김) + 검색 */}
+              <div className="md:hidden pt-3">
+                <div className="-mx-4 px-4 flex gap-2 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+                  {['전체', ...CITY_ROOMS.map(room => room.name)].map(name => (
+                    <button
+                      key={name}
+                      onClick={() => setActiveCityName(name)}
+                      className={`shrink-0 px-3.5 h-9 rounded-full text-[14.5px] whitespace-nowrap border ${activeCityName === name ? 'bg-gray-900 border-gray-900 text-white font-semibold' : 'bg-white border-gray-200 text-gray-700'}`}
+                    >
+                      {name === '전체' ? '전체 지역' : name}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 mb-3 relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
+                  <input
+                    type="search"
+                    value={searchInput}
+                    onChange={e => { setSearchInput(e.target.value); setSearchTerm(e.target.value); }}
+                    placeholder="제목, 내용, 작성자 검색"
+                    className="w-full h-11 pl-10 pr-10 rounded-full bg-gray-100 text-[16px] outline-none focus:ring-2 focus:ring-[#03c75a]/40"
+                  />
+                  {searchInput && (
+                    <button onClick={() => { setSearchInput(''); setSearchTerm(''); }} aria-label="지우기" className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {activeCity && <CityRoomCard room={activeCity} />}
 
               {/* 분류 → 메뉴 섹션 정보로 연결 */}
@@ -977,6 +1070,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                 </button>
               )}
 
+<div className="hidden md:block">
               {/* 검색바 */}
               <div style={{
                 display: 'flex', gap: '8px', marginBottom: '16px',
@@ -1125,6 +1219,50 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                   >
                     <i className="fa-solid fa-lock" style={{marginRight:'5px'}}></i> 글쓰기
                   </button>
+                )}
+              </div>
+</div>
+              {/* 휴대폰 목록: 제목 크게, 아랫줄에 분류 · 작성자 · 날짜 · 조회 */}
+              <div className="md:hidden">
+                <p className="pb-1 text-[13.5px] text-gray-500">
+                  {activeCategory === '전체' ? '전체 글' : activeCategory}
+                  {activeCityName !== '전체' && ` · ${activeCityName}`}
+                  {searchTerm && ` · "${searchTerm}" 검색`} · {filteredPosts.length}개
+                </p>
+                {filteredPosts.length === 0 ? (
+                  <p className="py-16 text-center text-[15px] text-gray-500">
+                    {searchTerm ? `"${searchTerm}"에 해당하는 글이 없어요.` : '아직 글이 없어요.'}
+                  </p>
+                ) : (
+                  filteredPosts.map(post => (
+                    <button
+                      key={post.id}
+                      onClick={() => { handlePostClick(post); window.scrollTo({ top: 0 }); }}
+                      className={`w-full text-left py-3.5 border-b border-gray-100 active:bg-gray-50 ${post.badgeType === 'important' ? 'bg-red-50/30' : ''}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {post.badge && (
+                          <span className={`shrink-0 mt-[1px] px-1.5 py-0.5 rounded text-[12.5px] font-bold leading-tight ${post.badgeType === 'important' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                            {post.badge}
+                          </span>
+                        )}
+                        <h3 className="flex-1 min-w-0 text-[16px] font-semibold text-gray-900 leading-snug line-clamp-2 break-keep">
+                          {post.isAi && <span className="mr-1 align-[1px] px-1 rounded border border-teal-200 bg-teal-50 text-[12px] font-medium text-teal-700">AI</span>}
+                          {post.title}
+                          {post.comments > 0 && <span className="ml-1 font-normal text-blue-600">[{post.comments}]</span>}
+                        </h3>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[13.5px] text-gray-500 min-w-0">
+                        {!post.badge && <span className="shrink-0 text-[#03a94d] font-medium">{post.category}</span>}
+                        {!post.badge && <span className="shrink-0 text-gray-300">·</span>}
+                        <span className="truncate">{post.author}</span>
+                        <span className="shrink-0 text-gray-300">·</span>
+                        <span className="shrink-0">{post.date}</span>
+                        <span className="shrink-0 text-gray-300">·</span>
+                        <span className="shrink-0">조회 {post.views.toLocaleString()}</span>
+                      </div>
+                    </button>
+                  ))
                 )}
               </div>
             </>

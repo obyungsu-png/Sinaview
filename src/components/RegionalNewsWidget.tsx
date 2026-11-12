@@ -198,10 +198,7 @@ export function RegionalNewsWidget({ onMoreClick, variant }: RegionalNewsWidgetP
     return (
       <div className="bg-white rounded-2xl border border-gray-200">
         <div className="px-4 pt-4 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-[18px] font-bold text-gray-900">
-            지역 소식
-            <span className="px-2 py-0.5 bg-red-50 text-red-600 text-[12px] font-bold rounded-full">HOT</span>
-          </h2>
+          <h2 className="text-[18px] font-bold text-gray-900">지역 소식</h2>
           <button onClick={onMoreClick} className="flex items-center text-[14px] text-gray-500">
             더보기 <span className="ml-0.5">›</span>
           </button>

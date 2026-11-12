@@ -389,7 +389,8 @@ export function Portal() {
         <CenterAdBanner />
       </div>
       
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      {/* 휴대폰: 양옆 여백은 카드(mx-3)만 — 화면을 넓게 씀 */}
+      <main className="max-w-7xl mx-auto px-0.5 py-3 lg:px-4 lg:py-6">
         {/* Desktop Layout */}
         <div className="hidden lg:block space-y-6">
           <div className="grid grid-cols-10 gap-6">
@@ -568,7 +569,7 @@ export function Portal() {
 
       {authModals}
 
-      <footer className="bg-white border-t border-gray-200 mt-12">
+      <footer className="bg-white border-t border-gray-200 mt-6 lg:mt-12">
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* 데스크탑 푸터 */}
           <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-8 text-sm text-gray-600">

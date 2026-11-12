@@ -27,7 +27,7 @@ export function MorningBriefingCard() {
       >
         {/* 휴대폰: 제목 줄 + 환율·날씨 줄 (두 줄로 나눠 잘리지 않게) */}
         <span className="flex items-center gap-2 lg:contents">
-          <Sun className="w-5 h-5 text-orange-500 shrink-0" />
+          <Sun className="w-5 h-5 text-gray-700 lg:text-orange-500 shrink-0" />
           <span className="text-[17px] lg:text-base font-bold lg:font-semibold text-gray-900 shrink-0">
             <span className="hidden lg:inline">{Number(month)}월 {Number(day)}일 </span>아침 브리핑
           </span>

@@ -1,315 +1,157 @@
-import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Search, MapPin, Phone, Clock, Star, Filter, Map } from 'lucide-react';
-import { Card } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
+// 엘로우 페이지 (한인 업체 찾기) — 홈 섹션과 같은 업체 자료(data/yellowPages.ts)를 씀
+// 구성: 위 흰 바(← 제목 · 검색) → 분류 밑줄 탭 → 지역 한 줄 → 업체 목록 (게시판 목록과 같은 모양)
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Search, X, MapPin, Phone, Clock, Star } from 'lucide-react';
+import { regionBusinesses, REGIONS_WITH_BUSINESSES, type Business } from '../data/yellowPages';
 
 interface YellowPagesPageProps {
   onBack: () => void;
 }
 
+const CATEGORIES = ['전체', '병원', '음식점', '교육', '서비스'];
+const REGIONS = ['대련', '북경', '상해', '소주', '무석', '난징', '항저우', '천진', '심천', '심양', '연길', '시안', '우한', '청두', '광저우', '연태', '위해', '청도'];
+const ALL = '전체 지역';
+
+const mapUrl = (b: Business) => `https://map.baidu.com/search/${encodeURIComponent(b.chineseAddress || b.address)}`;
+
+function BusinessRow({ b }: { b: Business }) {
+  return (
+    <div className="py-4 border-b border-gray-100 last:border-b-0">
+      <div className="flex gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] text-[#03a94d] font-semibold">{b.category}</div>
+          <h3 className="mt-0.5 text-[17px] font-bold text-gray-900 leading-snug">{b.name}</h3>
+          <p className="mt-1 text-[14.5px] text-gray-600 leading-snug line-clamp-2">{b.description}</p>
+        </div>
+        {b.imageUrl && (
+          <img src={b.imageUrl.replace('w=1080', 'w=300')} alt="" loading="lazy" className="shrink-0 w-[92px] h-[92px] sm:w-[120px] sm:h-[100px] object-cover rounded-lg bg-gray-100" />
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13.5px] text-gray-500">
+        <span className="flex items-center gap-1">
+          <Star className="w-3.5 h-3.5 text-yellow-400 fill-current" />
+          <b className="font-semibold text-gray-800">{b.rating}</b> 리뷰 {b.reviews.toLocaleString()}
+        </span>
+        <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{b.address}</span>
+        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{b.hours}</span>
+      </div>
+      {b.features?.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {b.features.slice(0, 4).map((f) => (
+            <span key={f} className="px-2 py-0.5 rounded bg-gray-100 text-[13px] text-gray-600">{f}</span>
+          ))}
+        </div>
+      )}
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+        <a href={`tel:${b.phone.replace(/[^+\d]/g, '')}`} className="flex items-center justify-center gap-1.5 h-10 sm:px-4 rounded-lg border border-gray-200 text-[14.5px] font-medium text-gray-800 active:bg-gray-50">
+          <Phone className="w-4 h-4 text-[#03a94d]" /> 전화
+        </a>
+        <a href={mapUrl(b)} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 h-10 sm:px-4 rounded-lg border border-gray-200 text-[14.5px] font-medium text-gray-800 active:bg-gray-50">
+          <MapPin className="w-4 h-4 text-[#03a94d]" /> 지도
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function YellowPagesPage({ onBack }: YellowPagesPageProps) {
-  const [selectedCategory, setSelectedCategory] = useState('전체');
-  const [selectedLocation, setSelectedLocation] = useState('대련');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [category, setCategory] = useState('전체');
+  const [region, setRegion] = useState(ALL);
+  const [term, setTerm] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [userRegion, setUserRegion] = useState('');
 
-  // 사용자 지역 가져오기
+  // 회원 지역을 맨 앞에 두고, 그 지역에 업체가 있으면 처음부터 그 지역을 보여 줌
   useEffect(() => {
-    const user = localStorage.getItem('currentUser');
-    if (user) {
-      const userData = JSON.parse(user);
-      if (userData.region) {
-        setUserRegion(userData.region);
-        setSelectedLocation(userData.region);
+    try {
+      const region = JSON.parse(localStorage.getItem('currentUser') || 'null')?.region;
+      if (region) {
+        setUserRegion(region);
+        if (REGIONS_WITH_BUSINESSES.includes(region)) setRegion(region);
       }
-    }
+    } catch {}
   }, []);
 
-  const categories = ['전체', '병원', '음식점', '교육', '서비스', '법무', '번역'];
-  const locations = ['대련', '북경', '상해', '심양', '시안', '연변', '연태', '위해', '우한', '청도', '청두'];
-
-  // 사용자 지역을 맨 앞으로 정렬
-  const sortedLocations = useMemo(() => {
-    if (!userRegion) return locations;
-    
-    const userLocationIndex = locations.findIndex(loc => loc === userRegion);
-    if (userLocationIndex === -1) return locations;
-    
-    const otherLocations = locations.filter(loc => loc !== userRegion);
-    return [userRegion, ...otherLocations];
+  const regions = useMemo(() => {
+    const list = userRegion && REGIONS.includes(userRegion) ? [userRegion, ...REGIONS.filter((r) => r !== userRegion)] : REGIONS;
+    return [ALL, ...list];
   }, [userRegion]);
 
-  const businesses = [
-    {
-      id: 1,
-      name: "서울대학교",
-      category: "학교",
-      address: "서울 관악구 관악로 1",
-      phone: "02-880-5114",
-      rating: 4.8,
-      reviews: 2340,
-      isOpen: true,
-      hours: "24시간",
-      image: "https://images.unsplash.com/photo-1562774053-701939374585?w=300&h=200&fit=crop",
-      description: "대한민국 최고의 국립대학교로 다양한 학부와 대학원 과정을 운영합니다.",
-      services: ["학부교육", "대학원교육", "연구"],
-      website: "www.snu.ac.kr"
-    },
-    {
-      id: 2,
-      name: "삼성서울병원",
-      category: "병원",
-      address: "서울 강남구 일원로 81",
-      phone: "02-3410-2114",
-      rating: 4.7,
-      reviews: 1890,
-      isOpen: true,
-      hours: "24시간 응급실",
-      image: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=300&h=200&fit=crop",
-      description: "최첨단 의료장비와 우수한 의료진을 갖춘 종합병원입니다.",
-      services: ["종합진료", "응급의료", "건강검진"],
-      website: "www.samsunghospital.com"
-    },
-    {
-      id: 3,
-      name: "YBM 종로센터",
-      category: "학원",
-      address: "서울 종로구 종로 69",
-      phone: "02-2279-4567",
-      rating: 4.5,
-      reviews: 567,
-      isOpen: true,
-      hours: "09:00-22:00",
-      image: "https://images.unsplash.com/photo-1544531586-fde5298cdd40?w=300&h=200&fit=crop",
-      description: "영어, 중국어, 일본어 등 다양한 어학 교육을 제공하는 전문 학원입니다.",
-      services: ["영어회화", "토익", "중국어", "일본어"],
-      website: "www.ybm.co.kr"
-    },
-    {
-      id: 4,
-      name: "국립중앙도서관",
-      category: "도서관",
-      address: "서울 서초구 반포대로 201",
-      phone: "02-590-0500",
-      rating: 4.6,
-      reviews: 1234,
-      isOpen: true,
-      hours: "09:00-18:00",
-      image: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=300&h=200&fit=crop",
-      description: "국가대표도서관으로 다양한 자료와 연구공간을 제공합니다.",
-      services: ["도서대출", "연구지원", "디지털자료"],
-      website: "www.nl.go.kr"
-    },
-    {
-      id: 5,
-      name: "세종문화회관",
-      category: "문화시설",
-      address: "서울 중구 세종대로 175",
-      phone: "02-399-1000",
-      rating: 4.7,
-      reviews: 890,
-      isOpen: true,
-      hours: "10:00-20:00",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop",
-      description: "다양한 공연과 전시를 즐길 수 있는 복합문화공간입니다.",
-      services: ["공연관람", "전시관람", "대관서비스"],
-      website: "www.sejongpac.or.kr"
-    },
-    {
-      id: 6,
-      name: "올림픽공원 체육관",
-      category: "체육시설",
-      address: "서울 송파구 올림픽로 424",
-      phone: "02-410-1114",
-      rating: 4.4,
-      reviews: 445,
-      isOpen: true,
-      hours: "06:00-22:00",
-      image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=200&fit=crop",
-      description: "다양한 스포츠 시설과 프로그램을 제공하는 종합체육시설입니다.",
-      services: ["헬스", "수영", "농구", "배드민턴"],
-      website: "www.olympicpark.co.kr"
-    }
-  ];
-
-  const filteredBusinesses = businesses.filter(business => 
-    (selectedCategory === '전체' || business.category === selectedCategory) &&
-    (selectedLocation === '전체 지역' || business.address.includes(selectedLocation.split(' ')[1])) &&
-    (searchTerm === '' || business.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-     business.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const shown = useMemo(() => {
+    const base = region === ALL ? REGIONS_WITH_BUSINESSES.flatMap(regionBusinesses) : regionBusinesses(region);
+    const q = term.trim().toLowerCase();
+    return base.filter(
+      (b) =>
+        (category === '전체' || b.category === category) &&
+        (!q || [b.name, b.description, b.address, ...(b.features || [])].some((t) => t.toLowerCase().includes(q))),
+    );
+  }, [category, region, term]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          {/* 휴대폰에서도 제목이 세로로 꺾이지 않게: 제목은 한 줄, 검색창은 남은 폭 */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1 sm:gap-4 shrink-0">
-              <Button variant="ghost" onClick={onBack} className="p-2">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 whitespace-nowrap">엘로우 페이지</h1>
-            </div>
-            <div className="flex items-center flex-1 min-w-0 justify-end">
-              <div className="relative w-full sm:w-64">
-                <Input
-                  type="text"
-                  placeholder="업체명, 서비스 검색..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10"
-                />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              </div>
-            </div>
+    <div className="min-h-screen bg-white pb-24">
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200">
+        <div className="max-w-3xl mx-auto h-[52px] px-2 flex items-center gap-1">
+          <button onClick={onBack} aria-label="홈으로" className="p-2 text-gray-800">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="flex-1 min-w-0 text-[19px] font-bold text-gray-900 whitespace-nowrap truncate">엘로우 페이지</h1>
+          <button onClick={() => { setSearchOpen((v) => !v); if (searchOpen) setTerm(''); }} aria-label="검색" className="p-2 text-gray-700">
+            {searchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
+          </button>
+        </div>
+        {searchOpen && (
+          <div className="max-w-3xl mx-auto px-4 pb-2.5">
+            <input
+              autoFocus
+              type="search"
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              placeholder="업체명, 서비스 검색"
+              className="w-full h-10 px-4 rounded-full bg-gray-100 text-[16px] outline-none focus:ring-2 focus:ring-[#03a94d]/40"
+            />
           </div>
+        )}
+        <div className="max-w-3xl mx-auto flex gap-5 overflow-x-auto scrollbar-hide px-4" style={{ scrollbarWidth: 'none' }}>
+          {CATEGORIES.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCategory(c)}
+              className={`shrink-0 py-2.5 text-[15.5px] whitespace-nowrap border-b-2 -mb-px ${c === category ? 'border-gray-900 text-gray-900 font-bold' : 'border-transparent text-gray-500'}`}
+            >
+              {c}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Filters */}
-        <div className="mb-6 space-y-4">
-          <div>
-            <div className="flex items-center space-x-2 mb-3">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">카테고리</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                  className={selectedCategory === category ? "bg-green-600 hover:bg-green-700" : ""}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center space-x-2 mb-3">
-              <Map className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">지역</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {sortedLocations.map((location) => (
-                <Button
-                  key={location}
-                  variant={selectedLocation === location ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedLocation(location)}
-                  className={selectedLocation === location ? "bg-blue-600 hover:bg-blue-700" : ""}
-                >
-                  {location}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">
-              총 {filteredBusinesses.length}개 업체
-            </span>
-          </div>
-        </div>
-
-        {/* Business List */}
-        <div className="space-y-6">
-          {filteredBusinesses.map((business) => (
-            <Card key={business.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="md:flex">
-                <div className="md:w-1/6">
-                  <img 
-                    src={business.image} 
-                    alt={business.name}
-                    className="w-full h-28 md:h-full object-cover"
-                  />
-                </div>
-                <div className="md:w-5/6 p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-semibold text-gray-900">{business.name}</h3>
-                        <span className="bg-blue-100 text-blue-700 px-2 py-1 text-xs font-medium rounded">
-                          {business.category}
-                        </span>
-                        {business.isOpen && (
-                          <div className="flex items-center space-x-1">
-                            <Clock className="w-4 h-4 text-green-500" />
-                            <span className="text-sm text-green-600 font-medium">영업중</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <p className="text-gray-600 mb-3">
-                        {business.description}
-                      </p>
-                      
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center text-sm text-gray-600">
-                          <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                          <span>{business.address}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                          <span>{business.phone}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                          <span>{business.hours}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {business.services.map((service, index) => (
-                          <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 text-xs rounded">
-                            {service}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="text-right ml-4">
-                      <div className="flex items-center space-x-1 mb-2">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="font-medium text-gray-900">{business.rating}</span>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        리뷰 {business.reviews.toLocaleString()}개
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex space-x-3">
-                      <Button variant="outline" size="sm">
-                        <Phone className="w-4 h-4 mr-1" />
-                        전화
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        길찾기
-                      </Button>
-                    </div>
-                    <Button variant="link" size="sm" className="text-blue-600">
-                      홈페이지 방문 →
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Card>
+      <div className="max-w-3xl mx-auto px-4">
+        <div className="-mx-4 px-4 pt-3 flex gap-2 overflow-x-auto scrollbar-hide sm:flex-wrap" style={{ scrollbarWidth: 'none' }}>
+          {regions.map((r) => (
+            <button
+              key={r}
+              onClick={() => setRegion(r)}
+              className={`shrink-0 px-3.5 h-9 rounded-full text-[14.5px] whitespace-nowrap border ${r === region ? 'bg-gray-900 border-gray-900 text-white font-semibold' : 'bg-white border-gray-200 text-gray-700'}`}
+            >
+              {r}
+            </button>
           ))}
         </div>
+        <p className="pt-3 text-[13.5px] text-gray-500">
+          {region}{category !== '전체' && ` · ${category}`} · 업체 {shown.length}곳
+        </p>
 
-        {filteredBusinesses.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">검색 결과가 없습니다.</p>
+        {shown.map((b) => <BusinessRow key={b.name + b.address} b={b} />)}
+
+        {shown.length === 0 && (
+          <div className="py-16 text-center">
+            <p className="text-[16px] font-semibold text-gray-800">
+              {term ? `"${term}" 검색 결과가 없어요.` : `${region}${category !== '전체' ? ` ${category}` : ''} 업체는 아직 등록 전이에요.`}
+            </p>
+            {!term && region !== ALL && (
+              <button onClick={() => setRegion(ALL)} className="mt-4 px-4 h-10 rounded-full border border-gray-300 text-[14.5px] text-gray-700">
+                전체 지역 업체 보기
+              </button>
+            )}
           </div>
         )}
       </div>

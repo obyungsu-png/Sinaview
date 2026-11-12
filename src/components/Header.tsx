@@ -366,9 +366,9 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
           </div>
         </div>
 
-        {/* Service Navigation - 모바일: 5칸 2줄로 한눈에, 데스크탑: 한 줄 */}
+        {/* Service Navigation - 모바일: 5개씩 2줄, 줄마다 간격을 고르게 / 데스크탑: 한 줄 */}
         <nav className="mt-2 sm:mt-4">
-          <div className="sv-keep grid grid-cols-[repeat(5,auto)] justify-between items-center gap-y-0.5 p-1 rounded-xl bg-gray-50 border border-gray-100 text-[13px] max-[359px]:text-[11.5px] sm:flex sm:justify-start sm:gap-y-0 sm:space-x-8 sm:p-0 sm:pb-1.5 sm:rounded-none sm:bg-transparent sm:border-0 sm:text-base sm:overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="sv-keep flex flex-wrap justify-between items-center gap-y-0.5 py-1 px-1.5 rounded-xl bg-gray-50 border border-gray-100 text-[13px] max-[359px]:text-[11.5px] sm:flex-nowrap sm:justify-start sm:gap-y-0 sm:space-x-8 sm:p-0 sm:pb-1.5 sm:rounded-none sm:bg-transparent sm:border-0 sm:text-base sm:overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button 
               onClick={() => navTab('visa', 'visa-documents', 'visa-documents-mobile')}
               className={navItem}
@@ -405,6 +405,8 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
             >
               중국소식
             </button>
+            {/* 휴대폰: 여기서 줄바꿈 (윗줄 5개 · 아랫줄 5개) */}
+            <span className="basis-full h-0 sm:hidden" aria-hidden />
             <button 
               onClick={() => navTab('market', 'used-market', 'used-market-mobile')}
               className={navItem}

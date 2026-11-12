@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Search, Filter, Heart, MessageCircle, Share2, Eye } from 'lucide-react';
-import { Card } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
+import { ArrowLeft, Search, X, Heart, MessageCircle, Eye, PenLine } from 'lucide-react';
 
 interface BlogPageProps {
   onBack: () => void;
@@ -11,6 +8,7 @@ interface BlogPageProps {
 export function BlogPage({ onBack }: BlogPageProps) {
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const categories = ['전체', '여행', '일상', '요리', '문화', '비즈니스', '교육', '기술'];
 
@@ -36,7 +34,7 @@ export function BlogPage({ onBack }: BlogPageProps) {
       category: "문화",
       author: "티마스터",
       time: "4시간 전",
-      image: "https://images.unsplash.com/photo-1563822249366-9c07e51a506a?w=400&h=250&fit=crop",
+      image: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=400&h=250&fit=crop",
       likes: 567,
       comments: 45,
       views: 8920,
@@ -64,7 +62,7 @@ export function BlogPage({ onBack }: BlogPageProps) {
       category: "요리",
       author: "마라탕마니아",
       time: "8시간 전",
-      image: "https://images.unsplash.com/photo-1606956916955-8eaae20ec43b?w=400&h=250&fit=crop",
+      image: "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&h=250&fit=crop",
       likes: 2145,
       comments: 156,
       views: 28790,
@@ -107,186 +105,98 @@ export function BlogPage({ onBack }: BlogPageProps) {
      post.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const popular = blogPosts.filter(post => post.isPopular).slice(0, 3);
+
+  // 게시판 목록과 같은 구성: 위 흰 바(← 제목 · 검색 · 글쓰기) → 분류 밑줄 탭 → 인기 글 → 글 목록
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center space-x-1 sm:space-x-4 shrink-0">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={onBack}
-                className="mr-2"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 whitespace-nowrap">뷰(VIEW)</h1>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0 justify-end">
-              <div className="relative flex-1 min-w-0 sm:flex-none">
-                <Input
-                  type="text"
-                  placeholder="블로그 검색..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full sm:w-64 pl-10"
-                />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              </div>
-              <Button className="shrink-0 bg-green-600 hover:bg-green-700">
-                글쓰기
-              </Button>
-            </div>
+    <div className="min-h-screen bg-white pb-24">
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200">
+        <div className="max-w-3xl mx-auto h-[52px] px-2 flex items-center gap-1">
+          <button onClick={onBack} aria-label="홈으로" className="p-2 text-gray-800">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="flex-1 min-w-0 text-[19px] font-bold text-gray-900 whitespace-nowrap truncate">뷰 (View)</h1>
+          <button onClick={() => { setSearchOpen(v => !v); if (searchOpen) setSearchTerm(''); }} aria-label="검색" className="p-2 text-gray-700">
+            {searchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
+          </button>
+          <button onClick={() => alert('글쓰기는 준비 중이에요.')} className="mr-1.5 flex items-center gap-1 px-3.5 h-9 rounded-full bg-[#03a94d] text-white text-[14.5px] font-semibold">
+            <PenLine className="w-4 h-4" /> 글쓰기
+          </button>
+        </div>
+        {searchOpen && (
+          <div className="max-w-3xl mx-auto px-4 pb-2.5">
+            <input
+              autoFocus
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="제목, 내용 검색"
+              className="w-full h-10 px-4 rounded-full bg-gray-100 text-[16px] outline-none focus:ring-2 focus:ring-[#03a94d]/40"
+            />
           </div>
+        )}
+        <div className="max-w-3xl mx-auto flex gap-5 overflow-x-auto scrollbar-hide px-4" style={{ scrollbarWidth: 'none' }}>
+          {categories.map((c) => (
+            <button
+              key={c}
+              onClick={() => setSelectedCategory(c)}
+              className={`shrink-0 py-2.5 text-[15.5px] whitespace-nowrap border-b-2 -mb-px ${c === selectedCategory ? 'border-gray-900 text-gray-900 font-bold' : 'border-transparent text-gray-500'}`}
+            >
+              {c}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Popular Posts */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">인기 게시물</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {blogPosts.filter(post => post.isPopular).slice(0, 3).map((post) => (
-              <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-                <img 
-                  src={post.image} 
-                  alt={post.title}
-                  className="w-full h-20 object-cover"
-                />
-                <div className="p-4">
-                  <span className="bg-red-100 text-red-700 px-2 py-1 text-xs font-bold rounded mb-2 inline-block">
-                    인기
-                  </span>
-                  <h3 className="font-medium text-sm mb-2 line-clamp-2">
-                    {post.title}
-                  </h3>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>{post.author}</span>
-                    <div className="flex items-center space-x-2">
-                      <span className="flex items-center">
-                        <Heart className="w-3 h-3 mr-1" />
-                        {post.likes}
-                      </span>
-                      <span className="flex items-center">
-                        <Eye className="w-3 h-3 mr-1" />
-                        {post.views.toLocaleString()}
-                      </span>
-                    </div>
+      <div className="max-w-3xl mx-auto px-4">
+        {/* 인기 글: 휴대폰은 옆으로 넘김, PC는 3칸 */}
+        {selectedCategory === '전체' && !searchTerm && (
+          <section className="pt-4">
+            <h2 className="text-[18px] font-bold text-gray-900">인기 글</h2>
+            <div className="mt-2.5 -mx-4 px-4 flex gap-3 overflow-x-auto scrollbar-hide sm:grid sm:grid-cols-3 sm:overflow-visible" style={{ scrollbarWidth: 'none' }}>
+              {popular.map((post) => (
+                <div key={post.id} className="shrink-0 w-[70%] sm:w-auto">
+                  <img src={post.image} alt="" loading="lazy" className="w-full aspect-[16/10] object-cover rounded-lg bg-gray-100" />
+                  <h3 className="mt-2 text-[15.5px] font-semibold text-gray-900 leading-snug line-clamp-2">{post.title}</h3>
+                  <div className="mt-1 flex items-center gap-1.5 text-[13px] text-gray-500 min-w-0">
+                    <span className="truncate">{post.author}</span>
+                    <span className="shrink-0 text-gray-300">·</span>
+                    <span className="shrink-0 flex items-center gap-0.5"><Heart className="w-3.5 h-3.5" />{post.likes.toLocaleString()}</span>
                   </div>
                 </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Category Filters */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">카테고리</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(category)}
-                className={selectedCategory === category ? "bg-green-600 hover:bg-green-700" : ""}
-              >
-                {category}
-              </Button>
-            ))}
-          </div>
-          <div className="mt-2 text-sm text-gray-600">
-            총 {filteredPosts.length}개 게시물
-          </div>
-        </div>
-
-        {/* Blog Posts List */}
-        <div className="space-y-6">
-          {filteredPosts.map((post) => (
-            <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="md:flex">
-                <div className="md:w-1/6">
-                  <img 
-                    src={post.image} 
-                    alt={post.title}
-                    className="w-full h-28 md:h-full object-cover"
-                  />
-                </div>
-                <div className="md:w-5/6 p-6">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 text-xs font-medium rounded">
-                      {post.category}
-                    </span>
-                    {post.isPopular && (
-                      <span className="bg-red-100 text-red-700 px-2 py-1 text-xs font-bold rounded">인기</span>
-                    )}
-                  </div>
-                  
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {post.title}
-                  </h3>
-                  
-                  <p className="text-gray-600 mb-3 line-clamp-3">
-                    {post.description}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {post.tags.slice(0, 3).map((tag, index) => (
-                      <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 text-xs rounded">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>{post.author}</span>
-                      <span>{post.time}</span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-3 text-sm text-gray-500">
-                        <button className="flex items-center space-x-1 hover:text-red-500">
-                          <Heart className="w-4 h-4" />
-                          <span>{post.likes.toLocaleString()}</span>
-                        </button>
-                        <button className="flex items-center space-x-1 hover:text-blue-500">
-                          <MessageCircle className="w-4 h-4" />
-                          <span>{post.comments}</span>
-                        </button>
-                        <button className="flex items-center space-x-1 hover:text-green-500">
-                          <Share2 className="w-4 h-4" />
-                        </button>
-                        <span className="flex items-center space-x-1">
-                          <Eye className="w-4 h-4" />
-                          <span>{post.views.toLocaleString()}</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {filteredPosts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">검색 결과가 없습니다.</p>
-          </div>
+              ))}
+            </div>
+          </section>
         )}
 
-        {/* Load More */}
-        {filteredPosts.length > 0 && (
-          <div className="text-center mt-8">
-            <Button variant="outline" className="px-8">
-              더 많은 게시물 보기
-            </Button>
+        <p className="pt-5 text-[13.5px] text-gray-500">
+          {selectedCategory === '전체' ? '전체 글' : selectedCategory}{searchTerm && ` · "${searchTerm}" 검색`} · {filteredPosts.length}개
+        </p>
+
+        {filteredPosts.map((post) => (
+          <div key={post.id} className="flex gap-3 py-4 border-b border-gray-100 last:border-b-0">
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] text-[#03a94d] font-semibold">
+                {post.category}{post.isPopular && <span className="ml-1.5 text-red-500">인기</span>}
+              </div>
+              <h3 className="mt-0.5 text-[16.5px] font-semibold text-gray-900 leading-snug line-clamp-2">{post.title}</h3>
+              <p className="mt-1 text-[14.5px] text-gray-600 leading-snug line-clamp-2">{post.description}</p>
+              <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-gray-500 min-w-0">
+                <span className="min-w-[4.5em] truncate">{post.author}</span>
+                <span className="shrink-0 text-gray-300">·</span>
+                <span className="shrink-0">{post.time}</span>
+                <span className="shrink-0 text-gray-300">·</span>
+                <span className="shrink-0 flex items-center gap-0.5"><Heart className="w-3.5 h-3.5" />{post.likes.toLocaleString()}</span>
+                <span className="shrink-0 hidden sm:flex items-center gap-0.5"><MessageCircle className="w-3.5 h-3.5" />{post.comments}</span>
+                <span className="shrink-0 hidden sm:flex items-center gap-0.5"><Eye className="w-3.5 h-3.5" />{post.views.toLocaleString()}</span>
+              </div>
+            </div>
+            <img src={post.image} alt="" loading="lazy" className="shrink-0 w-[96px] h-[72px] sm:w-[140px] sm:h-[96px] object-cover rounded-lg bg-gray-100" />
           </div>
+        ))}
+
+        {filteredPosts.length === 0 && (
+          <p className="py-16 text-center text-[15px] text-gray-500">검색 결과가 없어요.</p>
         )}
       </div>
     </div>
