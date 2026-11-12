@@ -3,9 +3,11 @@ import { Card } from './ui/card';
 
 interface RegionalNewsWidgetProps {
   onMoreClick?: () => void;
+  /** 휴대폰 홈: 지역은 가로로 넘기는 한 줄 탭, 소식은 게시판 목록과 같은 줄 모양 */
+  variant?: 'mobile';
 }
 
-export function RegionalNewsWidget({ onMoreClick }: RegionalNewsWidgetProps) {
+export function RegionalNewsWidget({ onMoreClick, variant }: RegionalNewsWidgetProps) {
   const [activeRegion, setActiveRegion] = useState('대련');
   const [userRegion, setUserRegion] = useState('');
 
@@ -191,6 +193,55 @@ export function RegionalNewsWidget({ onMoreClick }: RegionalNewsWidgetProps) {
   };
 
   const currentNews = regionalNews[activeRegion] || regionalNews['대련'];
+
+  if (variant === 'mobile') {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200">
+        <div className="px-4 pt-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-[18px] font-bold text-gray-900">
+            지역 소식
+            <span className="px-2 py-0.5 bg-red-50 text-red-600 text-[12px] font-bold rounded-full">HOT</span>
+          </h2>
+          <button onClick={onMoreClick} className="flex items-center text-[14px] text-gray-500">
+            더보기 <span className="ml-0.5">›</span>
+          </button>
+        </div>
+        {/* 지역: 가로로 넘기는 밑줄 탭 (게시판 목록과 같은 모양) */}
+        <div className="mt-1 flex gap-5 overflow-x-auto scrollbar-hide px-4 border-b border-gray-100" style={{ scrollbarWidth: 'none' }}>
+          {sortedRegions.map((region) => (
+            <button
+              key={region.id}
+              onClick={() => setActiveRegion(region.name)}
+              className={`shrink-0 py-2.5 text-[15.5px] whitespace-nowrap border-b-2 -mb-px ${
+                activeRegion === region.name ? 'border-gray-900 text-gray-900 font-bold' : 'border-transparent text-gray-500'
+              }`}
+            >
+              {region.name}
+            </button>
+          ))}
+        </div>
+        <div className="px-4">
+          {currentNews.slice(0, 3).map((news) => (
+            <div key={news.id} className="py-3.5 border-b border-gray-100 last:border-b-0">
+              <h3 className="text-[16px] font-semibold text-gray-900 leading-snug line-clamp-2 break-keep">{news.title}</h3>
+              <div className="mt-1.5 flex items-center gap-1.5 text-[13.5px] text-gray-500">
+                <span className="text-[#03a94d] font-medium">{news.category}</span>
+                <span className="text-gray-300">·</span>
+                <span>{activeRegion}</span>
+                <span className="text-gray-300">·</span>
+                <span>{news.date}</span>
+                <span className="text-gray-300">·</span>
+                <span>조회 {news.views.toLocaleString()}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button onClick={onMoreClick} className="w-full py-3.5 border-t border-gray-100 text-[15px] text-gray-600">
+          지역 소식 더보기 ›
+        </button>
+      </div>
+    );
+  }
 
   return (
     <Card className="p-4 gap-2 lg:gap-6">

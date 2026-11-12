@@ -35,14 +35,14 @@ const SHOW_ADS = false;
 
 /* 서비스 아이콘 8개 - PC와 같은 단색 라인 아이콘 */
 const SERVICE_ICONS = [
-  {id:'visa',       label:'비자/서류',     Icon:FileText,      tab:'visa'},
-  {id:'education',  label:'교육',          Icon:GraduationCap, tab:'education'},
-  {id:'yellow',     label:'엘로우 페이지', Icon:BookOpen,      tab:'yellow'},
-  {id:'auto',       label:'자동차',        Icon:Car,           tab:'auto'},
-  {id:'market',     label:'중고장터',      Icon:ShoppingBag,   tab:'market'},
-  {id:'securities', label:'증권',          Icon:TrendingUp,    tab:'securities'},
-  {id:'realestate', label:'부동산',        Icon:Building2,     tab:'realestate'},
-  {id:'community',  label:'게시판',        Icon:MessageCircle, tab:'community', page:'chinalife'},
+  {id:'visa',       label:'비자/서류',     Icon:FileText,      tab:'visa',       tone:'bg-blue-50 text-blue-600'},
+  {id:'education',  label:'교육',          Icon:GraduationCap, tab:'education',  tone:'bg-indigo-50 text-indigo-600'},
+  {id:'yellow',     label:'엘로우 페이지', Icon:BookOpen,      tab:'yellow',     tone:'bg-amber-50 text-amber-600'},
+  {id:'auto',       label:'자동차',        Icon:Car,           tab:'auto',       tone:'bg-sky-50 text-sky-600'},
+  {id:'market',     label:'중고장터',      Icon:ShoppingBag,   tab:'market',     tone:'bg-orange-50 text-orange-600'},
+  {id:'securities', label:'증권',          Icon:TrendingUp,    tab:'securities', tone:'bg-rose-50 text-rose-600'},
+  {id:'realestate', label:'부동산',        Icon:Building2,     tab:'realestate', tone:'bg-emerald-50 text-emerald-600'},
+  {id:'community',  label:'게시판',        Icon:MessageCircle, tab:'community', page:'chinalife', tone:'bg-purple-50 text-purple-600'},
 ];
 
 /* 주요 서비스 - PC 우측/하단 영역과 같은 구성 */
@@ -282,7 +282,7 @@ export function MobileHome({
           {/* ─ 지역 소식 (PC와 같은 위젯) ─ */}
           <div className="mx-3 mb-3">
             <Suspense fallback={<Spinner/>}>
-              <RegionalNewsWidget onMoreClick={()=>goContent('news',null)}/>
+              <RegionalNewsWidget variant="mobile" onMoreClick={()=>goContent('news',null)}/>
             </Suspense>
           </div>
 
@@ -531,18 +531,18 @@ export function MobileHome({
   );
 }
 
-/* ── 서비스 아이콘 (PC 카드와 같은 흰 배경 + 단색 아이콘) ── */
+/* ── 서비스 아이콘 (색 있는 아이콘 + 진한 이름, 한눈에 구분) ── */
 function ServiceIconGrid({onSelect}) {
   return (
-    <div className="bg-white mx-3 mb-3 rounded-xl border border-gray-200 py-4 px-1">
-      <div className="grid grid-cols-4 gap-y-4">
+    <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-200 pt-4 pb-3 px-1">
+      <div className="grid grid-cols-4 gap-y-3.5">
         {SERVICE_ICONS.map(svc=>(
           <button key={svc.id} onClick={()=>onSelect(svc.tab, svc.page)}
-            className="flex flex-col items-center gap-1.5 min-w-0 px-1 group">
-            <span className="w-11 h-11 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center group-active:bg-teal-50">
-              <svc.Icon className="w-5 h-5 text-gray-700 group-active:text-teal-600" strokeWidth={1.6}/>
+            className="flex flex-col items-center gap-1.5 min-w-0 px-0.5 group">
+            <span className={`w-12 h-12 rounded-2xl flex items-center justify-center group-active:scale-95 transition-transform ${svc.tone}`}>
+              <svc.Icon className="w-6 h-6" strokeWidth={1.8}/>
             </span>
-            <span className="text-[11px] text-gray-700 whitespace-nowrap tracking-tight">{svc.label}</span>
+            <span className="text-[13.5px] font-medium text-gray-800 whitespace-nowrap tracking-tight">{svc.label}</span>
           </button>
         ))}
       </div>
@@ -550,20 +550,23 @@ function ServiceIconGrid({onSelect}) {
   );
 }
 
-/* ── 주요 서비스 (PC 섹션 카드 스타일) ── */
+/* ── 주요 서비스 (한 줄씩: 아이콘 · 이름 · 설명 · › — 글자가 잘리지 않게) ── */
 function MainServices({onSelect}) {
   return (
-    <div className="bg-white mx-3 mb-3 rounded-xl border border-gray-200 p-4">
-      <h2 className="text-[15px] font-semibold text-gray-900 mb-2">주요 서비스</h2>
-      <div className="grid grid-cols-2 gap-2">
+    <div className="bg-white mx-3 mb-3 rounded-2xl border border-gray-200 pt-4 pb-1">
+      <h2 className="px-4 text-[18px] font-bold text-gray-900 mb-1">주요 서비스</h2>
+      <div className="px-4 divide-y divide-gray-100">
         {MAIN_SERVICES.map(item=>(
           <button key={item.tab} onClick={()=>onSelect(item.tab, null)}
-            className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-100 text-left hover:bg-gray-50 active:bg-gray-100">
-            <item.Icon className="w-5 h-5 text-teal-600 shrink-0" strokeWidth={1.6}/>
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-gray-900 truncate">{item.title}</span>
-              <span className="block text-[11px] text-gray-400 truncate">{item.sub}</span>
+            className="w-full flex items-center gap-3 py-3 text-left active:bg-gray-50">
+            <span className="shrink-0 w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
+              <item.Icon className="w-5 h-5 text-teal-600" strokeWidth={1.8}/>
             </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[16px] font-semibold text-gray-900 leading-snug">{item.title}</span>
+              <span className="block text-[13.5px] text-gray-500 leading-snug truncate">{item.sub}</span>
+            </span>
+            <ChevronRight className="shrink-0 w-5 h-5 text-gray-300"/>
           </button>
         ))}
       </div>

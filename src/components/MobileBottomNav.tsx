@@ -22,26 +22,27 @@ export function MobileBottomNav({ active, onSelect }: MobileBottomNavProps) {
   return (
     <>
       {/* 바에 가려지지 않도록 화면 맨 아래 여백 */}
-      <div className="h-16 lg:hidden" aria-hidden />
+      <div className="h-[68px] lg:hidden" aria-hidden />
       <nav
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-200"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -1px 10px rgba(0,0,0,0.06)' }}
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -2px 12px rgba(0,0,0,0.06)' }}
       >
-        <div className="flex items-stretch max-w-lg mx-auto h-14">
+        <div className="flex items-stretch max-w-lg mx-auto h-[62px]">
           {TABS.map(t => {
             const on = active === t.id;
-            // 게시판은 상단 메뉴처럼 보라색으로 강조
-            const color = on ? 'text-teal-600' : t.id === 'board' ? 'text-purple-600' : 'text-gray-500';
+            // 게시판은 상단 메뉴처럼 보라색 (선택된 탭은 초록 + 아이콘 뒤 동그란 배경으로 확실히 구분)
+            const tone = on ? 'text-teal-700' : t.id === 'board' ? 'text-purple-600' : 'text-gray-600';
             return (
               <button
                 key={t.id}
                 onClick={() => onSelect(t.id)}
                 aria-current={on ? 'page' : undefined}
-                className="relative flex-1 flex flex-col items-center justify-center gap-0.5"
+                className="flex-1 flex flex-col items-center justify-center gap-0.5 active:bg-gray-50"
               >
-                <t.Icon className={`w-5 h-5 ${on ? 'text-teal-600' : t.id === 'board' ? 'text-purple-500' : 'text-gray-400'}`} strokeWidth={on ? 2.2 : 1.7} />
-                <span className={`text-[10.5px] ${color} ${on || t.id === 'board' ? 'font-semibold' : ''}`}>{t.label}</span>
-                {on && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-teal-500" />}
+                <span className={`flex items-center justify-center w-14 h-8 rounded-full transition-colors ${on ? 'bg-teal-50' : ''}`}>
+                  <t.Icon className={`w-[23px] h-[23px] ${tone}`} strokeWidth={on ? 2.3 : 1.9} />
+                </span>
+                <span className={`text-[12.5px] leading-none ${tone} ${on ? 'font-bold' : 'font-medium'}`}>{t.label}</span>
               </button>
             );
           })}

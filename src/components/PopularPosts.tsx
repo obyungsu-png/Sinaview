@@ -15,14 +15,14 @@ export function PopularPosts({ onPostClick, onMoreClick, limit = 5 }: PopularPos
     .slice(0, limit);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="flex items-center gap-1.5 text-[15px] lg:text-lg font-semibold text-gray-900">
-          <Flame className="w-4 h-4 lg:w-5 lg:h-5 text-red-500" />
+    <div className="bg-white rounded-2xl lg:rounded-xl border border-gray-200 px-4 pt-4 pb-1.5 lg:p-4">
+      <div className="flex items-center justify-between mb-1 lg:mb-2">
+        <h2 className="flex items-center gap-1.5 text-[18px] font-bold lg:font-semibold text-gray-900">
+          <Flame className="w-5 h-5 text-red-500" />
           인기글
         </h2>
-        <button onClick={onMoreClick} className="flex items-center text-[12px] lg:text-sm text-gray-500 hover:text-gray-700">
-          게시판 <ChevronRight className="w-3.5 h-3.5" />
+        <button onClick={onMoreClick} className="flex items-center text-[14px] lg:text-sm text-gray-500 hover:text-gray-700">
+          게시판 <ChevronRight className="w-4 h-4" />
         </button>
       </div>
       <ol className="divide-y divide-gray-100">
@@ -30,14 +30,24 @@ export function PopularPosts({ onPostClick, onMoreClick, limit = 5 }: PopularPos
           <li key={post.id}>
             <button
               onClick={() => onPostClick(post.id)}
-              className="w-full flex items-center gap-2.5 py-2 text-left group"
+              className="w-full flex items-start lg:items-center gap-3 lg:gap-2.5 py-3 lg:py-2 text-left group active:bg-gray-50"
             >
-              <span className={`w-4 shrink-0 text-center text-[13px] font-bold ${i < 3 ? 'text-red-500' : 'text-gray-400'}`}>{i + 1}</span>
-              <span className="flex-1 min-w-0 truncate text-[13px] lg:text-sm text-gray-900 group-hover:text-blue-600">
-                {post.title}
-                {post.comments > 0 && <span className="ml-1 text-blue-600">[{post.comments}]</span>}
+              <span className={`w-5 lg:w-4 shrink-0 text-center text-[17px] lg:text-[13px] font-bold leading-snug ${i < 3 ? 'text-red-500' : 'text-gray-400'}`}>{i + 1}</span>
+              <span className="flex-1 min-w-0">
+                {/* 휴대폰: 제목은 한 줄 전체 폭, 추천·댓글·조회는 아랫줄 */}
+                <span className="block truncate text-[16px] lg:text-sm font-medium lg:font-normal text-gray-900 leading-snug group-hover:text-blue-600">
+                  {post.title}
+                  {post.comments > 0 && <span className="ml-1 text-blue-600">[{post.comments}]</span>}
+                </span>
+                <span className="lg:hidden mt-1 flex items-center gap-1.5 text-[13.5px] text-gray-500">
+                  <span className="text-purple-600 font-medium">{post.category}</span>
+                  <span className="text-gray-300">·</span>
+                  <span>추천 {post.likes}</span>
+                  <span className="text-gray-300">·</span>
+                  <span>조회 {post.views.toLocaleString()}</span>
+                </span>
               </span>
-              <span className="shrink-0 text-[11px] lg:text-xs text-gray-400">추천 {post.likes}</span>
+              <span className="hidden lg:inline shrink-0 text-xs text-gray-400">추천 {post.likes}</span>
             </button>
           </li>
         ))}
