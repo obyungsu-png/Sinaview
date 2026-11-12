@@ -49,6 +49,13 @@ function loadData() {
   }
   return pending;
 }
+/** 운전면허 화면이 열리면 미리 불러 둠 — 학법 감점 탭을 누르면 바로 뜨게 */
+export function preloadXuefa() {
+  loadData().catch(() => {});
+}
+// 데이터가 오기 전 첫 화면에 쓰는 숫자 (불러온 뒤에는 실제 값으로 바뀜)
+const XF_SUMMARY = { questions: 876, exams: 29, cards: 21 };
+
 function useXfData() {
   const [data, setData] = useState<XfData | null>(cache);
   const [failed, setFailed] = useState(false);
@@ -104,7 +111,24 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
     if (data?.imgSize) registerImageSizes(data.imgSize);
   }, [data]);
 
-  if (!data) return <LoadingState failed={failed} onBack={onBack} />;
+  // 첫 화면은 데이터 없이 바로 보여 주고, 문제가 필요한 화면만 불러오기를 기다림
+  if (!data) return view.mode === 'home' ? <XfHome data={null} onBack={onBack} onGo={setView} /> : <LoadingState failed={failed} onBack={() => setView({ mode: 'home' })} />;
+  if (view.mode === 'quizAll') {
+    // 데이터가 오기 전에 '전체 순서대로 풀기'를 눌렀던 경우
+    const ordered = [...data.questions].sort((a, b) => a.c - b.c || a.id - b.id);
+    return (
+      <PracticeQuiz
+        key="xf-all"
+        questions={ordered}
+        title={`법규학습은행 ${ordered.length}문제 (순서대로)`}
+        breadcrumb={BREADCRUMB}
+        storageKey={ALL_KEY}
+        onBack={() => setView({ mode: 'bank' })}
+        backLabel="법규학습은행으로 돌아가기"
+        onReviewWrong={() => setView({ mode: 'wrong', title: '틀린 문제', pool: ordered })}
+      />
+    );
+  }
 
   const go = (next: View) => setView(next);
   const byId = new Map<number, XfQ>(
@@ -209,6 +233,7 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
 
 type View =
   | { mode: 'home' }
+  | { mode: 'quizAll' }
   | { mode: 'cards' }
   | { mode: 'bank' }
   | { mode: 'exams' }
@@ -226,18 +251,20 @@ const CANNOT: string[] = [
   '최근 3주기 안에 사고 후 도주·음주 운전·가짜 번호판·면허증 사용으로 처리된 사람',
 ];
 
-function XfHome({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo: (view: View) => void }) {
-  const ordered = useMemo(() => [...data.questions].sort((a, b) => a.c - b.c || a.id - b.id), [data]);
+function XfHome({ data, onBack, onGo }: { data: XfData | null; onBack: () => void; onGo: (view: View) => void }) {
+  const ordered = useMemo(() => (data ? [...data.questions].sort((a, b) => a.c - b.c || a.id - b.id) : []), [data]);
+  const cardCount = data?.cards.length ?? XF_SUMMARY.cards;
+  const examCount = data?.exams.length ?? XF_SUMMARY.exams;
   const cardsDone = getProgress<{ done: number[] }>(CARDS_KEY)?.done.length ?? 0;
   const cardsChecked = checkedCount('xf:');
   const solved = solvedOf(ALL_KEY);
-  const total = ordered.length;
+  const total = data ? ordered.length : XF_SUMMARY.questions;
   const wrong = getWrongMap();
   const wrongCount = ordered.filter((q) => q.id in wrong).length;
   const examBest = (() => {
     const results = getMockResults<MockResult>();
     let best = 0;
-    for (let i = 1; i <= data.exams.length; i++) best = Math.max(best, results[`xf2-exam${i}`]?.best ?? 0);
+    for (let i = 1; i <= examCount; i++) best = Math.max(best, results[`xf2-exam${i}`]?.best ?? 0);
     return best;
   })();
   const pct = (n: number, t: number) => (t ? Math.round((n / t) * 100) : 0);
@@ -248,13 +275,13 @@ function XfHome({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
       title: '핵심 정리 카드',
       when: '먼저',
       desc: '벌점 기준부터 학법 감점 규칙, 처벌·면허·고속도로·등화·사고 처리까지 꼭 나오는 규칙을 중국어 시험 표현으로 정리했어요.',
-      progress: pct(cardsDone, data.cards.length),
-      status: `${cardsDone}/${data.cards.length}장 외움 · 체크 ${cardsChecked}/${data.cards.length}장`,
+      progress: pct(cardsDone, cardCount),
+      status: `${cardsDone}/${cardCount}장 외움 · 체크 ${cardsChecked}/${cardCount}장`,
       actions: [{ label: '카드 보기', cls: btn.primary, onClick: () => onGo({ mode: 'cards' }) }],
     },
     {
       no: 2,
-      title: `실전 고사 (${data.exams.length}회 × ${EXAM_SIZE}문제)`,
+      title: `실전 고사 (${examCount}회 × ${EXAM_SIZE}문제)`,
       when: '그다음',
       desc: '실제 앱 시험과 같은 방식이에요. 회차마다 판단 5 · 단선 10 · 다선 5문제, 사진 문제 5~7장. 문제당 60초, 오답 3개 누적 시 자동 불합격.',
       progress: examBest ? Math.min(100, Math.round((examBest / EXAM_SIZE) * 100)) : 0,
@@ -273,7 +300,8 @@ function XfHome({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
         {
           label: solved > 0 && solved < total ? `전체 이어서 풀기 (${solved}/${total})` : '전체 순서대로 풀기',
           cls: btn.plain,
-          onClick: () => onGo({ mode: 'quiz', title: `법규학습은행 ${total}문제 (순서대로)`, questions: ordered, storageKey: ALL_KEY, pool: ordered, key: Date.now() }),
+          onClick: () =>
+            onGo(data ? { mode: 'quiz', title: `법규학습은행 ${total}문제 (순서대로)`, questions: ordered, storageKey: ALL_KEY, pool: ordered, key: Date.now() } : { mode: 'quizAll' }),
         },
         ...(wrongCount > 0 ? [{ label: `틀린 문제만 (${wrongCount})`, cls: btn.danger, onClick: () => onGo({ mode: 'wrong', title: '틀린 문제', pool: ordered }) }] : []),
       ],

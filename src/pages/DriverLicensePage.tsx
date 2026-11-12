@@ -13,8 +13,8 @@ import {
 } from '../components/DriverLicenseQuiz';
 import { RETENTION_DAYS, startDriverLicenseSync, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
 import { EXAM_GUIDE } from '../data/driverLicenseGuide';
-import { FullScorePage } from '../components/DriverLicenseFullScore';
-import { XuefaPage } from '../components/DriverLicenseXuefa';
+import { FullScorePage, preloadFullScore } from '../components/DriverLicenseFullScore';
+import { XuefaPage, preloadXuefa } from '../components/DriverLicenseXuefa';
 
 interface DriverLicensePageProps {
   onBack: () => void;
@@ -261,6 +261,16 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
   useEffect(() => {
     startDriverLicenseSync();
   }, []);
+  // 만점 교육·학법 감점 문제 데이터를 화면이 뜬 뒤 쉬는 틈에 미리 받아 둠 (탭을 누르면 바로 뜨게)
+  useEffect(() => {
+    const idle = (cb: () => void) =>
+      'requestIdleCallback' in window ? (window as Window & { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(cb) : window.setTimeout(cb, 1);
+    const timer = window.setTimeout(() => idle(() => {
+      preloadFullScore();
+      preloadXuefa();
+    }), 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
   const sequentialStats = currentView === 'practice' ? readSequentialStats() : null;
   const correctPercent = sequentialStats ? Math.round((sequentialStats.correct / sequentialStats.total) * 100) : 0;
   const wrongPercent = sequentialStats ? Math.round((sequentialStats.wrong / sequentialStats.total) * 100) : 0;
@@ -367,12 +377,14 @@ export function DriverLicensePage({ onBack, onLoginClick }: DriverLicensePagePro
               필기시험
             </li>
             <li
+              onPointerDown={preloadFullScore}
               onClick={() => setCurrentView('fullscore')}
               className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'fullscore' ? 'bg-blue-600' : ''}`}
             >
               만점 교육 <span lang="zh-CN" className="text-[12px] sm:text-[13px] opacity-80">满分教育</span>
             </li>
             <li
+              onPointerDown={preloadXuefa}
               onClick={() => setCurrentView('xuefa')}
               className={`shrink-0 whitespace-nowrap px-3.5 sm:px-6 text-[15px] sm:text-base leading-[50px] text-white font-medium cursor-pointer transition-colors hover:bg-blue-600 ${currentView === 'xuefa' ? 'bg-blue-600' : ''}`}
             >

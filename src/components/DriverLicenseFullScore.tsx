@@ -59,6 +59,13 @@ function loadData() {
   }
   return pending;
 }
+/** 운전면허 화면이 열리면 미리 불러 둠 — 만점 교육 탭을 누르면 바로 뜨게 */
+export function preloadFullScore() {
+  loadData().catch(() => {});
+}
+// 데이터가 오기 전 첫 화면에 쓰는 숫자 (불러온 뒤에는 실제 값으로 바뀜)
+const MJ_SUMMARY = { questions: 600, topics: 8 };
+
 function useMjData() {
   const [data, setData] = useState<MjData | null>(cache);
   const [failed, setFailed] = useState(false);
@@ -144,7 +151,8 @@ function FullScoreInner({ onBack }: { onBack: () => void }) {
     window.scrollTo({ top: 0 });
   }, [view.mode]);
 
-  if (!data) return <LoadingState failed={failed} onBack={onBack} />;
+  // 첫 화면(안내)은 데이터 없이 바로 보여 주고, 문제가 필요한 화면만 불러오기를 기다림
+  if (!data) return view.mode === 'home' ? <GuideHome data={null} onGo={setView} /> : <LoadingState failed={failed} onBack={() => setView({ mode: 'home' })} />;
 
   const go = (next: View) => setView(next);
   const byId = new Map(data.questions.map((q) => [q.id, q]));
@@ -284,11 +292,13 @@ const STEPS: { title: string; desc: string }[] = [
   { title: '면허 반환', desc: '합격 + 벌금 납부를 마치면 벌점이 지워지고 면허증을 돌려받음' },
 ];
 
-function GuideHome({ data, onGo }: { data: MjData; onGo: (view: View) => void }) {
+function GuideHome({ data, onGo }: { data: MjData | null; onGo: (view: View) => void }) {
+  const qCount = data?.questions.length ?? MJ_SUMMARY.questions;
+  const topicCount = data?.topics.length ?? MJ_SUMMARY.topics;
   const results = getMockResults<MockResult>();
   const best = Math.max(0, ...Object.entries(results).filter(([k]) => k.startsWith('mj-')).map(([, r]) => r.best));
   const cards = [
-    { view: { mode: 'topics' } as View, icon: 'fa-book-open', color: '#ff6b6b', title: '주제별 연습', desc: `만점 문제은행 ${data.questions.length}문제를\n${data.topics.length}개 주제로 나눠 연습` },
+    { view: { mode: 'topics' } as View, icon: 'fa-book-open', color: '#ff6b6b', title: '주제별 연습', desc: `만점 문제은행 ${qCount}문제를\n${topicCount}개 주제로 나눠 연습` },
     { view: { mode: 'mock' } as View, icon: 'fa-pen-to-square', color: '#37a7f0', title: '모의고사', desc: best ? `최고 ${best}점\n실제처럼 중국어 100문제 · 45분` : `회차별 ${SET_COUNT}회분 + 랜덤\n중국어 100문제 · 45분` },
     { view: { mode: 'fast' } as View, icon: 'fa-bolt', color: '#f39c12', title: '⚡ 속성 과정', desc: '핵심 정리 카드 → 전체 문제\n→ 시험 전날 실전 100문제', hot: true },
   ];
@@ -314,7 +324,7 @@ function GuideHome({ data, onGo }: { data: MjData; onGo: (view: View) => void })
         </div>
         <p className="text-sm sm:text-[15px] text-gray-700 leading-relaxed">
           1년(벌점 주기) 안에 벌점이 12점이 되면 면허증을 압수당하고, 7일 동안 만점 교육을 받은 뒤 이 시험에 합격해야 면허증을 돌려받습니다. 외국인도 이 시험은{' '}
-          <b>중국어로만</b> 볼 수 있어서, 여기 있는 만점 문제은행 {data.questions.length}문제는 모두 중국어 원문으로 나옵니다. <b>보기 단계</b>(1단계 한국어 → 2단계
+          <b>중국어로만</b> 볼 수 있어서, 여기 있는 만점 문제은행 {qCount}문제는 모두 중국어 원문으로 나옵니다. <b>보기 단계</b>(1단계 한국어 → 2단계
           중국어)로 한국어 도움을 줄여 가며 익히세요. 모의고사는 실제 시험처럼 중국어로만 나옵니다.
         </p>
       </div>
