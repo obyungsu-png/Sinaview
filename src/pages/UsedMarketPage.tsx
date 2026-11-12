@@ -1,9 +1,5 @@
-import { ArrowLeft, Package, MapPin, User, Heart, MessageCircle, Phone, Filter, Search } from 'lucide-react';
-import { Card } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { useState } from 'react';
+import { ArrowLeft, Package, Heart, Search, X } from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 interface UsedMarketPageProps {
@@ -118,214 +114,104 @@ export function UsedMarketPage({ onBack }: UsedMarketPageProps) {
 
   const categories = ["전체", "전자제품", "한국식품", "화장품", "생활용품"];
   const cities = ["전체", "베이징", "상하이", "광저우", "선전", "항저우", "난징"];
-  const deliveryOptions = ["전체", "순풍택배", "중통택배", "신다택배", "원통택배", "EMS"];
+  const [category, setCategory] = useState('전체');
+  const [city, setCity] = useState('전체');
+  const [term, setTerm] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const q = term.trim().toLowerCase();
+  const shown = marketItems.filter(
+    (item) =>
+      (category === '전체' || item.category === category) &&
+      (city === '전체' || item.location.startsWith(city)) &&
+      (!q || item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)),
+  );
 
+  // 게시판 목록과 같은 구성: 위 흰 바(← 제목 · 검색 · 판매하기) → 분류 밑줄 탭 → 지역 한 줄 → 상품 목록(사진 왼쪽)
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          {/* 휴대폰: 제목이 세로로 꺾이지 않게 줄바꿈 허용 + 제목은 한 줄 */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <Button 
-              onClick={onBack}
-              variant="ghost" 
-              size="sm"
-              className="flex items-center space-x-2"
+    <div className="min-h-screen bg-white pb-24">
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200">
+        <div className="max-w-3xl mx-auto h-[52px] px-2 flex items-center gap-1">
+          <button onClick={onBack} aria-label="홈으로" className="p-2 text-gray-800">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="flex-1 min-w-0 text-[19px] font-bold text-gray-900 whitespace-nowrap truncate">화개장터</h1>
+          <button onClick={() => { setSearchOpen((v) => !v); if (searchOpen) setTerm(''); }} aria-label="검색" className="p-2 text-gray-700">
+            {searchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
+          </button>
+          <button onClick={() => alert('판매 글 올리기는 준비 중이에요.')} className="mr-1.5 flex items-center gap-1 px-3.5 h-9 rounded-full bg-[#03c75a] text-white text-[14.5px] font-semibold">
+            <Package className="w-4 h-4" /> 판매하기
+          </button>
+        </div>
+        {searchOpen && (
+          <div className="max-w-3xl mx-auto px-4 pb-2.5">
+            <input
+              autoFocus
+              type="search"
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              placeholder="물품명, 브랜드 검색"
+              className="w-full h-10 px-4 rounded-full bg-gray-100 text-[16px] outline-none focus:ring-2 focus:ring-[#03c75a]/40"
+            />
+          </div>
+        )}
+        <div className="max-w-3xl mx-auto flex gap-5 overflow-x-auto scrollbar-hide px-4" style={{ scrollbarWidth: 'none' }}>
+          {categories.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCategory(c)}
+              className={`shrink-0 py-2.5 text-[15.5px] whitespace-nowrap border-b-2 -mb-px ${c === category ? 'border-gray-900 text-gray-900 font-bold' : 'border-transparent text-gray-500'}`}
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>메인으로</span>
-            </Button>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 whitespace-nowrap">화개장터</h1>
-            <div className="text-sm text-gray-500">
-              중국 거주 한국인 물품 교환 커뮤니티
-            </div>
-            <div className="text-xs text-gray-400 bg-gray-50 px-3 py-1 rounded-full inline-block mt-2">
-              <span className="font-medium">택배 옵션:</span> 순풍택배, 중통택배, 신다택배, 원통택배, EMS
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input 
-                placeholder="물품명, 브랜드명으로 검색..."
-                className="pl-10"
-              />
-            </div>
-            {/* 휴대폰: 고르기 칸이 화면 밖으로 밀리지 않게 줄바꿈 */}
-            <div className="flex flex-wrap gap-2">
-              <Select>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="카테고리" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select>
-                <SelectTrigger className="w-24">
-                  <SelectValue placeholder="지역" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cities.map(city => (
-                    <SelectItem key={city} value={city}>{city}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="택배사" />
-                </SelectTrigger>
-                <SelectContent>
-                  {deliveryOptions.map(option => (
-                    <SelectItem key={option} value={option}>{option}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button className="bg-green-600 hover:bg-green-700">
-                <Filter className="w-4 h-4 mr-2" />
-                검색
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="text-sm text-gray-600">
-            총 <span className="font-semibold text-green-600">1,247</span>개 상품
-          </div>
-          <Button className="bg-green-600 hover:bg-green-700">
-            <Package className="w-4 h-4 mr-2" />
-            판매하기
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {marketItems.map((item) => (
-            <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="relative">
-                <ImageWithFallback
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute top-3 left-3">
-                  <Badge variant={item.status === '예약중' ? 'secondary' : 'default'} className="text-xs">
-                    {item.status}
-                  </Badge>
-                </div>
-                <button className="absolute top-3 right-3 p-2 bg-white/80 rounded-full hover:bg-white">
-                  <Heart className="w-4 h-4 text-gray-600" />
-                </button>
-                <div className="absolute bottom-3 left-3">
-                  <Badge className="bg-blue-500 text-white text-xs">
-                    {item.category}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="p-4">
-                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                  {item.title}
-                </h3>
-                
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-xl font-bold text-green-600">{item.price}</span>
-                  <span className="text-sm text-gray-500 line-through">{item.originalPrice}</span>
-                </div>
-                
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                  {item.description}
-                </p>
-                
-                <div className="space-y-2 text-xs text-gray-500">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="w-3 h-3" />
-                      <span>{item.location}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Package className="w-3 h-3" />
-                      <span>{item.delivery}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1">
-                      <User className="w-3 h-3" />
-                      <span>{item.seller}</span>
-                      <span className="text-yellow-500">★{item.sellerRating}</span>
-                    </div>
-                    <span>{item.time}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-1">
-                        <Heart className="w-3 h-3" />
-                        <span>{item.likes}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <span>조회</span>
-                        <span>{item.views}</span>
-                      </div>
-                    </div>
-                    <div className="flex space-x-1">
-                      <Button size="sm" variant="outline" className="h-7 px-2">
-                        <MessageCircle className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 px-2">
-                        <Phone className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
+              {c}
+            </button>
           ))}
         </div>
-
-        <div className="flex justify-center mt-8">
-          <Button variant="outline" className="px-8">
-            더 많은 상품 보기
-          </Button>
-        </div>
       </div>
 
-      {/* Footer Info */}
-      <div className="bg-white border-t mt-12">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="text-center text-sm text-gray-600">
-            <p className="mb-2 font-semibold">화개장터 이용 안내</p>
-            <p className="text-xs text-gray-400 mb-4">
-              우리 이웃이 직접 만든 제품과 중국 거주 한인들의 직거래를 함께 만나는 공간입니다
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <h4 className="font-medium mb-2">🌾 우리장터</h4>
-                <p>우리 이웃이 직접 만든 김치·반찬·베이커리·수공예품·재능 서비스</p>
+      <div className="max-w-3xl mx-auto px-4">
+        <div className="-mx-4 px-4 pt-3 flex gap-2 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+          {cities.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCity(c)}
+              className={`shrink-0 px-3.5 h-9 rounded-full text-[14.5px] whitespace-nowrap border ${c === city ? 'bg-gray-900 border-gray-900 text-white font-semibold' : 'bg-white border-gray-200 text-gray-700'}`}
+            >
+              {c === '전체' ? '전체 지역' : c}
+            </button>
+          ))}
+        </div>
+        <p className="pt-3 text-[13.5px] text-gray-500">
+          {city === '전체' ? '전체 지역' : city}{category !== '전체' && ` · ${category}`} · 상품 {shown.length}개
+        </p>
+
+        {shown.map((item) => (
+          <div key={item.id} className="flex gap-3.5 py-4 border-b border-gray-100 last:border-b-0">
+            <ImageWithFallback src={item.image} alt="" className="shrink-0 w-[104px] h-[104px] sm:w-[120px] sm:h-[120px] object-cover rounded-lg bg-gray-100" />
+            <div className="flex-1 min-w-0 flex flex-col">
+              <h3 className="text-[16px] font-semibold text-gray-900 leading-snug line-clamp-2">{item.title}</h3>
+              <div className="mt-1 text-[13.5px] text-gray-500 truncate">
+                {item.location} · {item.time}
               </div>
-              <div>
-                <h4 className="font-medium mb-2">🛍️ 중고장터</h4>
-                <p>이사·귀국 정리, 사용감 적은 물품. 직거래 또는 택배 가능</p>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
+                {item.status !== '판매중' && (
+                  <span className="self-center px-1.5 py-0.5 rounded bg-gray-800 text-white text-[12px] font-semibold whitespace-nowrap">{item.status}</span>
+                )}
+                <span className="text-[17px] font-bold text-gray-900 whitespace-nowrap">{item.price}</span>
+                {item.originalPrice && <span className="text-[13px] text-gray-400 line-through whitespace-nowrap">{item.originalPrice}</span>}
               </div>
-              <div>
-                <h4 className="font-medium mb-2">⚠️ 안전 거래</h4>
-                <p>식품은 신선도 확인, 직접 만나서 거래하거나 신뢰할 수 있는 택배사 이용 권장</p>
+              <div className="mt-auto pt-1 flex items-center justify-end gap-2.5 text-[13px] text-gray-500">
+                <span>{item.delivery}</span>
+                <span className="flex items-center gap-0.5"><Heart className="w-3.5 h-3.5" />{item.likes}</span>
+                <span>조회 {item.views}</span>
               </div>
             </div>
           </div>
+        ))}
+
+        {shown.length === 0 && <p className="py-16 text-center text-[15px] text-gray-500">조건에 맞는 상품이 없어요.</p>}
+
+        <div className="mt-6 rounded-xl bg-gray-50 p-4 text-[14px] text-gray-600 leading-relaxed">
+          <p className="font-semibold text-gray-800">거래 안내</p>
+          <p className="mt-1">이사·귀국 정리, 사용감 적은 물품을 직거래 또는 택배(순풍·중통·신다·원통택배, EMS)로 거래해요. 직접 만나서 확인하거나 믿을 수 있는 택배를 이용하세요.</p>
         </div>
       </div>
     </div>

@@ -1,8 +1,4 @@
-import { ArrowLeft, Home, MapPin, Bed, Bath, Square, TrendingUp, Search, Filter } from 'lucide-react';
-import { Card } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Input } from '../components/ui/input';
+import { ArrowLeft, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
@@ -13,6 +9,7 @@ interface RealEstatePageProps {
 export function RealEstatePage({ onBack }: RealEstatePageProps) {
   const [activeCategory, setActiveCategory] = useState('전체');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const categories = ['전체', '매매', '전세', '월세', '상가', '오피스텔'];
 
@@ -154,166 +151,79 @@ export function RealEstatePage({ onBack }: RealEstatePageProps) {
     return matchesCategory && matchesSearch;
   });
 
+  // 게시판 목록과 같은 구성: 위 흰 바(← 제목 · 검색) → 종류 밑줄 탭 → 매물 목록(사진 왼쪽)
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={onBack}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <Home className="w-6 h-6 text-green-600" />
-                <h1 className="text-xl font-bold">중국 부동산</h1>
-              </div>
-            </div>
-            <TrendingUp className="w-6 h-6 text-green-600" />
-          </div>
-
-          {/* Search Bar */}
-          <div className="mt-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="지역, 단지명으로 검색"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10"
-              />
-              <button className="absolute right-3 top-2.5">
-                <Filter className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-          </div>
-
-          {/* Categories */}
-          <div className="mt-4 flex items-center space-x-2 overflow-x-auto pb-2">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
-                className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-                  activeCategory === category
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
+    <div className="min-h-screen bg-white pb-24">
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200">
+        <div className="max-w-3xl mx-auto h-[52px] px-2 flex items-center gap-1">
+          <button onClick={onBack} aria-label="홈으로" className="p-2 text-gray-800">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="flex-1 min-w-0 text-[19px] font-bold text-gray-900 whitespace-nowrap truncate">중국 부동산</h1>
+          <button onClick={() => { setSearchOpen((v) => !v); if (searchOpen) setSearchQuery(''); }} aria-label="검색" className="p-2 text-gray-700">
+            {searchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
+          </button>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">{filteredProperties.length}</div>
-            <div className="text-sm text-gray-600 mt-1">매물 수</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">12.5억</div>
-            <div className="text-sm text-gray-600 mt-1">평균 가격</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-red-600">+5.2%</div>
-            <div className="text-sm text-gray-600 mt-1">전월 대비</div>
-          </Card>
-        </div>
-
-        {/* Properties Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProperties.map((property) => (
-            <Card key={property.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="relative">
-                <ImageWithFallback
-                  src={property.image}
-                  alt={property.title}
-                  className="w-full h-48 object-cover"
-                />
-                {property.isHot && (
-                  <Badge className="absolute top-2 left-2 bg-red-500 text-white">
-                    HOT
-                  </Badge>
-                )}
-                <Badge className="absolute top-2 right-2 bg-green-600 text-white">
-                  {property.type}
-                </Badge>
-              </div>
-
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2 line-clamp-1">
-                  {property.title}
-                </h3>
-
-                <div className="flex items-center text-sm text-gray-600 mb-3">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  <span className="line-clamp-1">{property.location}</span>
-                </div>
-
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                  {property.description}
-                </p>
-
-                <div className="grid grid-cols-3 gap-2 mb-3 text-xs text-gray-600">
-                  {property.rooms > 0 && (
-                    <div className="flex items-center">
-                      <Bed className="w-4 h-4 mr-1" />
-                      <span>{property.rooms}개</span>
-                    </div>
-                  )}
-                  {property.bathrooms > 0 && (
-                    <div className="flex items-center">
-                      <Bath className="w-4 h-4 mr-1" />
-                      <span>{property.bathrooms}개</span>
-                    </div>
-                  )}
-                  <div className="flex items-center">
-                    <Square className="w-4 h-4 mr-1" />
-                    <span>{property.area}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                  <div className="text-lg font-bold text-green-600">
-                    {property.price}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    조회 {property.views.toLocaleString()} • {property.date}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredProperties.length === 0 && (
-          <div className="text-center py-12">
-            <Home className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">검색 결과가 없습니다</p>
+        {searchOpen && (
+          <div className="max-w-3xl mx-auto px-4 pb-2.5">
+            <input
+              autoFocus
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="지역, 단지명 검색"
+              className="w-full h-10 px-4 rounded-full bg-gray-100 text-[16px] outline-none focus:ring-2 focus:ring-[#03c75a]/40"
+            />
           </div>
         )}
+        <div className="max-w-3xl mx-auto flex gap-5 overflow-x-auto scrollbar-hide px-4" style={{ scrollbarWidth: 'none' }}>
+          {categories.map((c) => (
+            <button
+              key={c}
+              onClick={() => setActiveCategory(c)}
+              className={`shrink-0 py-2.5 text-[15.5px] whitespace-nowrap border-b-2 -mb-px ${c === activeCategory ? 'border-gray-900 text-gray-900 font-bold' : 'border-transparent text-gray-500'}`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {/* Info Banner */}
-        <Card className="mt-8 p-6 bg-green-50 border-green-200">
-          <h3 className="font-semibold text-lg mb-2">부동산 거래 안내</h3>
-          <ul className="space-y-2 text-sm text-gray-700">
-            <li>• 중국 부동산 거래는 외국인에게 제한이 있을 수 있습니다</li>
-            <li>• 반드시 전문가와 상담 후 진행하시기 바랍니다</li>
-            <li>• 계약 전 부동산 등기부등본과 권리관계를 확인하세요</li>
-            <li>• Sina View 부동산은 정보 제공만 하며, 거래 책임은 당사자에게 있습니다</li>
+      <div className="max-w-3xl mx-auto px-4">
+        <p className="pt-3 text-[13.5px] text-gray-500">
+          {activeCategory === '전체' ? '전체 매물' : activeCategory}{searchQuery && ` · "${searchQuery}" 검색`} · {filteredProperties.length}개
+        </p>
+
+        {filteredProperties.map((property) => (
+          <div key={property.id} className="flex gap-3.5 py-4 border-b border-gray-100 last:border-b-0">
+            <ImageWithFallback src={property.image} alt="" className="shrink-0 w-[104px] h-[104px] sm:w-[128px] sm:h-[112px] object-cover rounded-lg bg-gray-100" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-semibold text-[#03a94d]">
+                {property.type}{property.isHot && <span className="ml-1.5 text-red-500">인기</span>}
+              </div>
+              <h3 className="mt-0.5 text-[16px] font-semibold text-gray-900 leading-snug line-clamp-2">{property.title}</h3>
+              <div className="mt-0.5 text-[17px] font-bold text-gray-900">{property.price}</div>
+              <div className="mt-0.5 text-[13px] text-gray-500 truncate">
+                {property.location}
+                {property.rooms > 0 && ` · 방 ${property.rooms}`}
+                {` · ${property.area}`}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {filteredProperties.length === 0 && <p className="py-16 text-center text-[15px] text-gray-500">조건에 맞는 매물이 없어요.</p>}
+
+        <div className="mt-6 rounded-xl bg-gray-50 p-4 text-[14px] text-gray-600 leading-relaxed">
+          <p className="font-semibold text-gray-800">부동산 거래 안내</p>
+          <ul className="mt-1 space-y-1">
+            <li>· 중국 부동산 거래는 외국인에게 제한이 있을 수 있어요.</li>
+            <li>· 반드시 전문가와 상담한 뒤 진행하세요.</li>
+            <li>· 계약 전에 등기와 권리관계를 확인하세요.</li>
+            <li>· 시나뷰 부동산은 정보만 제공하며, 거래 책임은 당사자에게 있어요.</li>
           </ul>
-        </Card>
-      </main>
+        </div>
+      </div>
     </div>
   );
 }

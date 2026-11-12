@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, TrendingUp, TrendingDown, Globe, Sparkles } from 'lucide-react';
 import { Card } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { fetchMarketQuotes, fetchMarketNews, formatUpdatedAt, timeAgo, MarketQuote, MarketNewsItem } from '../utils/market';
@@ -71,40 +70,31 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center space-x-4">
-              <Button onClick={onBack} variant="ghost" size="sm" className="flex items-center space-x-2">
-                <ArrowLeft className="w-4 h-4" />
-                <span>메인으로</span>
-              </Button>
-              <h1 className="text-2xl font-bold text-gray-900">증권</h1>
-              <div className="text-sm text-gray-500 hidden sm:block">중국·홍콩 증시 정보</div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Badge variant="outline" className="flex items-center space-x-1">
-                <Globe className="w-3 h-3" />
-                <span>{isLive ? '5분마다 갱신' : '예시 데이터'}</span>
-              </Badge>
-              {quotesUpdatedAt && (
-                <div className="text-xs text-gray-500">마지막 업데이트: {formatUpdatedAt(quotesUpdatedAt)}</div>
-              )}
-            </div>
-          </div>
+      {/* 위 흰 바 (게시판 화면과 같은 모양) */}
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto h-[52px] px-2 flex items-center gap-1">
+          <button onClick={onBack} aria-label="홈으로" className="p-2 text-gray-800">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-[19px] font-bold text-gray-900 whitespace-nowrap">증권</h1>
+          <span className="hidden sm:inline ml-2 text-[14px] text-gray-500">중국·홍콩 증시 정보</span>
+          <span className="ml-auto mr-2 flex items-center gap-1 text-[12.5px] text-gray-500 whitespace-nowrap">
+            <Globe className="w-3.5 h-3.5" />
+            {isLive ? '5분마다 갱신' : '예시 데이터'}
+            {quotesUpdatedAt && <> · {formatUpdatedAt(quotesUpdatedAt)}</>}
+          </span>
         </div>
       </div>
 
       {/* 주요 지수 */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <h2 className="text-lg font-semibold mb-3">주요 지수</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <h2 className="text-[18px] font-bold text-gray-900 mb-3">주요 지수</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
             {indexes.map(index => (
               <div key={index.code} className="text-center p-3 bg-gray-50 rounded-lg">
                 <div className="text-sm text-gray-600 mb-1">{index.name}</div>
-                <div className="font-semibold">{fmt(index.price)}</div>
+                <div className="text-[17px] font-bold text-gray-900">{fmt(index.price)}</div>
                 <div className={`text-xs ${index.change >= 0 ? 'text-red-500' : 'text-blue-500'}`}>
                   {signed(index.change)} ({signed(index.percent)}%)
                 </div>
@@ -119,22 +109,22 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="stocks">종목정보</TabsTrigger>
             <TabsTrigger value="news">증시뉴스</TabsTrigger>
-            <TabsTrigger value="briefing">AI 시장 브리핑</TabsTrigger>
+            <TabsTrigger value="briefing"><span className="sm:hidden">AI 브리핑</span><span className="hidden sm:inline">AI 시장 브리핑</span></TabsTrigger>
           </TabsList>
 
           {/* 종목정보 */}
           <TabsContent value="stocks" className="mt-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">중국·홍콩 주요 종목</h3>
-              <div className="space-y-3">
+            <Card className="p-4 sm:p-6">
+              <h3 className="text-[18px] font-bold text-gray-900 mb-2">중국·홍콩 주요 종목</h3>
+              <div>
                 {stocks.map(stock => (
-                  <div key={stock.code} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div key={stock.code} className="flex items-center justify-between py-3.5 border-b border-gray-100 last:border-b-0">
                     <div>
-                      <div className="font-semibold">{stock.name}</div>
+                      <div className="text-[16px] font-semibold text-gray-900">{stock.name}</div>
                       <div className="text-sm text-gray-500">{stock.market} · {stock.code.replace(/^(sh|sz|hk)/, '').toUpperCase()}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">{stock.currency}{fmt(stock.price)}</div>
+                      <div className="text-[16px] font-semibold text-gray-900">{stock.currency}{fmt(stock.price)}</div>
                       <div className={`text-sm flex items-center justify-end space-x-1 ${stock.change >= 0 ? 'text-red-500' : 'text-blue-500'}`}>
                         {stock.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                         <span>{signed(stock.change)} ({signed(stock.percent)}%)</span>
@@ -148,30 +138,31 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
 
           {/* 증시뉴스 (AI 한국어 요약) */}
           <TabsContent value="news" className="mt-6">
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">중국 증시 뉴스</h3>
-                {newsUpdatedAt && <span className="text-xs text-gray-500">AI 기사 · {formatUpdatedAt(newsUpdatedAt)} 업데이트</span>}
+            <Card className="p-4 sm:p-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 mb-2">
+                <h3 className="text-[18px] font-bold text-gray-900 whitespace-nowrap">중국 증시 뉴스</h3>
+                {newsUpdatedAt && <span className="text-[12.5px] text-gray-500">AI 기사 · {formatUpdatedAt(newsUpdatedAt)} 업데이트</span>}
               </div>
-              <div className="grid gap-3">
+              <div>
                 {newsItems.map((item, i) => {
                   const body = (
                     <>
-                      <div className="flex items-center space-x-2 mb-1">
-                        <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                        <span className="text-xs text-gray-500">{item.isSample ? '예시 기사' : `AI 기사 · ${timeAgo(item.publishedAt)}`}</span>
+                      <h4 className="text-[16px] font-semibold text-gray-900 leading-snug line-clamp-2">{item.title}</h4>
+                      {item.summary && <p className="mt-1 text-[14.5px] text-gray-600 leading-snug line-clamp-2">{item.summary}</p>}
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-gray-500">
+                        <span className="text-[#03a94d] font-medium">{item.category}</span>
+                        <span className="text-gray-300">·</span>
+                        <span>{item.isSample ? '예시 기사' : `AI 기사 · ${timeAgo(item.publishedAt)}`}</span>
                       </div>
-                      <h4 className="font-medium line-clamp-2">{item.title}</h4>
-                      {item.summary && <p className="text-sm text-gray-600 mt-1">{item.summary}</p>}
                     </>
                   );
                   return item.content ? (
                     <button key={item.url} onClick={() => setOpenArticle(item)}
-                      className="w-full text-left p-4 bg-gray-50 rounded-lg hover:bg-gray-100">
+                      className="w-full text-left py-3.5 border-b border-gray-100 last:border-b-0 active:bg-gray-50">
                       {body}
                     </button>
                   ) : (
-                    <div key={i} className="p-4 bg-gray-50 rounded-lg">{body}</div>
+                    <div key={i} className="py-3.5 border-b border-gray-100 last:border-b-0">{body}</div>
                   );
                 })}
               </div>
@@ -180,13 +171,13 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
 
           {/* AI 시장 브리핑 */}
           <TabsContent value="briefing" className="mt-6">
-            <Card className="p-6">
+            <Card className="p-4 sm:p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-teal-600" /> 오늘의 중국 증시 개장 브리핑
+                <Sparkles className="w-5 h-5 text-gray-700" /> 오늘의 중국 증시 개장 브리핑
                 {briefingAt && <span className="text-xs font-normal text-gray-500">{formatUpdatedAt(briefingAt)} 작성</span>}
               </h3>
               {briefing ? (
-                <div className="bg-teal-50 border border-teal-100 rounded-lg p-5 text-[15px] leading-relaxed whitespace-pre-line text-gray-800">
+                <div className="bg-gray-50 rounded-lg p-4 sm:p-5 text-[16px] leading-relaxed whitespace-pre-line text-gray-800">
                   {briefing}
                 </div>
               ) : (
