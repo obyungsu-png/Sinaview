@@ -34,11 +34,11 @@ const BlogSection = lazy(() => import('./BlogSection').then(m => ({ default: m.B
 const MobileHome = lazy(() => import('./MobileHome').then(m => ({ default: m.MobileHome })));
 
 // Lazy load page components
-const NewsPage = lazy(() => import('../pages/NewsPage').then(m => ({ default: m.NewsPage })));
 const YellowPagesPage = lazy(() => import('../pages/YellowPagesPage').then(m => ({ default: m.YellowPagesPage })));
-const VisaDocumentPage = lazy(() => import('../pages/VisaDocumentPage').then(m => ({ default: m.VisaDocumentPage })));
-const EducationPage = lazy(() => import('../pages/EducationPage').then(m => ({ default: m.EducationPage })));
-const AutoPage = lazy(() => import('../pages/AutoPage').then(m => ({ default: m.AutoPage })));
+// 비자/서류 · 교육 · 자동차 · 중국소식: 홈 목록과 같은 글을 쓰는 게시판 화면 (목록 ↔ 상세)
+const BoardPage = lazy(() => import('./board/Board').then(m => ({ default: m.BoardPage })));
+type BoardKey = 'visa' | 'education' | 'auto' | 'news';
+const BOARD_PAGE: Record<BoardKey, string> = { visa: 'visadocument', education: 'education', auto: 'auto', news: 'news' };
 const BlogPage = lazy(() => import('../pages/BlogPage').then(m => ({ default: m.BlogPage })));
 const UsedMarketPage = lazy(() => import('../pages/UsedMarketPage').then(m => ({ default: m.UsedMarketPage })));
 const SecuritiesPage = lazy(() => import('../pages/SecuritiesPage').then(m => ({ default: m.SecuritiesPage })));
@@ -82,12 +82,16 @@ const PATH_PAGE: Record<string, string> = Object.fromEntries(
 const readHashPage = (): string => {
   if (typeof window === 'undefined') return 'main';
   const path = window.location.hash.replace(/^#/, '') || '/';
-  return PATH_PAGE[path] ?? 'main';
+  if (PATH_PAGE[path]) return PATH_PAGE[path];
+  // 게시판 글 주소: /visa-documents/글id → 비자/서류 페이지 (글은 게시판 화면이 주소에서 읽음)
+  const sub = Object.keys(PATH_PAGE).find(p => p !== '/' && path.startsWith(p + '/'));
+  return sub ? PATH_PAGE[sub] : 'main';
 };
 const writeHash = (page: string) => {
   if (typeof window === 'undefined') return;
   const path = PAGE_PATH[page] ?? '/';
-  if (window.location.hash !== '#' + path) window.location.hash = path;
+  const hash = window.location.hash;
+  if (hash !== '#' + path && !(path !== '/' && hash.startsWith('#' + path + '/'))) window.location.hash = path;
 };
 
 // Progressive rendering hook
@@ -121,7 +125,6 @@ export function Portal() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showCalendar, setShowCalendar] = useState(true);
   const [currentPage, setCurrentPage] = useState<string>(() => readHashPage());
-  const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [isNStudyHubOpen, setIsNStudyHubOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
@@ -198,11 +201,7 @@ export function Portal() {
   }, []);
 
   // Navigation handlers
-  const handleGoToNewsPage = () => setCurrentPage('news');
   const handleGoToYellowPagesPage = () => setCurrentPage('yellowpages');
-  const handleGoToVisaDocumentPage = () => setCurrentPage('visadocument');
-  const handleGoToEducationPage = () => setCurrentPage('education');
-  const handleGoToAutoPage = () => setCurrentPage('auto');
   const handleGoToBlogPage = () => setCurrentPage('blog');
   const handleGoToUsedMarketPage = () => setCurrentPage('usedmarket');
   const handleGoToSecuritiesPage = () => setCurrentPage('securities');
@@ -245,14 +244,49 @@ export function Portal() {
     setIsNStudyHubOpen(prev => !prev);
   };
   
-  const handleVisaArticleClick = (article: any) => {
-    setSelectedArticle(article);
-    setCurrentPage('visadocument');
+  // 게시판 열기: 홈 목록에서 누른 글(id) 또는 하위 분류(sub)로 바로
+  const [boardTarget, setBoardTarget] = useState<{ board: BoardKey; id?: string; sub?: string; nonce: number } | null>(null);
+  const openBoard = (board: BoardKey, id?: string, sub?: string) => {
+    setMobileNav(null);
+    setBoardTarget({ board, sub, nonce: Date.now() });
+    // 글은 주소(#/비자서류/글id)로 열어서 휴대폰 뒤로 가기·공유가 되게
+    if (id) window.location.hash = PAGE_PATH[BOARD_PAGE[board]] + '/' + encodeURIComponent(id);
+    else setCurrentPage(BOARD_PAGE[board]);
+    window.scrollTo({ top: 0 });
   };
-  const handleEducationArticleClick = (article: any) => {
-    setSelectedArticle(article);
-    setCurrentPage('education');
+  // 다른 화면으로 가면 지난 게시판 요청은 지움 (메뉴로 다시 들어오면 목록부터)
+  useEffect(() => {
+    if (boardTarget && BOARD_PAGE[boardTarget.board] !== currentPage) setBoardTarget(null);
+  }, [currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 글 안의 링크: 'visa:글id' → 그 게시판 글, 'driverlicense' 같은 이름 → 그 화면
+  const handleBoardLink = (to: string) => {
+    const [b, id] = to.split(':');
+    if (id && b in BOARD_PAGE) openBoard(b as BoardKey, id);
+    else handleNavigate(to);
   };
+  const handleVisaArticleClick = (article: { id: string }) => openBoard('visa', article.id);
+  const handleEducationArticleClick = (article: { id: string }) => openBoard('education', article.id);
+  const handleAutoArticleClick = (article: { id: string }) => openBoard('auto', article.id);
+  const handleNewsArticleClick = (article: { id: string }) => openBoard('news', article.id);
+  const boardPage = (board: BoardKey) => (
+    <BoardPage
+      key={board}
+      board={board}
+      target={boardTarget?.board === board ? boardTarget : null}
+      onBack={handleBackToHome}
+      onLink={handleBoardLink}
+      currentUser={currentUser}
+      isAdmin={isAdmin}
+      top={
+        board === 'auto' ? (
+          <button onClick={handleGoToDriverLicensePage} className="mt-3 w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 text-white text-left">
+            <span className="text-[15px] font-semibold">중국 운전면허 공부하기</span>
+            <span className="text-[13px] opacity-90">필기시험 · 만점 교육 · 학법 감점 →</span>
+          </button>
+        ) : undefined
+      }
+    />
+  );
 
   // 로그인·회원가입 창 (홈과 다른 화면 모두에서 사용)
   const authModals = (
@@ -302,11 +336,11 @@ export function Portal() {
 
   const pageMap: Record<string, JSX.Element> = {
     homepage: <HomePage />,
-    news: <NewsPage onBack={handleBackToHome} />,
+    news: boardPage('news'),
     yellowpages: <YellowPagesPage onBack={handleBackToHome} />,
-    visadocument: <VisaDocumentPage onBack={handleBackToHome} selectedArticle={selectedArticle} currentUser={currentUser} isAdmin={isAdmin} />,
-    education: <EducationPage onBack={handleBackToHome} selectedArticle={selectedArticle} currentUser={currentUser} isAdmin={isAdmin} />,
-    auto: <AutoPage onBack={handleBackToHome} currentUser={currentUser} isAdmin={isAdmin} />,
+    visadocument: boardPage('visa'),
+    education: boardPage('education'),
+    auto: boardPage('auto'),
     blog: <BlogPage onBack={handleBackToHome} />,
     usedmarket: <UsedMarketPage onBack={handleBackToHome} />,
     securities: <SecuritiesPage onBack={handleBackToHome} />,
@@ -367,14 +401,14 @@ export function Portal() {
                     <div id="visa-documents">
                       <VisaDocumentSection 
                         category="비자/서류" 
-                        onMoreClick={handleGoToVisaDocumentPage}
+                        onMoreClick={(sub?: string) => openBoard('visa', undefined, sub)}
                         onArticleClick={handleVisaArticleClick}
                       />
                     </div>
                     <div id="education">
                       <EducationSection 
                         category="교육" 
-                        onMoreClick={handleGoToEducationPage}
+                        onMoreClick={(sub?: string) => openBoard('education', undefined, sub)}
                         onArticleClick={handleEducationArticleClick}
                         userRegion={currentUser?.region}
                       />
@@ -405,14 +439,16 @@ export function Portal() {
                     <div id="auto">
                       <AutoSection 
                         category="자동차" 
-                        onMoreClick={handleGoToAutoPage}
+                        onMoreClick={(sub?: string) => openBoard('auto', undefined, sub)}
+                        onArticleClick={handleAutoArticleClick}
                         onDriverLicenseClick={handleGoToDriverLicensePage}
                       />
                     </div>
                     <div id="news">
                       <NewsSection 
                         category={activeNewsCategory} 
-                        onMoreClick={handleGoToNewsPage}
+                        onMoreClick={(sub?: string) => openBoard('news', undefined, sub)}
+                        onArticleClick={handleNewsArticleClick}
                       />
                     </div>
                   </div>
@@ -513,6 +549,7 @@ export function Portal() {
               onNavigate={handleNavigate}
               onVisaArticleClick={handleVisaArticleClick}
               onEducationArticleClick={handleEducationArticleClick}
+              onBoardOpen={openBoard}
               onDriverLicenseClick={handleGoToDriverLicensePage}
               onTabChange={setMobileHomeTab}
             />

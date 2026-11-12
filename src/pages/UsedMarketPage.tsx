@@ -125,7 +125,8 @@ export function UsedMarketPage({ onBack }: UsedMarketPageProps) {
       {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
+          {/* 휴대폰: 제목이 세로로 꺾이지 않게 줄바꿈 허용 + 제목은 한 줄 */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <Button 
               onClick={onBack}
               variant="ghost" 
@@ -135,7 +136,7 @@ export function UsedMarketPage({ onBack }: UsedMarketPageProps) {
               <ArrowLeft className="w-4 h-4" />
               <span>메인으로</span>
             </Button>
-            <h1 className="text-2xl font-bold text-gray-900">화개장터</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 whitespace-nowrap">화개장터</h1>
             <div className="text-sm text-gray-500">
               중국 거주 한국인 물품 교환 커뮤니티
             </div>
@@ -157,7 +158,8 @@ export function UsedMarketPage({ onBack }: UsedMarketPageProps) {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
+            {/* 휴대폰: 고르기 칸이 화면 밖으로 밀리지 않게 줄바꿈 */}
+            <div className="flex flex-wrap gap-2">
               <Select>
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="카테고리" />

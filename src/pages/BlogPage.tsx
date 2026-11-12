@@ -112,8 +112,8 @@ export function BlogPage({ onBack }: BlogPageProps) {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-1 sm:space-x-4 shrink-0">
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -122,20 +122,20 @@ export function BlogPage({ onBack }: BlogPageProps) {
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <h1 className="text-2xl font-bold text-gray-900">뷰(VIEW)</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 whitespace-nowrap">뷰(VIEW)</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
+            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0 justify-end">
+              <div className="relative flex-1 min-w-0 sm:flex-none">
                 <Input
                   type="text"
                   placeholder="블로그 검색..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-64 pl-10"
+                  className="w-full sm:w-64 pl-10"
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
-              <Button className="bg-green-600 hover:bg-green-700">
+              <Button className="shrink-0 bg-green-600 hover:bg-green-700">
                 글쓰기
               </Button>
             </div>

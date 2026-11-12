@@ -106,7 +106,7 @@ const CONTENT_LABELS = {
 export function MobileHome({
   currentUser, isAdmin, navRequest, onOpenCommunityPost,
   onLoginClick, onSignupClick, onLogout, onNavigate,
-  onVisaArticleClick, onEducationArticleClick, onDriverLicenseClick, onTabChange,
+  onVisaArticleClick, onEducationArticleClick, onDriverLicenseClick, onTabChange, onBoardOpen,
 }) {
   const [bottomTab, setBottomTab] = useState('home');
   const [contentTab, setContentTab] = useState('');
@@ -180,11 +180,11 @@ export function MobileHome({
       </div>
       <div className="mobile-compact">
       <Suspense fallback={<Spinner/>}>
-        {contentTab==='news'       && <NewsSection category="중국소식" onMoreClick={()=>onNavigate?.('news')}/>}
-        {contentTab==='visa'       && <VisaDocumentSection category="비자/서류" onMoreClick={()=>onNavigate?.('visadocument')} onArticleClick={onVisaArticleClick}/>}
-        {contentTab==='education'  && <EducationSection category="교육" onMoreClick={()=>onNavigate?.('education')} onArticleClick={onEducationArticleClick} userRegion={currentUser?.region}/>}
+        {contentTab==='news'       && <NewsSection category="중국소식" onMoreClick={(sub)=>onBoardOpen?.('news',undefined,sub)} onArticleClick={(it)=>onBoardOpen?.('news',it.id)}/>}
+        {contentTab==='visa'       && <VisaDocumentSection category="비자/서류" onMoreClick={(sub)=>onBoardOpen?.('visa',undefined,sub)} onArticleClick={onVisaArticleClick}/>}
+        {contentTab==='education'  && <EducationSection category="교육" onMoreClick={(sub)=>onBoardOpen?.('education',undefined,sub)} onArticleClick={onEducationArticleClick} userRegion={currentUser?.region}/>}
         {contentTab==='yellow'     && <YellowPagesSection category="엘로우 페이지" onMoreClick={()=>onNavigate?.('yellowpages')}/>}
-        {contentTab==='auto'       && <AutoSection category="자동차" onMoreClick={()=>onNavigate?.('auto')} onDriverLicenseClick={onDriverLicenseClick}/>}
+        {contentTab==='auto'       && <AutoSection category="자동차" onMoreClick={(sub)=>onBoardOpen?.('auto',undefined,sub)} onArticleClick={(it)=>onBoardOpen?.('auto',it.id)} onDriverLicenseClick={onDriverLicenseClick}/>}
         {contentTab==='market'     && <UsedMarketSection category="중고장터" onMoreClick={()=>onNavigate?.('usedmarket')} userRegion={currentUser?.region} currentUser={currentUser} isAdmin={isAdmin}/>}
         {contentTab==='securities' && <SecuritiesSection category="증권" onMoreClick={()=>onNavigate?.('securities')}/>}
         {contentTab==='realestate' && <RealEstateSection category="부동산" onMoreClick={()=>onNavigate?.('realestate')} userCity={currentUser?.city||'베이징'}/>}

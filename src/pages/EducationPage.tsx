@@ -1,1 +1,0 @@
-export { EducationPage } from './EducationPageDetailed';
