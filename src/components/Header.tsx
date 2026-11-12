@@ -21,9 +21,10 @@ interface HeaderProps {
   onLoginClick?: () => void;
   currentUser?: { id: string; name: string; username?: string } | null;
   onMobileTabSelect?: (tabId: string) => void;
+  onOpenBoard?: (board: 'visa' | 'education' | 'auto' | 'news', id?: string, sub?: string) => void; // 게시판 분류로 바로
 }
 
-export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, currentPage = 'main', onNStudyHubToggle, isNStudyHubOpen = false, userRegion, onLoginClick, currentUser, onMobileTabSelect }: HeaderProps) {
+export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, currentPage = 'main', onNStudyHubToggle, isNStudyHubOpen = false, userRegion, onLoginClick, currentUser, onMobileTabSelect, onOpenBoard }: HeaderProps) {
   const [searchValue, setSearchValue] = useState('');
   const [showPlaceholder, setShowPlaceholder] = useState(true);
   const [currentUserRegion, setCurrentUserRegion] = useState('');
@@ -456,45 +457,45 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                   </div>
                 </DropdownMenuItem>
                 
-                {/* SAT/ACT - 외부 링크 */}
+                {/* SAT/TOEFL - 외부 링크 */}
                 <DropdownMenuItem 
                   onClick={() => window.open('https://your-sat-site.com', '_blank')}
                   className="cursor-pointer hover:bg-blue-50 py-3 px-4"
                 >
                   <div className="flex items-center justify-between w-full">
                     <div>
-                      <div className="font-semibold text-gray-800">SAT/ACT</div>
-                      <div className="text-xs text-gray-500">SAT & ACT 시험 준비</div>
+                      <div className="font-semibold text-gray-800">SAT/TOEFL</div>
+                      <div className="text-xs text-gray-500">SAT · TOEFL 시험 준비</div>
                     </div>
                     <span className="text-gray-400 text-xs">🔗</span>
                   </div>
                 </DropdownMenuItem>
                 
-                {/* TOEFL/IELTS - 외부 링크 */}
-                <DropdownMenuItem 
-                  onClick={() => window.open('https://your-toefl-site.com', '_blank')}
-                  className="cursor-pointer hover:bg-orange-50 py-3 px-4"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <div>
-                      <div className="font-semibold text-gray-800">TOEFL/IELTS</div>
-                      <div className="text-xs text-gray-500">영어 능력 시험</div>
-                    </div>
-                    <span className="text-gray-400 text-xs">🔗</span>
-                  </div>
-                </DropdownMenuItem>
-                
-                {/* AP/IB/A-level - 외부 링크 */}
+                {/* AP/IB/A-Level - 외부 링크 */}
                 <DropdownMenuItem 
                   onClick={() => window.open('https://your-apib-site.com', '_blank')}
                   className="cursor-pointer hover:bg-purple-50 py-3 px-4"
                 >
                   <div className="flex items-center justify-between w-full">
                     <div>
-                      <div className="font-semibold text-gray-800">AP/IB/A-level</div>
+                      <div className="font-semibold text-gray-800">AP/IB/A-Level</div>
                       <div className="text-xs text-gray-500">국제 교육 과정</div>
                     </div>
                     <span className="text-gray-400 text-xs">🔗</span>
+                  </div>
+                </DropdownMenuItem>
+
+                {/* 한국학교/국제학교 자료 - 사이트 안 교육 › 국제학교 */}
+                <DropdownMenuItem 
+                  onClick={() => (onOpenBoard ? onOpenBoard('education', undefined, '국제학교') : onNavigate?.('education'))}
+                  className="cursor-pointer hover:bg-green-50 py-3 px-4"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div>
+                      <div className="font-semibold text-gray-800">한국학교/국제학교 자료</div>
+                      <div className="text-xs text-gray-500">학교 고르기 · 입학 안내</div>
+                    </div>
+                    <span className="text-gray-400 text-xs">›</span>
                   </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>

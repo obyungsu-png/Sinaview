@@ -382,6 +382,7 @@ export function Portal() {
         onLoginClick={() => setIsLoginModalOpen(true)}
         currentUser={currentUser}
         onMobileTabSelect={tab => setMobileNav({ tab, nonce: Date.now() })}
+        onOpenBoard={openBoard}
       />
       
       <div className="hidden lg:block">

@@ -89,10 +89,11 @@ const SHORTCUT_ITEMS = [
 
 /* 학습센터 */
 const STUDY_LINKS = [
-  {label:'HSK',         sub:'중국어 능력 시험',  url:() => localStorage.getItem('hskLinkUrl') || 'https://www.hsk.org.cn', emoji:'🇨🇳'},
-  {label:'SAT/ACT',     sub:'SAT & ACT 준비',    url:() => 'https://your-sat-site.com',   emoji:'📝'},
-  {label:'TOEFL/IELTS', sub:'영어 능력 시험',    url:() => 'https://your-toefl-site.com', emoji:'🌐'},
-  {label:'AP/IB/A-level', sub:'국제 교육 과정',  url:() => 'https://your-apib-site.com', emoji:'🎓'},
+  {label:'HSK',             sub:'중국어 능력 시험',      url:() => localStorage.getItem('hskLinkUrl') || 'https://www.hsk.org.cn', emoji:'🇨🇳'},
+  {label:'SAT/TOEFL',       sub:'SAT · TOEFL 시험 준비', url:() => 'https://your-sat-site.com',  emoji:'📝'},
+  {label:'AP/IB/A-Level',   sub:'국제 교육 과정',        url:() => 'https://your-apib-site.com', emoji:'🎓'},
+  // 사이트 안: 교육 › 국제학교 안내 글
+  {label:'한국학교/국제학교 자료', sub:'학교 고르기 · 입학 안내', board:'education', boardSub:'국제학교', emoji:'🏫'},
 ];
 
 const CONTENT_LABELS = {
@@ -428,7 +429,7 @@ export function MobileHome({
                   <p className="text-[13px] font-semibold text-gray-700">🎓 학습센터</p>
                 </div>
                 {STUDY_LINKS.map((link,i)=>(
-                  <button key={i} onClick={()=>window.open(link.url(),'_blank')}
+                  <button key={i} onClick={()=>link.board ? onBoardOpen?.(link.board,undefined,link.boardSub) : window.open(link.url(),'_blank')}
                     className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0">
                     <div className="flex items-center gap-3">
                       <span className="text-lg">{link.emoji}</span>
@@ -437,7 +438,7 @@ export function MobileHome({
                         <p className="text-[10px] text-gray-400">{link.sub}</p>
                       </div>
                     </div>
-                    <ExternalLink className="w-3.5 h-3.5 text-gray-300"/>
+                    {link.board ? <ChevronRight className="w-4 h-4 text-gray-300"/> : <ExternalLink className="w-3.5 h-3.5 text-gray-300"/>}
                   </button>
                 ))}
               </div>
@@ -478,7 +479,7 @@ export function MobileHome({
                   <p className="text-[13px] font-semibold text-gray-700">🎓 학습센터</p>
                 </div>
                 {STUDY_LINKS.map((link,i)=>(
-                  <button key={i} onClick={()=>window.open(link.url(),'_blank')}
+                  <button key={i} onClick={()=>link.board ? onBoardOpen?.(link.board,undefined,link.boardSub) : window.open(link.url(),'_blank')}
                     className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0">
                     <div className="flex items-center gap-3">
                       <span className="text-lg">{link.emoji}</span>
@@ -487,7 +488,7 @@ export function MobileHome({
                         <p className="text-[10px] text-gray-400">{link.sub}</p>
                       </div>
                     </div>
-                    <ExternalLink className="w-3.5 h-3.5 text-gray-300"/>
+                    {link.board ? <ChevronRight className="w-4 h-4 text-gray-300"/> : <ExternalLink className="w-3.5 h-3.5 text-gray-300"/>}
                   </button>
                 ))}
               </div>
