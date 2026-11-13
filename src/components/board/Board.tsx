@@ -371,13 +371,15 @@ export function BoardSection({
   onMore,
   count = 4,
   extra,
+  top,
   footer,
 }: {
   board: BoardKey;
   onOpen?: (item: BoardItem) => void;
   onMore?: (sub?: string) => void;
   count?: number;
-  extra?: ReactNode; // 탭 줄 오른쪽 끝 (예: 운전면허 버튼)
+  extra?: ReactNode; // 탭 줄 오른쪽 끝
+  top?: ReactNode; // 제목 바로 아래, 탭보다 먼저 (예: 자동차의 운전면허 연습)
   footer?: ReactNode;
 }) {
   const meta = BOARD_META[board];
@@ -392,6 +394,7 @@ export function BoardSection({
           전체보기 <ChevronRight className="w-4 h-4" />
         </button>
       </div>
+      {top && <div className="px-4 pt-3">{top}</div>}
       <div className="mt-1 flex gap-4 overflow-x-auto px-4 border-b border-gray-100" style={{ scrollbarWidth: 'none' }}>
         {['전체', ...subs].map((s) => (
           <button

@@ -4,6 +4,7 @@ import { LoginSection } from './LoginSection';
 import { CenterAdBanner } from './CenterAdBanner';
 import { AiAssistantWidget } from './AiAssistantWidget';
 import { PopularPosts } from './PopularPosts';
+import { DriverLicenseBanner } from './DriverLicenseBanner';
 import { MorningBriefingCard } from './MorningBriefingCard';
 import { MobileBottomNav, MobileNavTab } from './MobileBottomNav';
 import { CommunityNavContext } from './MemberStories';
@@ -279,10 +280,7 @@ export function Portal() {
       isAdmin={isAdmin}
       top={
         board === 'auto' ? (
-          <button onClick={handleGoToDriverLicensePage} className="mt-3 w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 text-white text-left">
-            <span className="text-[15px] font-semibold">중국 운전면허 공부하기</span>
-            <span className="text-[13px] opacity-90">필기시험 · 만점 교육 · 학법 감점 →</span>
-          </button>
+          <div className="mt-3"><DriverLicenseBanner onClick={handleGoToDriverLicensePage} /></div>
         ) : undefined
       }
     />

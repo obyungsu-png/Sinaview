@@ -87,17 +87,20 @@ const ALL_KEY = 'mj-all';
 const CARDS_KEY = 'mj-cards';
 const EXAM100_KEY = 'mj-exam100';
 const RANDOM_KEY = 'mj-random';
-const SET_COUNT = 6;
+const SET_COUNT = 6; // 한 바퀴(모든 문제를 한 번씩) = 6회분
+const SET_ROUNDS = 4; // 4바퀴 = 24회분 (바퀴마다 문제 순서·묶음이 달라짐)
 const FOCUS_TOPICS = new Set(['rules', 'penalty', 'safety', 'emergency']);
 
-// 회차별 모의고사: 주제마다 골고루 나눠 6회분 (각 100문제, 6회를 다 풀면 거의 모든 문제를 한 번씩)
-function buildSets(data: MjData) {
+// 회차별 모의고사: 주제마다 골고루 나눠 6회분이 한 바퀴 (각 100문제, 6회를 다 풀면 모든 문제를 한 번씩)
+// 2바퀴째부터는 다른 순서로 다시 섞어서 묶음 — 1~6회는 예전과 똑같아서 저장된 점수가 그대로 맞음
+function buildRound(data: MjData, round: number) {
+  const o = round * 10000;
   const sets: DLQuestion[][] = Array.from({ length: SET_COUNT }, () => []);
-  let turn = 0;
+  let turn = round; // 바퀴마다 시작 회차를 바꿔 주제 쏠림을 줄임
   for (const topic of data.topics) {
     const pool = shuffle(
       data.questions.filter((q) => q.c === topic.c),
-      600 + topic.c,
+      o + 600 + topic.c,
     );
     for (const q of pool) sets[turn++ % SET_COUNT].push(q);
   }
@@ -105,10 +108,14 @@ function buildSets(data: MjData) {
     const ids = new Set(set.map((q) => q.id));
     const extra = shuffle(
       data.questions.filter((q) => !ids.has(q.id)),
-      900 + i,
+      o + 900 + i,
     ).slice(0, Math.max(0, 100 - set.length));
-    return shuffle([...set, ...extra], 1200 + i).slice(0, 100);
+    return shuffle([...set, ...extra], o + 1200 + i).slice(0, 100);
   });
+}
+
+function buildSets(data: MjData) {
+  return Array.from({ length: SET_ROUNDS }, (_, r) => buildRound(data, r)).flat();
 }
 
 type View =
@@ -299,7 +306,7 @@ function GuideHome({ data, onGo }: { data: MjData | null; onGo: (view: View) => 
   const best = Math.max(0, ...Object.entries(results).filter(([k]) => k.startsWith('mj-')).map(([, r]) => r.best));
   const cards = [
     { view: { mode: 'topics' } as View, icon: 'fa-book-open', color: '#ff6b6b', title: '주제별 연습', desc: `만점 문제은행 ${qCount}문제를\n${topicCount}개 주제로 나눠 연습` },
-    { view: { mode: 'mock' } as View, icon: 'fa-pen-to-square', color: '#37a7f0', title: '모의고사', desc: best ? `최고 ${best}점\n실제처럼 중국어 100문제 · 45분` : `회차별 ${SET_COUNT}회분 + 랜덤\n중국어 100문제 · 45분` },
+    { view: { mode: 'mock' } as View, icon: 'fa-pen-to-square', color: '#37a7f0', title: '모의고사', desc: best ? `최고 ${best}점\n실제처럼 중국어 100문제 · 45분` : `회차별 ${SET_COUNT * SET_ROUNDS}회분 + 랜덤\n중국어 100문제 · 45분` },
     { view: { mode: 'fast' } as View, icon: 'fa-bolt', color: '#f39c12', title: '⚡ 속성 과정', desc: '핵심 정리 카드 → 전체 문제\n→ 시험 전날 실전 100문제', hot: true },
   ];
   return (
@@ -506,7 +513,7 @@ function MockPage({ sets, onBack, onStart }: { sets: DLQuestion[][]; onBack: () 
         ))}
       </div>
       <h2 className="text-lg font-medium text-gray-800 mb-1">회차별 모의고사 ({sets.length}회분)</h2>
-      <p className="text-xs text-gray-500 mb-4">회차마다 모든 주제에서 골고루 나와요. {sets.length}회를 다 풀면 만점 문제은행을 거의 한 번씩 보게 돼요.</p>
+      <p className="text-xs text-gray-500 mb-4">회차마다 모든 주제에서 골고루 나와요. {SET_COUNT}회씩 한 묶음(1~{SET_COUNT}회, {SET_COUNT + 1}~{SET_COUNT * 2}회 …)을 다 풀면 만점 문제은행 {sets.length * 100 / SET_ROUNDS}문제를 한 번씩 보게 되고, 묶음마다 문제 순서와 조합이 달라요.</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {sets.map((_, i) => {
           const no = i + 1;
