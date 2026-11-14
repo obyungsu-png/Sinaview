@@ -43,4 +43,5 @@ jobs:
           mv "supabase/functions/$FUNCTION_NAME/index.tsx" "supabase/functions/$FUNCTION_NAME/index.ts"
 
       - name: Deploy
-        run: supabase functions deploy "$FUNCTION_NAME" --project-ref "$PROJECT_REF"
+        # 새 CLI는 배포 전에 확인을 묻는데, Actions에서는 답할 수 없어서 --yes 로 미리 확인
+        run: supabase functions deploy "$FUNCTION_NAME" --project-ref "$PROJECT_REF" --yes
