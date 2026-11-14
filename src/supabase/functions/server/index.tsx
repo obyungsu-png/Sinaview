@@ -1273,40 +1273,15 @@ async function runVisaNotices() {
   return writeAndStoreArticles(VISA_NOTICES_KEY, fresh.filter((r) => r.body), VISA_TOPIC, 2, AI_ARTICLES_MAX_STORED);
 }
 
-// --- 오늘의 질문 (10:00): 게시판에 대화 시작 질문 1개 ---
-const QUESTION_HISTORY_KEY = "community:ai-questions";
+// --- 오늘의 질문: 운영자 요청으로 그만 올림 (AI가 질문 글을 만들지 않음) ---
+// 예약 실행(question)이 와도 새 글은 만들지 않고, 예전에 올린 "[오늘의 질문]" 글만 게시판에서 지운다
+const isDailyQuestionPost = (p: any) => !!p?.isAi && String(p?.title || "").startsWith("[오늘의 질문]");
 
 async function runDailyQuestion() {
-  const history: string[] = (await kv.get(QUESTION_HISTORY_KEY).catch(() => null)) || [];
-  const today = new Date(Date.now() + 8 * 3600 * 1000);
-  const result = (await callAIJson(
-    "당신은 중국에 사는 한인 커뮤니티의 운영자입니다. 회원들이 부담 없이 댓글로 경험을 나눌 수 있는 질문을 만듭니다. " +
-    "한국어로만 쓰고, 정치·종교·민감한 주제는 피하세요. 반드시 JSON 객체 하나만 출력하세요.",
-    `오늘은 ${today.getUTCMonth() + 1}월 ${today.getUTCDate()}일(중국 시간)입니다. 계절·다가오는 휴일·중국 생활을 고려해 ` +
-    `오늘의 질문 1개를 만드세요. 최근 질문과 겹치지 않게 하세요.\n최근 질문: ${history.slice(0, 14).join(" / ") || "없음"}\n` +
-    `형식: {"title":"질문 제목(30자 이내, 물음표로 끝)","content":"2~3문장 안내 + 댓글을 부탁하는 한 문장"}`,
-    1500,
-  ));
-  const title = String(result.title || "").trim();
-  const content = String(result.content || "").trim();
-  if (!title || !content || hasForeignScript(title + content)) throw new Error("질문 생성 실패");
-
-  const posts = (await kv.get(COMMUNITY_POSTS_KEY)) || [];
-  const now = new Date();
-  const post = {
-    id: now.getTime(),
-    title: `[오늘의 질문] ${title}`,
-    content: `${content}\n\n※ 차이나뷰 AI가 대화를 위해 올린 질문입니다.`,
-    category: "자유",
-    author: "차이나뷰 AI",
-    authorKey: "ai",
-    isAi: true,
-    date: formatDate(now),
-    views: 0, likes: 0, comments: 0,
-  };
-  await kv.set(COMMUNITY_POSTS_KEY, [post, ...posts]);
-  await kv.set(QUESTION_HISTORY_KEY, [title, ...history].slice(0, 30));
-  return { post };
+  const posts: any[] = (await kv.get(COMMUNITY_POSTS_KEY)) || [];
+  const kept = posts.filter((p) => !isDailyQuestionPost(p));
+  if (kept.length !== posts.length) await kv.set(COMMUNITY_POSTS_KEY, kept);
+  return { skipped: "오늘의 질문은 꺼 두었습니다", removed: posts.length - kept.length };
 }
 
 // --- 주간 인기글 정리 (일요일 20:00): 지난 7일 회원 글 TOP 5 를 공지로 ---
@@ -1669,7 +1644,8 @@ const requireLogin = (c: any) => c.json({ success: false, error: "로그인이 �
 app.get("/make-server-c6687586/community/posts", async (c) => {
   try {
     const [posts, stats] = await Promise.all([kv.get(COMMUNITY_POSTS_KEY), kv.get(COMMUNITY_STATS_KEY)]);
-    return c.json({ success: true, posts: posts || [], stats: stats || {} });
+    // 예전에 AI가 올린 "오늘의 질문" 글은 보여 주지 않음
+    return c.json({ success: true, posts: (posts || []).filter((p: any) => !isDailyQuestionPost(p)), stats: stats || {} });
   } catch (error) {
     return c.json({ success: false, error: error.message }, 500);
   }

@@ -37,11 +37,14 @@ function setStats(postId: number, s?: Stats) {
 function loadUserPosts() {
   if (!loading) {
     loading = request('/community/posts')
-      .then(data => { userPosts = data.posts || []; stats = data.stats || {}; notify(); })
+      .then(data => { userPosts = (data.posts || []).filter((p: Post) => !isDailyQuestion(p)); stats = data.stats || {}; notify(); })
       .catch(err => console.warn('커뮤니티 글 불러오기 실패 (예시 글만 표시):', err.message));
   }
   return loading;
 }
+
+/** AI가 올리던 "오늘의 질문" 글 — 그만 올리기로 해서 목록에서 뺌 */
+const isDailyQuestion = (p: Post) => !!p.isAi && String(p.title).startsWith('[오늘의 질문]');
 
 /** 회원 글 + 예시 글 (회원 글이 먼저), 조회수·좋아요·댓글 수 반영 */
 export function useCommunityPosts(): Post[] {

@@ -56,7 +56,7 @@ supabase functions deploy make-server-c6687586 --project-ref rpxmiyieukfuyhldqdt
 |---|---|---|---|---|
 | `morning` | 매일 08:00 | `0 0 * * *` | 원/위안 환율 + 7개 도시 날씨 + 오늘의 소식 3줄 | 메인 맨 위 "아침 브리핑" |
 | `market` | 월~금 09:30 | `30 1 * * 1-5` | 시세 + 새 증권 기사 + 개장 브리핑 | 증권 섹션·페이지 |
-| `question` | 매일 10:00 | `0 2 * * *` | 게시판에 "오늘의 질문" 1개 (작성자: 차이나뷰 AI) | 게시판 |
+| `question` | (꺼 둠) | `0 2 * * *` | **오늘의 질문은 그만 올림.** 실행돼도 새 글은 만들지 않고 예전 "[오늘의 질문]" 글만 지움. 예약을 지우려면 `select cron.unschedule('sinaview-question');` (예약 이름은 아래 설정과 같게) | — |
 | `china-news` | 매일 12:00 | `0 4 * * *` | 중국 생활·정책 뉴스 2건 한국어 기사 (최근 100건 보관) | 중국소식 섹션 |
 | `visa` | 매일 17:00 | `0 9 * * *` | 대사관·이민관리국 새 공지 요약 (새 공지 있을 때만, 최대 2건, 최근 100건 보관) | 비자/서류 섹션 "최신 공지" |
 | `weekly-top` | 일요일 20:00 | `0 12 * * 0` | 지난 7일 회원 글 TOP 5 정리 (회원 글 3개 미만이면 건너뜀) | 게시판 맨 위 공지 |
@@ -88,7 +88,7 @@ $$;
 
 select cron.schedule('sinaview-morning',    '0 0 * * *',    $$ select public.sinaview_run('morning') $$);
 select cron.schedule('sinaview-market-0930','30 1 * * 1-5', $$ select public.sinaview_run('market') $$);
-select cron.schedule('sinaview-question',   '0 2 * * *',    $$ select public.sinaview_run('question') $$);
+-- 오늘의 질문은 꺼 둠 (예약하지 않음)
 select cron.schedule('sinaview-china-news', '0 4 * * *',    $$ select public.sinaview_run('china-news') $$);
 select cron.schedule('sinaview-visa',       '0 9 * * *',    $$ select public.sinaview_run('visa') $$);
 select cron.schedule('sinaview-weekly-top', '0 12 * * 0',   $$ select public.sinaview_run('weekly-top') $$);
