@@ -18,7 +18,7 @@ export function BoardRow({ item, onOpen, showSub = true }: { item: BoardItem; on
   return (
     <button onClick={() => onOpen(item)} className="w-full text-left flex gap-3 py-3.5 border-b border-gray-100 last:border-b-0 active:bg-gray-50">
       <div className="flex-1 min-w-0">
-        <h3 className="text-[16px] sm:text-[17px] font-semibold text-gray-900 leading-snug line-clamp-2">{item.title}</h3>
+        <h3 className="text-[16px] sm:text-[17px] font-medium text-gray-900 leading-snug line-clamp-2">{item.title}</h3>
         {item.summary && <p className={`mt-1 text-[14px] text-gray-600 leading-snug ${item.thumb ? 'line-clamp-1' : 'line-clamp-2'}`}>{item.summary}</p>}
         <div className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-gray-500 min-w-0">
           {showSub && <span className="shrink-0 text-[#03a94d] font-medium">{item.sub}</span>}
@@ -40,7 +40,7 @@ function Headline({ item, onOpen }: { item: BoardItem; onOpen: (item: BoardItem)
     <button onClick={() => onOpen(item)} className="w-full text-left pt-1 pb-4 border-b border-gray-100 active:opacity-90">
       <img src={big(item.thumb)} alt="" className="w-full aspect-[16/9] object-cover rounded-lg bg-gray-100" />
       <div className="mt-2.5 text-[12.5px] text-[#03a94d] font-medium">{item.sub}</div>
-      <h3 className="mt-0.5 text-[18px] sm:text-[20px] font-bold text-gray-900 leading-snug line-clamp-2">{item.title}</h3>
+      <h3 className="mt-0.5 text-[19px] sm:text-[20px] font-bold text-gray-900 leading-snug line-clamp-2 tracking-[-0.03em]">{item.title}</h3>
       {item.summary && <p className="mt-1 text-[14px] text-gray-600 leading-snug line-clamp-2">{item.summary}</p>}
     </button>
   );
@@ -71,15 +71,15 @@ function SubTabs({ subs, active, onPick }: { subs: string[]; active: string; onP
 // ───────── 상세 본문 블록 ─────────
 function Blocks({ blocks, onLink }: { blocks: GuideBlock[]; onLink: BoardLinkHandler }) {
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-4">
       {blocks.map((b, i) => {
         if ('h' in b) return <h2 key={i} className="mt-4 text-[18px] font-bold text-gray-900">{b.h}</h2>;
-        if ('p' in b) return <p key={i} className="text-[16px] text-gray-800 leading-[1.8]">{b.p}</p>;
+        if ('p' in b) return <p key={i} className="text-[17px] text-gray-900 leading-[1.65]">{b.p}</p>;
         if ('ul' in b)
           return (
             <ul key={i} className="flex flex-col gap-1.5 pl-1">
               {b.ul.map((t) => (
-                <li key={t} className="flex gap-2 text-[16px] text-gray-800 leading-[1.7]">
+                <li key={t} className="flex gap-2 text-[17px] text-gray-900 leading-[1.65]">
                   <span className="mt-[11px] shrink-0 w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                   <span>{t}</span>
                 </li>
@@ -90,7 +90,7 @@ function Blocks({ blocks, onLink }: { blocks: GuideBlock[]; onLink: BoardLinkHan
           return (
             <ol key={i} className="flex flex-col gap-2">
               {b.ol.map((t, n) => (
-                <li key={t} className="flex gap-2.5 text-[16px] text-gray-800 leading-[1.7]">
+                <li key={t} className="flex gap-2.5 text-[17px] text-gray-900 leading-[1.65]">
                   <span className="mt-[3px] shrink-0 w-6 h-6 rounded-full bg-[#03a94d] text-white text-[13px] font-bold flex items-center justify-center">{n + 1}</span>
                   <span>{t}</span>
                 </li>
@@ -176,7 +176,7 @@ function BoardDetail({
           {item.body ? (
             <Blocks blocks={item.body} onLink={onLink} />
           ) : (
-            <div className="text-[16px] text-gray-800 leading-[1.85] whitespace-pre-line">{item.content || item.summary}</div>
+            <div className="text-[17px] text-gray-900 leading-[1.65] whitespace-pre-line">{item.content || item.summary}</div>
           )}
         </div>
         {item.tags && item.tags.length > 0 && (

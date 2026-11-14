@@ -179,7 +179,7 @@ export function BlogPage({ onBack }: BlogPageProps) {
               <div className="text-[13px] text-[#03a94d] font-semibold">
                 {post.category}{post.isPopular && <span className="ml-1.5 text-red-500">인기</span>}
               </div>
-              <h3 className="mt-0.5 text-[16.5px] font-semibold text-gray-900 leading-snug line-clamp-2">{post.title}</h3>
+              <h3 className="mt-0.5 text-[16.5px] font-medium text-gray-900 leading-snug line-clamp-2">{post.title}</h3>
               <p className="mt-1 text-[14.5px] text-gray-600 leading-snug line-clamp-2">{post.description}</p>
               <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-gray-500 min-w-0">
                 <span className="min-w-[4.5em] truncate">{post.author}</span>

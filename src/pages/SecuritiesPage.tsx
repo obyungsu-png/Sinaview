@@ -147,7 +147,7 @@ export function SecuritiesPage({ onBack }: SecuritiesPageProps) {
                 {newsItems.map((item, i) => {
                   const body = (
                     <>
-                      <h4 className="text-[16px] font-semibold text-gray-900 leading-snug line-clamp-2">{item.title}</h4>
+                      <h4 className="text-[16px] font-medium text-gray-900 leading-snug line-clamp-2">{item.title}</h4>
                       {item.summary && <p className="mt-1 text-[14.5px] text-gray-600 leading-snug line-clamp-2">{item.summary}</p>}
                       <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-gray-500">
                         <span className="text-[#03a94d] font-medium">{item.category}</span>

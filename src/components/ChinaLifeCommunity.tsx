@@ -341,7 +341,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
             .post-detail-header { padding-bottom: 14px !important; margin-bottom: 4px !important; }
             .post-title { font-size: 21px !important; margin-bottom: 10px !important; }
             .post-meta { flex-wrap: wrap; gap: 6px 10px !important; font-size: 13.5px !important; }
-            .post-content { font-size: 16.5px !important; line-height: 1.85 !important; padding: 18px 0 !important; }
+            .post-content { font-size: 17px !important; line-height: 1.65 !important; padding: 18px 0 !important; }
             .post-actions { gap: 10px !important; padding: 16px 0 !important; margin-bottom: 20px !important; }
             .action-btn { font-size: 15px !important; padding: 9px 14px !important; }
             .comments-section { margin-top: 20px !important; padding-top: 18px !important; }
@@ -1246,7 +1246,7 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                             {post.badge}
                           </span>
                         )}
-                        <h3 className="flex-1 min-w-0 text-[16px] font-semibold text-gray-900 leading-snug line-clamp-2 break-keep">
+                        <h3 className={`flex-1 min-w-0 text-[16px] text-gray-900 leading-snug line-clamp-2 break-keep ${post.badge ? 'font-semibold' : ''}`}>
                           {post.isAi && <span className="mr-1 align-[1px] px-1 rounded border border-teal-200 bg-teal-50 text-[12px] font-medium text-teal-700">AI</span>}
                           {post.title}
                           {post.comments > 0 && <span className="ml-1 font-normal text-blue-600">[{post.comments}]</span>}

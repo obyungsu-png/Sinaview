@@ -3,6 +3,12 @@
 @import 'tw-animate-css';
 @import './styles/globals.css';
 
+/* 글꼴: 네이버 모바일처럼 기기 기본 한글 글꼴 (아이폰 애플 SD 고딕 Neo, 윈도 맑은 고딕, 안드로이드 기본 한글 글꼴)
+   system-ui를 빼서 중국 휴대폰에서도 숫자·영문이 제조사 글꼴 대신 한글 글꼴과 어울리게 */
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', '맑은 고딕', 'Noto Sans KR', 'Helvetica Neue', Arial, sans-serif;
+}
+
 @layer base {
   html, body, #root { min-height: 100vh; height: 100%; margin: 0; }
 }
@@ -24,6 +30,8 @@
   .sv-read .text-\[13px\]:not(.sv-keep) { font-size: 15px; }
   .sv-read .text-\[14px\] { font-size: 15px; }
   .sv-read .text-\[15px\] { font-size: 16px; }
+  /* 네이버처럼 제목은 글자 사이를 살짝 좁게 (본문은 그대로) */
+  .sv-read h1, .sv-read h2, .sv-read h3 { letter-spacing: -0.02em; }
 }
 /* 머리글 메뉴 5칸(sv-keep)은 폭에 딱 맞춰 둬서, 400px 이상 넓은 휴대폰에서만 1px 키움 */
 @media (min-width: 400px) and (max-width: 639px) {

@@ -35,7 +35,7 @@ export function PopularPosts({ onPostClick, onMoreClick, limit = 5 }: PopularPos
               <span className={`w-5 lg:w-4 shrink-0 text-center text-[17px] lg:text-[13px] font-bold leading-snug ${i < 3 ? 'text-[#03c75a] lg:text-red-500' : 'text-gray-400'}`}>{i + 1}</span>
               <span className="flex-1 min-w-0">
                 {/* 휴대폰: 제목은 한 줄 전체 폭, 추천·댓글·조회는 아랫줄 */}
-                <span className="block truncate text-[16px] lg:text-sm font-medium lg:font-normal text-gray-900 leading-snug group-hover:text-blue-600">
+                <span className="block truncate text-[16px] lg:text-sm text-gray-900 leading-snug group-hover:text-blue-600">
                   {post.title}
                   {post.comments > 0 && <span className="ml-1 text-blue-600">[{post.comments}]</span>}
                 </span>

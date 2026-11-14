@@ -187,7 +187,7 @@ export function UsedMarketPage({ onBack }: UsedMarketPageProps) {
           <div key={item.id} className="flex gap-3.5 py-4 border-b border-gray-100 last:border-b-0">
             <ImageWithFallback src={item.image} alt="" className="shrink-0 w-[104px] h-[104px] sm:w-[120px] sm:h-[120px] object-cover rounded-lg bg-gray-100" />
             <div className="flex-1 min-w-0 flex flex-col">
-              <h3 className="text-[16px] font-semibold text-gray-900 leading-snug line-clamp-2">{item.title}</h3>
+              <h3 className="text-[16px] font-medium text-gray-900 leading-snug line-clamp-2">{item.title}</h3>
               <div className="mt-1 text-[13.5px] text-gray-500 truncate">
                 {item.location} · {item.time}
               </div>

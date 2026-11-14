@@ -220,7 +220,7 @@ export function RegionalNewsWidget({ onMoreClick, variant }: RegionalNewsWidgetP
         <div className="px-4">
           {currentNews.slice(0, 3).map((news) => (
             <div key={news.id} className="py-3.5 border-b border-gray-100 last:border-b-0">
-              <h3 className="text-[16px] font-semibold text-gray-900 leading-snug line-clamp-2 break-keep">{news.title}</h3>
+              <h3 className="text-[16px] text-gray-900 leading-snug line-clamp-2 break-keep">{news.title}</h3>
               <div className="mt-1.5 flex items-center gap-1.5 text-[13.5px] text-gray-500">
                 <span className="text-[#03a94d] font-medium">{news.category}</span>
                 <span className="text-gray-300">·</span>

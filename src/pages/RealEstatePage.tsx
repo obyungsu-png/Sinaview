@@ -201,7 +201,7 @@ export function RealEstatePage({ onBack }: RealEstatePageProps) {
               <div className="text-[13px] font-semibold text-[#03a94d]">
                 {property.type}{property.isHot && <span className="ml-1.5 text-red-500">인기</span>}
               </div>
-              <h3 className="mt-0.5 text-[16px] font-semibold text-gray-900 leading-snug line-clamp-2">{property.title}</h3>
+              <h3 className="mt-0.5 text-[16px] font-medium text-gray-900 leading-snug line-clamp-2">{property.title}</h3>
               <div className="mt-0.5 text-[17px] font-bold text-gray-900">{property.price}</div>
               <div className="mt-0.5 text-[13px] text-gray-500 truncate">
                 {property.location}
