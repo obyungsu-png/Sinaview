@@ -168,10 +168,11 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
     }
   };
 
-  // 상단 메뉴 버튼 모양 - 모바일은 회색 판 위 5칸 2줄, 데스크탑은 글자만
-  const navItem = 'whitespace-nowrap hover:text-green-600 max-sm:text-center max-sm:py-1.5 max-sm:px-1 max-[359px]:px-0.5 max-sm:rounded-lg max-sm:text-gray-700 max-sm:font-medium max-sm:active:bg-white transition-colors';
-  // 게시판 강조 (보라색 테두리 알약)
-  const navHighlight = 'whitespace-nowrap flex items-center justify-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 text-purple-600 font-semibold hover:shadow-md transition-all';
+  // 상단 메뉴 버튼 모양 - 모바일은 흰 바탕 5칸 2줄(위아래 칸 맞춤), 데스크탑은 글자만
+  // 누른 뒤 남는 회색 테두리(포커스 표시)는 휴대폰에서 없앰
+  const navItem = 'whitespace-nowrap hover:text-green-600 max-sm:text-center max-sm:py-1.5 max-sm:px-1 max-[359px]:px-0.5 max-sm:rounded-lg max-sm:text-gray-800 max-sm:font-medium max-sm:active:bg-gray-100 max-sm:outline-none max-sm:focus:outline-none [-webkit-tap-highlight-color:transparent] transition-colors';
+  // 게시판 강조: 데스크탑은 보라색 알약, 휴대폰은 다른 메뉴와 같은 모양에 글자만 진하게
+  const navHighlight = 'whitespace-nowrap flex items-center justify-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1.5 rounded-lg sm:bg-gradient-to-r sm:from-purple-50 sm:to-pink-50 sm:border sm:border-purple-200 sm:text-purple-600 sm:font-semibold sm:hover:shadow-md max-sm:px-1 max-sm:text-gray-900 max-sm:font-bold max-sm:active:bg-gray-100 max-sm:outline-none max-sm:focus:outline-none [-webkit-tap-highlight-color:transparent] transition-all';
 
   return (
     <header className="bg-white border-b border-gray-200">
@@ -366,9 +367,9 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
           </div>
         </div>
 
-        {/* Service Navigation - 모바일: 5개씩 2줄, 줄마다 간격을 고르게 / 데스크탑: 한 줄 */}
+        {/* Service Navigation - 모바일: 5칸 2줄(위아래 칸 맞춤, 흰 바탕) / 데스크탑: 한 줄 */}
         <nav className="mt-2 sm:mt-4">
-          <div className="sv-keep flex flex-wrap justify-between items-center gap-y-0.5 py-1 px-1.5 rounded-xl bg-gray-50 border border-gray-100 text-[13px] max-[359px]:text-[11.5px] sm:flex-nowrap sm:justify-start sm:gap-y-0 sm:space-x-8 sm:p-0 sm:pb-1.5 sm:rounded-none sm:bg-transparent sm:border-0 sm:text-base sm:overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="sv-nav sv-keep grid grid-cols-[1.05fr_0.75fr_1.4fr_1.05fr_1.1fr] items-center gap-y-0.5 pb-1 text-[13px] max-[359px]:text-[11.5px] sm:flex sm:justify-start sm:gap-y-0 sm:space-x-8 sm:p-0 sm:pb-1.5 sm:text-base sm:overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button 
               onClick={() => navTab('visa', 'visa-documents', 'visa-documents-mobile')}
               className={navItem}
@@ -405,8 +406,6 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
             >
               중국소식
             </button>
-            {/* 휴대폰: 여기서 줄바꿈 (윗줄 5개 · 아랫줄 5개) */}
-            <span className="basis-full h-0 sm:hidden" aria-hidden />
             <button 
               onClick={() => navTab('market', 'used-market', 'used-market-mobile')}
               className={navItem}
