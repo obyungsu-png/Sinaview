@@ -519,7 +519,8 @@ function MockPage({ sets, onBack, onStart }: { sets: DLQuestion[][]; onBack: () 
           const no = i + 1;
           const result = results[`mj-set${no}`];
           return (
-            <button key={no} onClick={() => onStart(no)} className="text-left p-4 bg-white border-2 border-gray-100 rounded-lg hover:border-[#37a7f0] hover:shadow-md transition-all">
+            // 1~6회(처음부터 있던 회차)만 아주 옅은 파란 바탕으로 살짝 구분
+            <button key={no} onClick={() => onStart(no)} className={`text-left p-4 border-2 rounded-lg hover:border-[#37a7f0] hover:shadow-md transition-all ${no <= SET_COUNT ? 'bg-[#f6fafe] border-[#e6f1fa]' : 'bg-white border-gray-100'}`}>
               <div className="font-medium text-gray-800 mb-1">제{no}회 모의고사</div>
               {result ? (
                 <div className="text-xs text-gray-500">
