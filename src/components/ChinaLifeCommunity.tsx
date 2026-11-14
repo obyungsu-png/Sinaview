@@ -8,6 +8,15 @@ import { CityRoomCard, ShareButtons } from './CommunityConnect';
 
 
 
+// 휴대폰 목록용: 제목 앞뒤 그림 문자(🚨 📅 ✍️ 등) 빼고, 날짜는 네이버처럼 짧게 (올해 "11.12." · 지난해 "25.12.24.")
+const listTitle = (t: string) => t.replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+const shortDate = (d: string) => {
+  const m = d.match(/^(\d{4})\.(\d{1,2})\.(\d{1,2})/);
+  if (!m) return d;
+  const mmdd = `${m[2].padStart(2, '0')}.${m[3].padStart(2, '0')}.`;
+  return Number(m[1]) === new Date().getFullYear() ? mmdd : `${m[1].slice(2)}.${mmdd}`;
+};
+
 interface ChinaLifeCommunityProps {
   currentUser?: { id?: string; name?: string; username?: string } | null;
   isAdmin?: boolean;
@@ -1222,9 +1231,9 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                 )}
               </div>
 </div>
-              {/* 휴대폰 목록: 제목 크게, 아랫줄에 분류 · 작성자 · 날짜 · 조회 */}
+              {/* 휴대폰 목록 (네이버식): 필독·공지는 한 줄씩 위에 모으고, 일반 글은 제목 한 줄 + 아랫줄 분류 · 작성자 · 날짜 · 조회 */}
               <div className="md:hidden">
-                <p className="pb-1 text-[13.5px] text-gray-500">
+                <p className="pb-2 text-[13.5px] text-gray-500">
                   {activeCategory === '전체' ? '전체 글' : activeCategory}
                   {activeCityName !== '전체' && ` · ${activeCityName}`}
                   {searchTerm && ` · "${searchTerm}" 검색`} · {filteredPosts.length}개
@@ -1234,35 +1243,42 @@ export function ChinaLifeCommunity({ currentUser, isAdmin, onBack, initialPostId
                     {searchTerm ? `"${searchTerm}"에 해당하는 글이 없어요.` : '아직 글이 없어요.'}
                   </p>
                 ) : (
-                  filteredPosts.map(post => (
-                    <button
-                      key={post.id}
-                      onClick={() => { handlePostClick(post); window.scrollTo({ top: 0 }); }}
-                      className={`w-full text-left py-3.5 border-b border-gray-100 active:bg-gray-50 ${post.badgeType === 'important' ? 'bg-red-50/30' : ''}`}
-                    >
-                      <div className="flex items-start gap-2">
-                        {post.badge && (
-                          <span className={`shrink-0 mt-[1px] px-1.5 py-0.5 rounded text-[12.5px] font-bold leading-tight ${post.badgeType === 'important' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
-                            {post.badge}
-                          </span>
-                        )}
-                        <h3 className={`flex-1 min-w-0 text-[16px] text-gray-900 leading-snug line-clamp-2 break-keep ${post.badge ? 'font-semibold' : ''}`}>
-                          {post.isAi && <span className="mr-1 align-[1px] px-1 rounded border border-teal-200 bg-teal-50 text-[12px] font-medium text-teal-700">AI</span>}
-                          {post.title}
-                          {post.comments > 0 && <span className="ml-1 font-normal text-blue-600">[{post.comments}]</span>}
-                        </h3>
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-1.5 text-[13.5px] text-gray-500 min-w-0">
-                        {!post.badge && <span className="shrink-0 text-[#03a94d] font-medium">{post.category}</span>}
-                        {!post.badge && <span className="shrink-0 text-gray-300">·</span>}
-                        <span className="truncate">{post.author}</span>
-                        <span className="shrink-0 text-gray-300">·</span>
-                        <span className="shrink-0">{post.date}</span>
-                        <span className="shrink-0 text-gray-300">·</span>
-                        <span className="shrink-0">조회 {post.views.toLocaleString()}</span>
-                      </div>
-                    </button>
-                  ))
+                  <div className="border-t border-gray-200">
+                    {filteredPosts.map(post =>
+                      post.badge ? (
+                        <button
+                          key={post.id}
+                          onClick={() => { handlePostClick(post); window.scrollTo({ top: 0 }); }}
+                          className="w-full flex items-center gap-2 py-3 border-b border-gray-200 text-left active:bg-gray-50"
+                        >
+                          <span className={`shrink-0 text-[13.5px] font-bold ${post.badgeType === 'important' ? 'text-[#e8452f]' : 'text-[#03a94d]'}`}>{post.badge}</span>
+                          <span className="min-w-0 truncate text-[16px] text-gray-900">{listTitle(post.title)}</span>
+                          {post.comments > 0 && <span className="shrink-0 text-[14px] text-[#e8452f]">[{post.comments}]</span>}
+                        </button>
+                      ) : (
+                        <button
+                          key={post.id}
+                          onClick={() => { handlePostClick(post); window.scrollTo({ top: 0 }); }}
+                          className="w-full text-left py-3 border-b border-gray-200 active:bg-gray-50"
+                        >
+                          <div className="flex items-center gap-1 min-w-0">
+                            {post.isAi && <span className="shrink-0 mr-0.5 px-1 rounded border border-gray-300 text-[11.5px] leading-[16px] text-gray-500">AI</span>}
+                            <span className="min-w-0 truncate text-[16px] text-gray-900">{listTitle(post.title)}</span>
+                            {post.comments > 0 && <span className="shrink-0 text-[14px] text-[#e8452f]">[{post.comments}]</span>}
+                          </div>
+                          <div className="mt-1 flex items-center gap-1.5 text-[13px] text-gray-500 min-w-0">
+                            <span className="shrink-0 text-[#03a94d]">{post.category}</span>
+                            <span className="shrink-0 text-gray-300">·</span>
+                            <span className="truncate">{post.author}</span>
+                            <span className="shrink-0 text-gray-300">·</span>
+                            <span className="shrink-0">{shortDate(post.date)}</span>
+                            <span className="shrink-0 text-gray-300">·</span>
+                            <span className="shrink-0">조회 {post.views.toLocaleString()}</span>
+                          </div>
+                        </button>
+                      ),
+                    )}
+                  </div>
                 )}
               </div>
             </>

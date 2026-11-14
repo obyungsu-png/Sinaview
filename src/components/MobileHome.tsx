@@ -210,7 +210,7 @@ export function MobileHome({
 
           {/* ─ 인기글 ─ */}
           <div className="mx-3 mb-3">
-            <PopularPosts onPostClick={id=>onOpenCommunityPost?.(id)} onMoreClick={()=>onNavigate?.('chinalife')}/>
+            <PopularPosts limit={3} onPostClick={id=>onOpenCommunityPost?.(id)} onMoreClick={()=>onNavigate?.('chinalife')}/>
           </div>
 
           {/* ─ 서비스 아이콘 8개 ─ */}
