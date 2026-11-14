@@ -33,6 +33,7 @@ import {
   type Progress,
 } from './DriverLicenseQuiz';
 import { ContentCheck, checkedCount, scrollToId } from './DriverLicenseContentCheck';
+import { VocabPage } from './DriverLicenseVocab';
 import type { CheckQuestion } from '../data/driverLicenseCheckQuestions';
 import { getMockResults, getProgress, getWrongMap, recordAnswers, setMockResult, setProgress, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
 
@@ -126,7 +127,8 @@ type View =
   | { mode: 'fast' }
   | { mode: 'cards' }
   | { mode: 'quiz'; title: string; questions: DLQuestion[]; storageKey?: string; pool: DLQuestion[]; from: 'topics' | 'fast'; key: number; back?: View }
-  | { mode: 'wrong'; title: string; pool: DLQuestion[]; from: 'topics' | 'fast'; back?: View };
+  | { mode: 'wrong'; title: string; pool: DLQuestion[]; from: 'topics' | 'fast'; back?: View }
+  | { mode: 'vocab'; start?: 'dict' | 'test'; questionIds?: number[]; title?: string; back?: View };
 
 const btn = {
   primary: 'px-4 py-2 rounded-lg text-[15px] text-white bg-[#37a7f0] hover:bg-[#2a8bc9]',
@@ -158,6 +160,20 @@ function FullScoreInner({ onBack }: { onBack: () => void }) {
     window.scrollTo({ top: 0 });
   }, [view.mode]);
 
+  // 단어 시험: 만점 교육·학법 감점 단어를 따로 불러옴
+  if (view.mode === 'vocab') {
+    return (
+      <VocabPage
+        key={view.questionIds?.join(',') ?? 'all'}
+        home="a"
+        startView={view.start ?? 'dict'}
+        questionIds={view.questionIds}
+        questionsTitle={view.title}
+        onBack={() => setView(view.back ?? { mode: 'home' })}
+        backLabel={view.back ? '틀린 문제로 돌아가기' : '만점 교육으로 돌아가기'}
+      />
+    );
+  }
   // 첫 화면(안내)은 데이터 없이 바로 보여 주고, 문제가 필요한 화면만 불러오기를 기다림
   if (!data) return view.mode === 'home' ? <GuideHome data={null} onGo={setView} /> : <LoadingState failed={failed} onBack={() => setView({ mode: 'home' })} />;
 
@@ -244,6 +260,7 @@ function FullScoreInner({ onBack }: { onBack: () => void }) {
         breadcrumb={BREADCRUMB}
         onBack={() => go(view.back ?? { mode: view.from })}
         backLabel={view.from === 'fast' ? '속성 과정으로 돌아가기' : '주제별 연습으로 돌아가기'}
+        onVocabTest={(qs) => go({ mode: 'vocab', start: 'test', questionIds: qs.map((q) => q.id), title: `${view.title} 틀린 문제`, back: view })}
       />
     );
   }
@@ -308,6 +325,7 @@ function GuideHome({ data, onGo }: { data: MjData | null; onGo: (view: View) => 
     { view: { mode: 'topics' } as View, icon: 'fa-book-open', color: '#ff6b6b', title: '주제별 연습', desc: `만점 문제은행 ${qCount}문제를\n${topicCount}개 주제로 나눠 연습` },
     { view: { mode: 'mock' } as View, icon: 'fa-pen-to-square', color: '#37a7f0', title: '모의고사', desc: best ? `최고 ${best}점\n실제처럼 중국어 100문제 · 45분` : `회차별 ${SET_COUNT * SET_ROUNDS}회분 + 랜덤\n중국어 100문제 · 45분` },
     { view: { mode: 'fast' } as View, icon: 'fa-bolt', color: '#f39c12', title: '⚡ 속성 과정', desc: '핵심 정리 카드 → 전체 문제\n→ 시험 전날 실전 100문제', hot: true },
+    { view: { mode: 'vocab' } as View, icon: 'fa-language', color: '#2E7D7A', title: '📘 단어 시험', desc: '핵심 단어를 한자 + 병음 + 뜻으로\n단어장 · 4지선다 시험 · 틀린 문제 단어', wide: true },
   ];
   return (
     <div className="max-w-[1100px] mx-auto px-4 pb-12">
@@ -336,13 +354,13 @@ function GuideHome({ data, onGo }: { data: MjData | null; onGo: (view: View) => 
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5 mb-10">
         {cards.map((card) => (
           <button
             key={card.title}
             onClick={() => onGo(card.view)}
             className={`relative flex flex-col justify-center items-center text-center cursor-pointer hover:-translate-y-1 transition-all rounded shadow-sm hover:shadow-md p-4 sm:p-6 ${
-              card.hot ? 'col-span-2 sm:col-span-1 bg-[#fff8ec] border border-[#f7d9a8] hover:bg-[#fff1da]' : 'bg-gray-50 hover:bg-gray-100'
+              card.hot ? 'col-span-2 sm:col-span-1 bg-[#fff8ec] border border-[#f7d9a8] hover:bg-[#fff1da]' : card.wide ? 'col-span-2 sm:col-span-1 bg-[#eef7f6] border border-[#cfe6e3] hover:bg-[#e2f1ef]' : 'bg-gray-50 hover:bg-gray-100'
             }`}
           >
             {card.hot && <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-[#f39c12] text-white text-[11px]">시간 없을 때</span>}

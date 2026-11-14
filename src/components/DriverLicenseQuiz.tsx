@@ -1766,12 +1766,14 @@ export function WrongNotes({
   breadcrumb,
   onBack,
   backLabel,
+  onVocabTest,
 }: {
   pool: DLQuestion[];
   title: string;
   breadcrumb: string;
   onBack: () => void;
   backLabel: string;
+  onVocabTest?: (questions: DLQuestion[]) => void; // 만점 교육·학법 감점: 이 틀린 문제들의 단어로 단어 시험
 }) {
   const [retry, setRetry] = useState<{ questions: DLQuestion[]; key: number } | null>(null);
   const [version, setVersion] = useState(0);
@@ -1819,6 +1821,14 @@ export function WrongNotes({
             >
               틀린 문제 다시 풀기
             </button>
+            {onVocabTest && (
+              <button
+                onClick={() => onVocabTest(items.map(({ q }) => q))}
+                className="px-5 py-2.5 rounded border border-[#37a7f0] text-[#2a8bc9] bg-white hover:bg-[#eef7fe]"
+              >
+                📘 이 문제들 단어 시험 보기
+              </button>
+            )}
             <button onClick={clear} className="text-sm text-gray-500 hover:text-[#e74c3c]">
               기록 지우기
             </button>

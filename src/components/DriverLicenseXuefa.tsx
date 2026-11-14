@@ -12,6 +12,7 @@ import {
   registerImageSizes,
   WordPopupHost,
   WordStudyHost,
+  WrongNotes,
   ZhText,
   shuffle,
   speakZh,
@@ -25,6 +26,7 @@ import { XfExamRunner, XfExamResultView, XfExamRules, XfFullscreen, recordXfExam
 import { ContentCheck, checkedCount, scrollToId } from './DriverLicenseContentCheck';
 import type { CheckQuestion } from '../data/driverLicenseCheckQuestions';
 import { getMockResults, getProgress, getWrongMap, setProgress, useDriverLicenseRecords } from '../utils/driverLicenseRecords';
+import { VocabPage } from './DriverLicenseVocab';
 
 type XfTopic = { c: number; key: string; title: string; zh: string; desc: string; count: number; cards: number[] };
 type XfLine = [string, string, string]; // 중국어, 병음, 한국어
@@ -112,6 +114,20 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
   }, [data]);
 
   // 첫 화면은 데이터 없이 바로 보여 주고, 문제가 필요한 화면만 불러오기를 기다림
+  // 단어 시험: 만점 교육·학법 감점 단어를 따로 불러옴
+  if (view.mode === 'vocab') {
+    return (
+      <VocabPage
+        key={view.questionIds?.join(',') ?? 'all'}
+        home="b"
+        startView={view.start ?? 'dict'}
+        questionIds={view.questionIds}
+        questionsTitle={view.title}
+        onBack={() => setView(view.back ?? { mode: 'home' })}
+        backLabel={view.back ? '틀린 문제로 돌아가기' : '학법 감점으로 돌아가기'}
+      />
+    );
+  }
   if (!data) return view.mode === 'home' ? <XfHome data={null} onBack={onBack} onGo={setView} /> : <LoadingState failed={failed} onBack={() => setView({ mode: 'home' })} />;
   if (view.mode === 'quizAll') {
     // 데이터가 오기 전에 '전체 순서대로 풀기'를 눌렀던 경우
@@ -125,7 +141,7 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
         storageKey={ALL_KEY}
         onBack={() => setView({ mode: 'bank' })}
         backLabel="법규학습은행으로 돌아가기"
-        onReviewWrong={() => setView({ mode: 'wrong', title: '틀린 문제', pool: ordered })}
+        onReviewWrong={() => setView({ mode: 'wrong', title: '전체', pool: ordered })}
       />
     );
   }
@@ -222,6 +238,7 @@ function XuefaInner({ onBack }: { onBack: () => void }) {
         breadcrumb={BREADCRUMB}
         onBack={() => go({ mode: 'bank' })}
         backLabel="법규학습은행으로 돌아가기"
+        onVocabTest={(qs) => go({ mode: 'vocab', start: 'test', questionIds: qs.map((q) => q.id), title: `${view.title} 틀린 문제`, back: view })}
       />
     );
   }
@@ -238,7 +255,8 @@ type View =
   | { mode: 'bank' }
   | { mode: 'exams' }
   | { mode: 'quiz'; title: string; questions: DLQuestion[]; storageKey?: string; pool: DLQuestion[]; key: number; back?: View }
-  | { mode: 'wrong'; title: string; pool: DLQuestion[] };
+  | { mode: 'wrong'; title: string; pool: DLQuestion[] }
+  | { mode: 'vocab'; start?: 'dict' | 'test'; questionIds?: number[]; title?: string; back?: View };
 
 // ───────── 홈: 시작 전 간단한 설명 + 속성 과정 단계 ─────────
 function solvedOf(key: string) {
@@ -303,7 +321,19 @@ function XfHome({ data, onBack, onGo }: { data: XfData | null; onBack: () => voi
           onClick: () =>
             onGo(data ? { mode: 'quiz', title: `법규학습은행 ${total}문제 (순서대로)`, questions: ordered, storageKey: ALL_KEY, pool: ordered, key: Date.now() } : { mode: 'quizAll' }),
         },
-        ...(wrongCount > 0 ? [{ label: `틀린 문제만 (${wrongCount})`, cls: btn.danger, onClick: () => onGo({ mode: 'wrong', title: '틀린 문제', pool: ordered }) }] : []),
+        ...(wrongCount > 0 ? [{ label: `틀린 문제만 (${wrongCount})`, cls: btn.danger, onClick: () => onGo({ mode: 'wrong', title: '전체', pool: ordered }) }] : []),
+      ],
+    },
+    {
+      no: 4,
+      title: '📘 단어 시험',
+      when: '틈틈이',
+      desc: '문제에 나오는 핵심 단어를 한자 + 병음 + 뜻으로 외우고 4지선다로 확인해요. 내가 틀린 문제에 나온 단어만 골라 볼 수도 있어요.',
+      progress: 0,
+      status: '',
+      actions: [
+        { label: '단어 시험 보기', cls: btn.primary, onClick: () => onGo({ mode: 'vocab', start: 'test' }) },
+        { label: '단어장', cls: btn.plain, onClick: () => onGo({ mode: 'vocab', start: 'dict' }) },
       ],
     },
   ];
@@ -352,7 +382,7 @@ function XfHome({ data, onBack, onGo }: { data: XfData | null; onBack: () => voi
                   <span className="px-2 py-0.5 rounded-full bg-[#fff4e0] text-[#d35400] text-xs">{step.when}</span>
                 </div>
                 <p className="text-[15px] text-gray-600 leading-relaxed mb-3">{step.desc}</p>
-                <div className="flex items-center gap-3 mb-3">
+                <div className={`flex items-center gap-3 mb-3 ${step.status ? '' : 'hidden'}`}>
                   <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
                     <div className="h-full bg-[#f39c12]" style={{ width: `${step.progress}%` }}></div>
                   </div>
@@ -412,7 +442,7 @@ function XfBank({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
             랜덤으로 풀기
           </button>
           {wrongCount > 0 && (
-            <button className={btn.danger} onClick={() => onGo({ mode: 'wrong', title: '틀린 문제', pool: ordered })}>
+            <button className={btn.danger} onClick={() => onGo({ mode: 'wrong', title: '전체', pool: ordered })}>
               틀린 문제만 ({wrongCount})
             </button>
           )}
@@ -457,7 +487,7 @@ function XfBank({ data, onBack, onGo }: { data: XfData; onBack: () => void; onGo
                   랜덤으로 풀기
                 </button>
                 {wc > 0 && (
-                  <button className={btn.danger} onClick={() => onGo({ mode: 'wrong', title: `${topic.title} 틀린 문제`, pool: questions })}>
+                  <button className={btn.danger} onClick={() => onGo({ mode: 'wrong', title: topic.title, pool: questions })}>
                     틀린 문제만 ({wc})
                   </button>
                 )}
