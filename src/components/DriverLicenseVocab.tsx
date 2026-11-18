@@ -229,14 +229,14 @@ function WordView({ v, size = 'md', say = true }: { v: Word; size?: 'sm' | 'md' 
 
 function Seg<T extends string | number>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
-    <span className="inline-flex flex-wrap max-w-full rounded-lg border border-gray-300 overflow-hidden bg-white">
+    <span className="inline-flex w-full max-w-full flex-wrap rounded-lg border border-gray-300 overflow-hidden bg-white sm:w-auto sm:flex-nowrap">
       {options.map(([v, label], i) => (
         <button
           key={String(v)}
           type="button"
           aria-pressed={v === value}
           onClick={() => onChange(v)}
-          className={`px-3 py-1.5 text-[13.5px] font-semibold whitespace-nowrap ${i ? 'border-l border-gray-300' : ''} ${
+          className={`min-w-0 flex-1 px-2 sm:px-3 py-2 sm:py-1.5 text-[12.5px] sm:text-[13.5px] leading-tight font-semibold whitespace-normal break-keep sm:whitespace-nowrap ${i ? 'border-l border-gray-300' : ''} ${
             v === value ? 'bg-[#37a7f0] text-white' : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
@@ -430,9 +430,9 @@ function VocabInner({
       )}
 
       {/* 범위 (단어장·시험 공통) — 시험을 푸는 동안은 숨김 */}
-      <div className={`grid gap-3 p-4 mb-5 rounded-xl border border-[#bfe2fa] bg-[#eef7fe] ${busy ? 'hidden' : ''}`}>
+      <div className={`grid min-w-0 gap-3 p-3 sm:p-4 mb-5 rounded-xl border border-[#bfe2fa] bg-[#eef7fe] ${busy ? 'hidden' : ''}`}>
         {source !== 'these' && (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
             <Label>과정</Label>
             <Seg
               value={course}
@@ -446,16 +446,16 @@ function VocabInner({
           </div>
         )}
         {source !== 'these' && course !== 'ab' && (
-          <div className="flex flex-wrap items-start gap-2">
+          <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-start sm:gap-2">
             <Label>주제</Label>
-            <div className="flex flex-1 min-w-0 gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex w-full min-w-0 flex-wrap gap-1.5 sm:w-auto sm:flex-1 sm:overflow-visible sm:pb-0" style={{ scrollbarWidth: 'none' }}>
               {[{ c: 0, title: '전체' }, ...topics[course]].map((t) => (
                 <button
                   key={t.c}
                   type="button"
                   aria-pressed={topic === t.c}
                   onClick={() => setTopic(t.c)}
-                  className={`shrink-0 px-3 py-1 rounded-full border text-[13px] font-semibold whitespace-nowrap ${
+                  className={`max-w-full px-2.5 sm:px-3 py-1.5 rounded-full border text-[12.5px] sm:text-[13px] font-semibold whitespace-normal break-keep ${
                     topic === t.c ? 'border-[#37a7f0] bg-white text-[#2a8bc9]' : 'border-gray-300 bg-white/70 text-gray-600'
                   }`}
                 >
@@ -465,9 +465,11 @@ function VocabInner({
             </div>
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
           <Label>단어</Label>
-          <Seg value={source} options={sourceOptions} onChange={setSource} />
+          <div className="w-full min-w-0 sm:w-auto sm:flex-1">
+            <Seg value={source} options={sourceOptions} onChange={setSource} />
+          </div>
         </div>
         {source === 'wrongq' && !nWrongQ && <p className="text-[13px] text-gray-500 m-0">아직 틀린 문제가 없어요. 주제별 연습이나 법규학습은행에서 문제를 풀면 틀린 문제의 단어가 여기에 모여요.</p>}
         {source === 'wrongw' && !nWrongW && <p className="text-[13px] text-gray-500 m-0">아직 단어 시험에서 틀린 단어가 없어요.</p>}
@@ -534,7 +536,7 @@ function Dictionary({ list, scopeTitle, vwrong, freqText }: { list: Word[]; scop
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mb-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3 mb-3">
         <Seg
           value={layout}
           options={[
@@ -565,7 +567,7 @@ function Dictionary({ list, scopeTitle, vwrong, freqText }: { list: Word[]; scop
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="한자·병음·한글 뜻으로 검색"
-          className="flex-1 min-w-[180px] h-10 px-3 rounded-lg border border-gray-300 text-[16px] outline-none focus:border-[#37a7f0]"
+          className="order-last flex-1 min-w-0 w-full sm:order-none sm:min-w-[180px] sm:w-auto h-10 px-3 rounded-lg border border-gray-300 text-[16px] outline-none focus:border-[#37a7f0]"
         />
         <button type="button" onClick={() => setPdfOpen(!pdfOpen)} aria-pressed={pdfOpen} className={`${btnPlain} ${pdfOpen ? 'border-[#37a7f0] text-[#37a7f0]' : ''}`}>
           PDF 만들기 ▾
@@ -999,9 +1001,9 @@ function Quiz({
           const cls = done ? (o === item.it ? 'border-[#2ecc71] bg-[#e8f8ef]' : k === item.pick ? 'border-[#e74c3c] bg-[#fdf0ef]' : 'border-gray-200') : 'border-gray-200 hover:border-[#37a7f0]';
           const dot = done ? (o === item.it ? 'bg-[#2ecc71] border-[#2ecc71] text-white' : k === item.pick ? 'bg-[#e74c3c] border-[#e74c3c] text-white' : 'border-gray-400') : 'border-gray-400';
           return (
-            <button key={k} type="button" disabled={done} onClick={() => answer(k)} className={`flex items-center gap-3.5 px-4 py-3 rounded-xl border text-left bg-white ${cls}`}>
+            <button key={k} type="button" disabled={done} onClick={() => answer(k)} className={`flex min-w-0 items-center gap-2.5 sm:gap-3.5 px-3 sm:px-4 py-3 rounded-xl border text-left bg-white ${cls}`}>
               <span className={`shrink-0 w-7 h-7 rounded-full border-[1.5px] grid place-items-center text-[13px] font-mono ${dot}`}>{k + 1}</span>
-              <span className="min-w-0 text-[17px] text-gray-900">{item.m === 'wm' ? o.m : <WordView v={o} size="md" say={false} />}</span>
+              <span className="min-w-0 flex-1 text-[17px] text-gray-900">{item.m === 'wm' ? o.m : <WordView v={o} size="md" say={false} />}</span>
             </button>
           );
         })}
