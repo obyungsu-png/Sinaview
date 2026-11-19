@@ -529,7 +529,7 @@ function WordStudyModePicker({ mode, onChange }: { mode: WordStudyMode; onChange
           type="button"
           aria-pressed={mode === value}
           onClick={() => onChange(value)}
-          className={`min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0] ${mode === value ? 'bg-white text-[#237db6] shadow-sm' : 'text-gray-500'}`}
+          className={`min-h-10 flex-1 rounded-lg px-3 text-base font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0] ${mode === value ? 'bg-white text-[#237db6] shadow-sm' : 'text-gray-500'}`}
         >
           {value === 'words' ? '단어 보기' : '글쓰기'}
         </button>
@@ -555,7 +555,6 @@ export function WordList({ words, dict, mode: selectedMode, onModeChange }: { wo
       {selectedMode === undefined && <WordStudyModePicker mode={mode} onChange={setMode} />}
       {mode === 'writing' && (
         <section aria-label="따라 쓸 단어 선택" className="flex flex-1 flex-col gap-3">
-          <p className="text-center text-sm text-gray-500">핵심 단어나 일반 단어를 골라 따라 써 보세요.</p>
           {practiceWord && dict[practiceWord] ? (
             <div className="mx-auto flex w-full max-w-[520px] flex-1 flex-col justify-center">
               <HandwritingPractice key={practiceWord} word={practiceWord} entry={dict[practiceWord]} onClose={() => setPracticeWord(null)} />
@@ -566,7 +565,7 @@ export function WordList({ words, dict, mode: selectedMode, onModeChange }: { wo
           <div role="group" aria-label="따라 쓸 단어" className="flex max-h-28 flex-wrap justify-center gap-2 overflow-y-auto py-1">
             {practiceWords.map((word) => (
               <button key={word} type="button" onClick={() => chooseWord(word)} aria-pressed={practiceWord === word} className={`rounded-full border px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0] ${practiceWord === word ? 'border-[#37a7f0] bg-[#eef7fe] text-[#237db6]' : 'border-gray-200 bg-white text-gray-700'}`}>
-                <span lang="zh-CN" className="font-medium">{word}</span><span className="ml-1.5 text-xs text-gray-500">{dict[word][0]}</span>
+                <span lang="zh-CN" className="font-medium text-base">{word}</span><span className="ml-1.5 text-sm text-gray-500">{dict[word][0]}</span>
               </button>
             ))}
           </div>
@@ -654,7 +653,7 @@ export function WordStudyHost() {
   return (
     <div data-noswipe className="fixed inset-0 z-[1200] bg-black/40 flex items-end sm:items-center justify-center" onClick={() => setTarget(null)} role="dialog" aria-modal="true" aria-label="단어 공부">
       <div
-        className="w-full sm:max-w-[760px] max-h-[88dvh] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white shadow-xl"
+        className="w-full h-[88dvh] sm:h-auto sm:max-w-[760px] max-h-[88dvh] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-none flex items-center gap-2 px-4 pt-3.5 pb-2.5 border-b border-gray-100">
@@ -792,7 +791,7 @@ function HandwritingPractice({ word, entry, onClose }: { word: string; entry: Wo
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-gray-500">따라 쓸 단어</p>
-          <p lang="zh-CN" className="mt-0.5 text-[34px] leading-none font-medium text-[#2c3e50]">{word}</p>
+          <p lang="zh-CN" className="mt-0.5 text-[36px] leading-none font-medium text-[#2c3e50]">{word}</p>
           <p className="mt-1 text-sm text-[#b98222]">{entry[0]} <span className="text-gray-400">·</span> <span className="text-gray-600">{entry[1]}</span></p>
         </div>
         <button type="button" onClick={onClose} aria-label="따라 쓰기 닫기" className="h-9 w-9 shrink-0 rounded-full text-gray-500 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0]">×</button>
@@ -819,7 +818,7 @@ function HandwritingPractice({ word, entry, onClose }: { word: string; entry: Wo
           onLostPointerCapture={() => { activePointer.current = null; lastPoint.current = null; }}
         />
       </div>
-      <p id="handwriting-instructions" className="mt-2 text-xs text-gray-500">옅은 글자를 보며 손가락이나 마우스로 써 보세요. 반복 재생을 켜면 쓰는 동안 발음을 다시 들려줘요.</p>
+      <p id="handwriting-instructions" className="sr-only">옅은 글자를 보며 손가락이나 마우스로 써 보세요. 반복 재생을 켜면 쓰는 동안 발음을 다시 들려줘요.</p>
       <div className="mt-2 flex justify-end">
         <button type="button" onClick={clear} className="min-h-10 rounded-lg px-3 text-sm font-medium text-gray-600 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0]">지우기</button>
       </div>
@@ -1410,16 +1409,8 @@ function ExplanationBox({
         </p>
       )}
       {fastTip(q) && <p className="mt-1.5 text-[15px] text-[#b9560e] leading-relaxed">⚡ {fastTip(q)}</p>}
-      {q.ez && (
-        <details className="mt-2">
-          <summary className="text-sm text-[#2a8bc9] cursor-pointer select-none">중국어 원문 해설 보기</summary>
-          <p lang="zh-CN" className="mt-1 text-sm text-gray-600 leading-relaxed">
-            {q.ez}
-          </p>
-        </details>
-      )}
       {q.sm && (
-        // 원문 해설이 길고 어려워서 핵심만 한 줄로 (중국어 + 병음 + 한국어)
+        // 기존 핵심 요약은 유지한다.
         <div className="mt-2 px-3 py-2 rounded-lg bg-white/80 border border-gray-200">
           <div className="mb-0.5 text-xs font-bold text-[#2a8bc9]">📌 핵심 요약</div>
           <p lang="zh-CN" className="text-[15px] text-gray-900 leading-snug">
@@ -1487,7 +1478,7 @@ export function PracticeQuiz({
   const [level, setLevel] = useMjLevel();
   usePhoneFullscreen();
   const [slide, setSlide] = useState<'next' | 'prev' | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [explanationChoice, setExplanationChoice] = useState<{ questionId: number; open: boolean } | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const [favorites, setFavorites] = useState<number[]>(getFavorites);
   const timer = useRef<number>();
@@ -1534,7 +1525,12 @@ export function PracticeQuiz({
   useEffect(() => {
     panelRef.current?.scrollTo({ top: 0 });
   }, [index]);
-  const explanationOpen = showExplanation || !!answered;
+  const explanationOpen = explanationChoice?.questionId === q.id ? explanationChoice.open : !!answered;
+  // 해설을 수동으로 열거나 닫아도 답 확인 후 기본값은 열린 상태로 돌아간다.
+  const toggleExplanation = () => {
+    if (!explanationOpen) scrollToExplanation();
+    setExplanationChoice({ questionId: q.id, open: !explanationOpen });
+  };
   // 답을 고르거나 해설을 열었을 때만 (다시 찾아온 문제는 맨 위부터 보여 줌)
   const scrollToExplanation = () =>
     window.setTimeout(() => explanationRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60);
@@ -1572,7 +1568,7 @@ export function PracticeQuiz({
     window.clearTimeout(timer.current);
     if (target !== index) setSlide(target > index ? 'next' : 'prev');
     setProgress((p) => ({ ...p, index: Math.max(0, Math.min(questions.length - 1, target)) }));
-    setShowExplanation(false);
+    setExplanationChoice(null);
   };
 
   const finishAnswer = (chosen: number[]) => {
@@ -1581,8 +1577,8 @@ export function PracticeQuiz({
     setProgress((p) => ({ ...p, answers: { ...p.answers, [q.id]: chosen } }));
     recordAnswers([{ id: q.id, selected: chosen[0], correct: ok }]);
     scrollToExplanation();
-    if (!ok) setShowExplanation(true);
-    else if (autoNext && index < questions.length - 1) timer.current = window.setTimeout(() => goTo(index + 1), 1500);
+    setExplanationChoice(null);
+    if (ok && autoNext && index < questions.length - 1) timer.current = window.setTimeout(() => goTo(index + 1), 1500);
   };
   const handleSelect = (i: number) => {
     if (answered) return;
@@ -1613,7 +1609,7 @@ export function PracticeQuiz({
     if (!window.confirm('풀이 기록을 모두 지우고 처음부터 다시 풀까요?')) return;
     window.clearTimeout(timer.current);
     setProgress({ index: 0, answers: {} });
-    setShowExplanation(false);
+    setExplanationChoice(null);
   };
 
   const isFavorite = favorites.includes(q.id);
@@ -1765,11 +1761,7 @@ export function PracticeQuiz({
           </button>
           <div className="flex-1"></div>
           <button
-            onClick={() => {
-              if (!showExplanation) scrollToExplanation();
-              setShowExplanation(!showExplanation);
-            }}
-            disabled={!!answered}
+            onClick={toggleExplanation}
             aria-pressed={explanationOpen}
             aria-label="해설 보기"
             className={`w-10 h-10 rounded-full flex items-center justify-center text-[18px] ${explanationOpen ? 'bg-[#e3f2fd]' : 'active:bg-gray-100'}`}
@@ -1799,11 +1791,7 @@ export function PracticeQuiz({
           </button>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                if (!showExplanation) scrollToExplanation();
-                setShowExplanation(!showExplanation);
-              }}
-              disabled={!!answered}
+              onClick={toggleExplanation}
               aria-pressed={explanationOpen}
               className={`h-12 px-4 rounded-xl border text-[14px] transition-colors ${
                 explanationOpen ? 'bg-[#e3f2fd] border-[#37a7f0] text-[#2a8bc9]' : 'bg-[#f7f7f7] border-gray-300 text-gray-700 hover:border-[#37a7f0] active:bg-gray-200'
