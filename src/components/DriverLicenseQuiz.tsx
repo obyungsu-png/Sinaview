@@ -548,7 +548,7 @@ export function WordList({ words, dict, mode: selectedMode, onModeChange }: { wo
     setPracticeWord(word);
     speakZh(word);
   };
-  const practiceWords = list.filter((w) => dict[w][2] !== 0);
+  const practiceWords = list;
   return (
     <div className="flex min-h-full flex-col gap-4">
       {selectedMode === undefined && <WordStudyModePicker mode={mode} onChange={setMode} />}
@@ -589,9 +589,10 @@ export function WordList({ words, dict, mode: selectedMode, onModeChange }: { wo
                       <button
                         key={w}
                         type="button"
-                        onClick={() => speakZh(w)}
-                        aria-label={`${w}, ${dict[w][0]}, ${dict[w][1]} — 발음 듣기`}
-                        className="inline-flex items-baseline gap-1 rounded-full bg-gray-100 px-2 py-1 text-[13px] text-gray-600 hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0]"
+                        onClick={() => chooseWord(w)}
+                        aria-pressed={practiceWord === w}
+                        aria-label={`${w}, ${dict[w][0]}, ${dict[w][1]} — 단어 선택 및 발음 듣기`}
+                        className={`inline-flex items-baseline gap-1 rounded-full px-2 py-1 text-[13px] text-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0] ${practiceWord === w ? 'bg-[#eef7fe] ring-2 ring-[#37a7f0]' : 'bg-gray-100 hover:bg-gray-200'}`}
                       >
                         <b lang="zh-CN" className="text-[15px] font-medium text-gray-800">{w}</b>
                         <span className="text-[#c98b2f]">{dict[w][0]}</span>
@@ -605,9 +606,10 @@ export function WordList({ words, dict, mode: selectedMode, onModeChange }: { wo
                       <button
                         key={w}
                         type="button"
-                        onClick={() => speakZh(w)}
-                        aria-label={`${w}, ${dict[w][0]}, ${dict[w][1]} — 발음 듣기`}
-                        className={`w-full rounded-xl border px-3 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0] ${kind.v === 2 ? 'border-[#f5d58a] bg-[#fff8e6]' : 'border-gray-200 bg-white'}`}
+                        onClick={() => chooseWord(w)}
+                        aria-pressed={practiceWord === w}
+                        aria-label={`${w}, ${dict[w][0]}, ${dict[w][1]} — 단어 선택 및 발음 듣기`}
+                        className={`w-full rounded-xl border px-3 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0] ${practiceWord === w ? 'border-[#37a7f0] bg-[#eef7fe]' : kind.v === 2 ? 'border-[#f5d58a] bg-[#fff8e6]' : 'border-gray-200 bg-white'}`}
                       >
                         <span lang="zh-CN" className={`block leading-tight ${kind.v === 2 ? 'text-[22px] font-medium text-[#b9560e]' : 'text-[18px] text-gray-900'}`}>{w}</span>
                         <span className="block text-[12.5px] leading-snug text-[#c98b2f]">{dict[w][0]}</span>
@@ -1503,8 +1505,8 @@ export function PracticeQuiz({
       title: `${title} ${index + 1}번 문제`,
       label: selected !== undefined && selected !== q.a ? `${LETTERS[selected]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답·오답 이유를 설명해 줘',
       prompt: explainPrompt(q, selected),
-      // 만점 문제는 AI 질문 대신 '단어 공부해요' (문제·보기의 모든 단어)
-      action: q.ko ? { label: '📖 단어 공부해요', run: () => openWordStudy(q, `${index + 1}번 문제`) } : undefined,
+      // 만점 문제는 AI 질문 대신 '요점 포인트' (문제·보기의 모든 단어)
+      action: q.ko ? { label: '📖 요점 포인트', run: () => openWordStudy(q, `${index + 1}번 문제`) } : undefined,
     });
   }, [q, index, title, answered]);
   useEffect(() => () => setAiContext(null), []);

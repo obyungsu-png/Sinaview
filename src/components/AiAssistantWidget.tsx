@@ -265,7 +265,7 @@ export function AiAssistantWidget({ hideFab = false, page = 'main' }: { hideFab?
     return true;
   };
 
-  // 화면이 따로 준 버튼(예: 단어 공부해요)이 있으면 AI 질문 대신 그 버튼 — 누르면 AI 창을 닫고 그 화면을 연다
+  // 화면이 따로 준 버튼(예: 요점 포인트)이 있으면 AI 질문 대신 그 버튼 — 누르면 AI 창을 닫고 그 화면을 연다
   const runContext = () => {
     if (!context) return;
     if (context.action) {
