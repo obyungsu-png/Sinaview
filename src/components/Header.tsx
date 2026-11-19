@@ -240,7 +240,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
 
               {/* Suggestions Dropdown */}
               {showSuggestions && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                <div className="fixed inset-x-3 top-16 max-h-[min(70dvh,620px)] overflow-y-auto overscroll-contain bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 sm:absolute sm:inset-x-0 sm:top-full sm:mt-2 sm:max-h-[min(70vh,620px)]">
                   {/* 검색어가 있을 때 - 필터링된 결과 */}
                   {searchValue.trim() && filteredSuggestions.length > 0 && (
                     <div className="py-2">
@@ -308,13 +308,13 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                         <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5" /> 바로가기
                         </div>
-                        <div className="px-4 py-2 flex flex-wrap gap-2">
+                        <div className="grid grid-cols-2 gap-2 px-4 py-2 sm:flex sm:flex-wrap">
                           {searchableItems.slice(0, 8).map(item => (
                             <button
                               key={item.keyword}
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => handleSuggestionClick(item)}
-                              className="px-3 py-1.5 bg-gray-100 hover:bg-green-100 text-sm text-gray-700 hover:text-green-700 rounded-full transition-colors"
+                              className="min-w-0 rounded-xl bg-gray-100 px-2 py-2 text-left text-sm leading-snug text-gray-700 transition-colors hover:bg-green-100 hover:text-green-700 sm:rounded-full sm:px-3 sm:py-1.5"
                             >
                               {item.icon} {item.keyword}
                             </button>
