@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react';
 import { STAGE_INFO, type StageInfo } from '../data/driverLicenseStages';
 import { FAST_CARDS } from '../data/driverLicenseFastCards';
 import { bankCheckQuestions, buildSectionGalleries, cardCheckQuestions, sectionCheckQuestions } from '../data/driverLicenseCheckQuestions';
@@ -520,8 +520,21 @@ const WORD_KIND = [
 ];
 export function WordList({ words, dict }: { words: string[]; dict: MjWords['d'] }) {
   const list = words.filter((w) => dict[w]);
+  const [practiceWord, setPracticeWord] = useState<string | null>(null);
+  const chooseWord = (word: string) => {
+    setPracticeWord(word);
+    speakZh(word);
+  };
   return (
     <div className="flex flex-col gap-4">
+      {practiceWord && dict[practiceWord] && (
+        <HandwritingPractice
+          key={practiceWord}
+          word={practiceWord}
+          entry={dict[practiceWord]}
+          onClose={() => setPracticeWord(null)}
+        />
+      )}
       {WORD_KIND.map((kind) => {
         const items = list.filter((w) => dict[w][2] === kind.v);
         if (items.length === 0) return null;
@@ -539,8 +552,10 @@ export function WordList({ words, dict }: { words: string[]; dict: MjWords['d'] 
                   <button
                     key={w}
                     type="button"
-                    onClick={() => speakZh(w)}
-                    className="inline-flex items-baseline gap-1 px-2 py-1 rounded-full bg-gray-100 text-[13px] text-gray-600"
+                    onClick={() => chooseWord(w)}
+                    aria-label={`${w}, ${dict[w][0]}, ${dict[w][1]} — 따라 쓰기 연습`}
+                    aria-pressed={practiceWord === w}
+                    className="inline-flex items-baseline gap-1 px-2 py-1 rounded-full bg-gray-100 text-[13px] text-gray-600 hover:bg-[#eef7fe] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0]"
                   >
                     <b lang="zh-CN" className="text-[15px] font-medium text-gray-800">
                       {w}
@@ -556,8 +571,10 @@ export function WordList({ words, dict }: { words: string[]; dict: MjWords['d'] 
                   <button
                     key={w}
                     type="button"
-                    onClick={() => speakZh(w)}
-                    className={`text-left rounded-xl px-3 py-2 border ${kind.v === 2 ? 'bg-[#fff8e6] border-[#f5d58a]' : 'bg-white border-gray-200'}`}
+                    onClick={() => chooseWord(w)}
+                    aria-label={`${w}, ${dict[w][0]}, ${dict[w][1]} — 따라 쓰기 연습`}
+                    aria-pressed={practiceWord === w}
+                    className={`w-full text-left rounded-xl px-3 py-2 border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0] ${kind.v === 2 ? 'bg-[#fff8e6] border-[#f5d58a]' : 'bg-white border-gray-200'} ${practiceWord === w ? 'ring-2 ring-[#37a7f0]' : ''}`}
                   >
                     <span lang="zh-CN" className={`block leading-tight ${kind.v === 2 ? 'text-[22px] text-[#b9560e] font-medium' : 'text-[18px] text-gray-900'}`}>
                       {w}
@@ -632,6 +649,139 @@ export function WordStudyHost() {
         </div>
       </div>
     </div>
+  );
+}
+
+
+function HandwritingPractice({ word, entry, onClose }: { word: string; entry: WordEntry; onClose: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const activePointer = useRef<number | null>(null);
+  const lastPoint = useRef<{ x: number; y: number } | null>(null);
+  const [repeat, setRepeat] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+
+  useEffect(() => {
+    setSpeechSupported(typeof window !== 'undefined' && 'speechSynthesis' in window);
+  }, []);
+
+  useEffect(() => {
+    if (!repeat || !speechSupported) return;
+    let alive = true;
+    let timer = 0;
+    const play = () => {
+      if (!alive) return;
+      speakZh(word);
+      const utteranceDuration = Math.max(1200, Math.min(5000, word.length * 900));
+      timer = window.setTimeout(play, utteranceDuration);
+    };
+    play();
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, [repeat, speechSupported, word]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#263746';
+      ctx.lineWidth = 5;
+    };
+    resize();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
+    observer?.observe(canvas);
+    window.addEventListener('resize', resize);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', resize);
+    };
+  }, [word]);
+
+  const pointFrom = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+  const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (activePointer.current !== null) return;
+    activePointer.current = e.pointerId;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    lastPoint.current = pointFrom(e);
+  };
+  const onPointerMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (activePointer.current !== e.pointerId || !lastPoint.current) return;
+    const canvas = e.currentTarget;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const next = pointFrom(e);
+    ctx.beginPath();
+    ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
+    ctx.lineTo(next.x, next.y);
+    ctx.stroke();
+    lastPoint.current = next;
+  };
+  const onPointerEnd = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (activePointer.current !== e.pointerId) return;
+    activePointer.current = null;
+    lastPoint.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+  const clear = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    lastPoint.current = null;
+  };
+
+  return (
+    <section data-noswipe className="rounded-2xl border border-[#d7e6f0] bg-[#f7fbfe] p-3 sm:p-4" aria-label="한자 따라 쓰기 연습">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-gray-500">따라 쓸 단어</p>
+          <p lang="zh-CN" className="mt-0.5 text-[34px] leading-none font-medium text-[#2c3e50]">{word}</p>
+          <p className="mt-1 text-sm text-[#b98222]">{entry[0]} <span className="text-gray-400">·</span> <span className="text-gray-600">{entry[1]}</span></p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="따라 쓰기 닫기" className="h-9 w-9 shrink-0 rounded-full text-gray-500 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0]">×</button>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => speakZh(word)} disabled={!speechSupported} className="min-h-10 rounded-lg bg-[#37a7f0] px-3 text-sm font-semibold text-white disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2c3e50]">발음 다시 듣기</button>
+        <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700">
+          <input type="checkbox" checked={repeat} disabled={!speechSupported} onChange={(e) => setRepeat(e.target.checked)} className="accent-[#37a7f0]" />
+          반복 재생
+        </label>
+        {!speechSupported && <span className="text-xs text-gray-500">이 브라우저에서는 음성을 지원하지 않아요.</span>}
+      </div>
+      <div className="relative mt-3 h-52 w-full overflow-hidden rounded-xl border border-[#d7e6f0] bg-white sm:h-60">
+        <span lang="zh-CN" aria-hidden="true" className="pointer-events-none absolute inset-0 grid place-items-center select-none text-[120px] leading-none text-[#263746]/10">{word}</span>
+        <canvas
+          ref={canvasRef}
+          aria-label={`${word} 따라 쓰기 영역`}
+          aria-describedby="handwriting-instructions"
+          className="absolute inset-0 h-full w-full touch-none"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerEnd}
+          onPointerCancel={onPointerEnd}
+          onLostPointerCapture={() => { activePointer.current = null; lastPoint.current = null; }}
+        />
+      </div>
+      <p id="handwriting-instructions" className="mt-2 text-xs text-gray-500">옅은 글자를 보며 손가락이나 마우스로 써 보세요. 반복 재생을 켜면 쓰는 동안 발음을 다시 들려줘요.</p>
+      <div className="mt-2 flex justify-end">
+        <button type="button" onClick={clear} className="min-h-10 rounded-lg px-3 text-sm font-medium text-gray-600 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0]">지우기</button>
+      </div>
+    </section>
   );
 }
 
