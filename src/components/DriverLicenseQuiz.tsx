@@ -546,7 +546,6 @@ export function WordList({ words, dict, mode: selectedMode, onModeChange }: { wo
   const [practiceWord, setPracticeWord] = useState<string | null>(null);
   const chooseWord = (word: string) => {
     setPracticeWord(word);
-    setMode('writing');
     speakZh(word);
   };
   const practiceWords = list.filter((w) => dict[w][2] !== 0);
@@ -554,15 +553,15 @@ export function WordList({ words, dict, mode: selectedMode, onModeChange }: { wo
     <div className="flex min-h-full flex-col gap-4">
       {selectedMode === undefined && <WordStudyModePicker mode={mode} onChange={setMode} />}
       {mode === 'writing' && (
-        <section aria-label="따라 쓸 단어 선택" className="flex flex-1 flex-col gap-3">
+        <section aria-label="따라 쓸 단어 선택" className="flex flex-col gap-3">
           {practiceWord && dict[practiceWord] ? (
-            <div className="mx-auto flex w-full max-w-[520px] flex-1 flex-col justify-center">
+            <div className="mx-auto w-full max-w-[520px]">
               <HandwritingPractice key={practiceWord} word={practiceWord} entry={dict[practiceWord]} onClose={() => setPracticeWord(null)} />
             </div>
           ) : (
-            <div className="flex min-h-[260px] flex-1 items-center justify-center rounded-2xl border border-dashed border-[#d7e6f0] bg-[#f7fbfe] px-5 text-center text-sm text-gray-500">아래에서 단어를 고르면 여기에 따라 쓰기 칸이 나타나요.</div>
+            <div className="flex min-h-40 items-center justify-center rounded-2xl border border-dashed border-[#d7e6f0] bg-[#f7fbfe] px-5 text-center text-sm text-gray-500">아래에서 단어를 고르면 여기에 따라 쓰기 칸이 나타나요.</div>
           )}
-          <div role="group" aria-label="따라 쓸 단어" className="flex max-h-28 flex-wrap justify-center gap-2 overflow-y-auto py-1">
+          <div role="group" aria-label="따라 쓸 단어" className="flex max-h-36 flex-wrap justify-center gap-2 overflow-y-auto py-1">
             {practiceWords.map((word) => (
               <button key={word} type="button" onClick={() => chooseWord(word)} aria-pressed={practiceWord === word} className={`rounded-full border px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0] ${practiceWord === word ? 'border-[#37a7f0] bg-[#eef7fe] text-[#237db6]' : 'border-gray-200 bg-white text-gray-700'}`}>
                 <span lang="zh-CN" className="font-medium text-base">{word}</span><span className="ml-1.5 text-sm text-gray-500">{dict[word][0]}</span>
@@ -606,8 +605,8 @@ export function WordList({ words, dict, mode: selectedMode, onModeChange }: { wo
                       <button
                         key={w}
                         type="button"
-                        onClick={() => chooseWord(w)}
-                        aria-label={`${w}, ${dict[w][0]}, ${dict[w][1]} — 따라 쓰기`}
+                        onClick={() => speakZh(w)}
+                        aria-label={`${w}, ${dict[w][0]}, ${dict[w][1]} — 발음 듣기`}
                         className={`w-full rounded-xl border px-3 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0] ${kind.v === 2 ? 'border-[#f5d58a] bg-[#fff8e6]' : 'border-gray-200 bg-white'}`}
                       >
                         <span lang="zh-CN" className={`block leading-tight ${kind.v === 2 ? 'text-[22px] font-medium text-[#b9560e]' : 'text-[18px] text-gray-900'}`}>{w}</span>
@@ -653,7 +652,7 @@ export function WordStudyHost() {
   return (
     <div data-noswipe className="fixed inset-0 z-[1200] bg-black/40 flex items-end sm:items-center justify-center" onClick={() => setTarget(null)} role="dialog" aria-modal="true" aria-label="단어 공부">
       <div
-        className="w-full h-[88dvh] sm:h-auto sm:max-w-[760px] max-h-[88dvh] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white shadow-xl"
+        className="w-full h-[90dvh] sm:h-auto sm:max-w-[760px] max-h-[90dvh] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-none flex items-center gap-2 px-4 pt-3.5 pb-2.5 border-b border-gray-100">
@@ -802,9 +801,10 @@ function HandwritingPractice({ word, entry, onClose }: { word: string; entry: Wo
           <input type="checkbox" checked={repeat} disabled={!speechSupported} onChange={(e) => setRepeat(e.target.checked)} className="accent-[#37a7f0]" />
           반복 재생
         </label>
+        <button type="button" onClick={clear} className="min-h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-600 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0]">지우기</button>
         {!speechSupported && <span className="text-xs text-gray-500">이 브라우저에서는 음성을 지원하지 않아요.</span>}
       </div>
-      <div className="relative mt-3 h-60 w-full overflow-hidden rounded-xl border border-[#d7e6f0] bg-white sm:h-60">
+      <div className="relative mt-3 h-72 w-full overflow-hidden rounded-xl border border-[#d7e6f0] bg-white sm:h-72">
         <span lang="zh-CN" aria-hidden="true" className="pointer-events-none absolute inset-0 grid place-items-center select-none text-[120px] leading-none text-[#263746]/10">{word}</span>
         <canvas
           ref={canvasRef}
@@ -819,9 +819,6 @@ function HandwritingPractice({ word, entry, onClose }: { word: string; entry: Wo
         />
       </div>
       <p id="handwriting-instructions" className="sr-only">옅은 글자를 보며 손가락이나 마우스로 써 보세요. 반복 재생을 켜면 쓰는 동안 발음을 다시 들려줘요.</p>
-      <div className="mt-2 flex justify-end">
-        <button type="button" onClick={clear} className="min-h-10 rounded-lg px-3 text-sm font-medium text-gray-600 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#37a7f0]">지우기</button>
-      </div>
     </section>
   );
 }
