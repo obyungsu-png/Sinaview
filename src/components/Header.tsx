@@ -211,7 +211,8 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                   onBlur={() => setShowPlaceholder(searchValue === '')}
                   onKeyDown={handleKeyDown}
                   placeholder="검색어"
-                  className="flex-1 py-2 sm:py-4 px-3 sm:px-5 bg-transparent border-none outline-none text-sm sm:text-base min-w-0"
+                  aria-label="검색"
+                  className="flex-1 py-2 sm:py-4 px-3 sm:px-5 bg-transparent border-none outline-none text-sm sm:text-base min-w-0 max-sm:placeholder:text-transparent"
                   autoComplete="off"
                 />
                 
@@ -240,7 +241,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
 
               {/* Suggestions Dropdown */}
               {showSuggestions && (
-                <div className="fixed inset-x-3 top-16 max-h-[min(70dvh,620px)] overflow-y-auto overscroll-contain bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 sm:absolute sm:inset-x-0 sm:top-full sm:mt-2 sm:max-h-[min(70vh,620px)]">
+                <div className="fixed inset-x-3 top-[60px] max-h-[min(46dvh,380px)] overflow-y-auto overscroll-contain bg-white rounded-2xl shadow-xl border border-gray-200 z-50 sm:absolute sm:inset-x-0 sm:top-full sm:mt-2 sm:max-h-[min(70vh,620px)] sm:shadow-2xl">
                   {/* 검색어가 있을 때 - 필터링된 결과 */}
                   {searchValue.trim() && filteredSuggestions.length > 0 && (
                     <div className="py-2">
@@ -251,7 +252,7 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => handleSuggestionClick(item)}
                           onMouseEnter={() => setSelectedSuggestionIndex(index)}
-                          className={`w-full flex items-center px-4 py-3 text-left transition-colors ${
+                          className={`w-full flex items-center px-4 py-2 sm:py-3 text-left transition-colors ${
                             selectedSuggestionIndex === index 
                               ? 'bg-green-50' 
                               : 'hover:bg-gray-50'
@@ -279,42 +280,44 @@ export function Header({ onCategorySelect, onYellowPagesSelect, onNavigate, curr
 
                   {/* 검색어가 없을 때 - 인기 검색어 + 바로가기 */}
                   {!searchValue.trim() && (
-                    <div className="py-2">
-                      {/* 인기 검색어 */}
-                      <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                    <div className="py-1.5 sm:py-2">
+                      {/* 인기 검색어 — 휴대폰은 작은 칩으로 줄바꿈, PC는 줄 목록 */}
+                      <div className="px-3.5 sm:px-4 py-1.5 sm:py-2 text-[12.5px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
                         <TrendingUp className="w-3.5 h-3.5" /> 인기 검색어
                       </div>
-                      {trendingKeywords.map((keyword, index) => (
-                        <button
-                          key={keyword}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setSearchValue(keyword);
-                            setShowSuggestions(true);
-                          }}
-                          className="w-full flex items-center px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
-                        >
-                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mr-3 flex-shrink-0 ${
-                            index < 3 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
-                          }`}>
-                            {index + 1}
-                          </span>
-                          <span className="text-sm text-gray-700">{keyword}</span>
-                        </button>
-                      ))}
+                      <div className="flex flex-wrap gap-1.5 px-3.5 pb-1 sm:block sm:p-0">
+                        {trendingKeywords.map((keyword, index) => (
+                          <button
+                            key={keyword}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setSearchValue(keyword);
+                              setShowSuggestions(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1.5 text-left transition-colors hover:bg-gray-200 sm:w-full sm:gap-0 sm:rounded-none sm:bg-transparent sm:px-4 sm:py-2.5 sm:hover:bg-gray-50"
+                          >
+                            <span className={`w-[18px] h-[18px] sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold sm:mr-3 flex-shrink-0 ${
+                              index < 3 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-700 sm:bg-gray-200 sm:text-gray-600'
+                            }`}>
+                              {index + 1}
+                            </span>
+                            <span className="text-[14px] sm:text-sm text-gray-700 whitespace-nowrap">{keyword}</span>
+                          </button>
+                        ))}
+                      </div>
                       
                       {/* 빠른 바로가기 */}
-                      <div className="border-t border-gray-100 mt-2 pt-2">
-                        <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                      <div className="border-t border-gray-100 mt-1.5 sm:mt-2 pt-1 sm:pt-2">
+                        <div className="px-3.5 sm:px-4 py-1.5 sm:py-2 text-[12.5px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5" /> 바로가기
                         </div>
-                        <div className="grid grid-cols-2 gap-2 px-4 py-2 sm:flex sm:flex-wrap">
+                        <div className="flex flex-wrap gap-1.5 px-3.5 pb-2 sm:gap-2 sm:px-4 sm:py-2">
                           {searchableItems.slice(0, 8).map(item => (
                             <button
                               key={item.keyword}
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => handleSuggestionClick(item)}
-                              className="min-w-0 rounded-xl bg-gray-100 px-2 py-2 text-left text-sm leading-snug text-gray-700 transition-colors hover:bg-green-100 hover:text-green-700 sm:rounded-full sm:px-3 sm:py-1.5"
+                              className="rounded-full bg-gray-100 px-2.5 py-1.5 text-left text-[13.5px] sm:text-sm leading-snug whitespace-nowrap text-gray-700 transition-colors hover:bg-green-100 hover:text-green-700 sm:px-3"
                             >
                               {item.icon} {item.keyword}
                             </button>

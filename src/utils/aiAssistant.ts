@@ -6,7 +6,10 @@ export type AiContext = {
   title: string; // AI 창 위에 보일 이름 (예: '운전면허 12번 문제')
   label: string; // 사용자 말풍선에 보일 짧은 질문
   prompt: string; // 실제로 AI 에게 보내는 질문 (문제·보기·정답 포함)
-  action?: { label: string; run: () => void }; // 있으면 AI 질문 대신 이 버튼 (예: 만점 교육 '요점 포인트')
+  // 있으면 AI 질문 대신 이 버튼 (예: 만점 교육 '요점 포인트')
+  // - reply: 누르면 AI 창 안에 준비된 정리(ask = 사용자 말풍선)를 바로 보여 줌 (AI를 기다리지 않음)
+  // - run: 누르면 AI 창을 닫고 다른 화면을 엶
+  action?: { label: string; run?: () => void; ask?: string; reply?: string };
 };
 
 const CONTEXT_EVENT = 'ai-assistant:context';

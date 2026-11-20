@@ -1335,6 +1335,21 @@ function QuestionCard({
 }
 
 // AI 도우미에게 보낼 해설 요청 (공식 정답을 전제로 정답·오답 이유를 짧게)
+/** AI 창 '요점 포인트': 이 문제의 요점을 정리된 자료로 (정답 · 핵심 요약 · 速记口诀 · 해설 · 핵심 단어) */
+function keyPointsReply(q: DLQuestion) {
+  const zhO = optionsOf(q);
+  const koO = (i: number) => (q.t === 'j' ? JUDGE_OPTIONS[i] : q.ko?.o?.[i]);
+  const one = (i: number) => `${LETTERS[i]}. ${zhO[i]}${koO(i) && koO(i) !== zhO[i] ? ` (${koO(i)})` : ''}`;
+  const answer = q.t === 'm' ? (q.ma ?? '').split('').map((l) => one(LETTERS.indexOf(l))).join(' / ') : one(q.a);
+  const bold = (s: string) => s.replace(/【(.+?)】/g, '**$1**');
+  const lines = ['### 📖 요점 포인트', `**정답** ${answer}`];
+  if (q.sm) lines.push('', '### 핵심', `- ${q.sm[2]}`, `- ${q.sm[0]} (${q.sm[1]})`);
+  if (q.kj) lines.push('', '### 외우기 (速记口诀)', `- ${bold(q.kj[2])}`, `- ${bold(q.kj[0])} (${q.kj[1]})`);
+  if (q.e) lines.push('', '### 해설', q.e);
+  if (q.kw?.length) lines.push('', '### 핵심 단어', ...q.kw.slice(0, 5).map(([w, p, m]) => `- **${w}** ${p} — ${m}`));
+  return lines.join('\n');
+}
+
 function explainPrompt(q: DLQuestion, selected?: number) {
   const options = optionsOf(q);
   return [
@@ -1505,8 +1520,8 @@ export function PracticeQuiz({
       title: `${title} ${index + 1}번 문제`,
       label: selected !== undefined && selected !== q.a ? `${LETTERS[selected]}번이 왜 틀렸는지 설명해 줘` : '이 문제 정답·오답 이유를 설명해 줘',
       prompt: explainPrompt(q, selected),
-      // 만점 문제는 AI 질문 대신 '요점 포인트' (문제·보기의 모든 단어)
-      action: q.ko ? { label: '📖 요점 포인트', run: () => openWordStudy(q, `${index + 1}번 문제`) } : undefined,
+      // 만점 교육·학법 감점 문제는 AI 질문 대신 '요점 포인트': 정답·핵심 요약·速记口诀·해설·핵심 단어를 바로 정리해 보여 줌
+      action: q.ko ? { label: '📖 요점 포인트', ask: `${index + 1}번 문제 요점 포인트 정리해 줘`, reply: keyPointsReply(q) } : undefined,
     });
   }, [q, index, title, answered]);
   useEffect(() => () => setAiContext(null), []);
